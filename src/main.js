@@ -462,15 +462,52 @@ function renderTurnByTurn(instructions) {
   `).join('');
 }
 
-// ─── Navigation HUD ───────────────────────────────────────────────────────────
 function setupNavUI() {
   document.getElementById('hud-exit-btn').addEventListener('click', stopNavigation);
+  
+  const arBtn = document.getElementById('ar-mode-btn');
+  if (arBtn) {
+    arBtn.addEventListener('click', async () => {
+      const arView = document.getElementById('ar-view');
+      const arVideo = document.getElementById('ar-video');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        arVideo.srcObject = stream;
+        arView.classList.add('active');
+      } catch (e) {
+        alert('Camera access denied or not available.');
+      }
+    });
+  }
+
+  const exitArBtn = document.getElementById('exit-ar-btn');
+  if (exitArBtn) {
+    exitArBtn.addEventListener('click', () => {
+      const arView = document.getElementById('ar-view');
+      const arVideo = document.getElementById('ar-video');
+      const stream = arVideo.srcObject;
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      arView.classList.remove('active');
+    });
+  }
 }
 
 function startNavigation() {
   state.isNavigating = true;
   routePanel.classList.add('hidden');
   navHud.classList.remove('hidden');
+
+  // Simulate P2P Mesh Alert after 10s of navigation
+  setTimeout(() => {
+    const alert = document.getElementById('mesh-alert');
+    if (alert) {
+      alert.classList.add('visible');
+      document.getElementById('mesh-reroute-btn').onclick = () => {
+        alert.classList.remove('visible');
+        calculateRoute(); // Reroute using dynamic traffic/closure data
+      };
+    }
+  }, 10000);
 
   // Show initial instruction
   if (state.currentRoute) {

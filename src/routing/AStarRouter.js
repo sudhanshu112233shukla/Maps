@@ -149,9 +149,19 @@ export class AStarRouter {
       }
 
       const neighbors = this.graph[current] || [];
+      const currentHour = new Date().getHours();
+      
       for (const edge of neighbors) {
         const toll = edge.toll ? tollPenalty : 0;
         
+        // 🚦 Dynamic Traffic Simulation (Offline)
+        // Peak hours (8-10 AM and 5-8 PM) increase primary road costs
+        let trafficFactor = 1.0;
+        const isPeak = (currentHour >= 8 && currentHour <= 10) || (currentHour >= 17 && currentHour <= 20);
+        if (isPeak && (edge.type === 'primary' || edge.type === 'motorway')) {
+          trafficFactor = 1.5; // 50% slower in peak traffic
+        }
+
         // Safety factor: penalize non-primary/motorway roads in 'safest' mode
         let safetyPenalty = 0;
         if (mode === 'safest') {
@@ -160,8 +170,8 @@ export class AStarRouter {
         }
 
         const edgeCost = mode === 'eco'
-          ? edge.dist                          // minimize distance for eco
-          : edge.time + toll + safetyPenalty;  // minimize time + safety for others
+          ? edge.dist * trafficFactor           // minimize distance (weighted by traffic)
+          : (edge.time * trafficFactor) + toll + safetyPenalty; // minimize time + safety
 
         const newCost = (g.get(current) || 0) + edgeCost;
 
