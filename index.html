@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NEURAL_OS | ELITE TACTICAL HMI</title>
+    
+    <script src="https://unpkg.com/pmtiles@2.11.0/dist/index.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@300;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #202124;
+            --text-secondary: #70757a;
+            --accent: #1a73e8;
+            --accent-glow: rgba(26, 115, 232, 0.15);
+            --border: #dadce0;
+            --panel: #ffffff;
+            --safe-top: env(safe-area-inset-top, 10px);
+            --safe-bottom: env(safe-area-inset-bottom, 10px);
+            --danger: #d93025;
+        }
+
+        body, html { 
+            margin: 0; width: 100%; height: 100%; 
+            background: var(--bg); color: var(--text); 
+            font-family: 'Google Sans', 'Roboto', Arial, sans-serif; 
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        #map { position: absolute; inset: 0; z-index: 1; }
+
+        /* Floating Search & Route Panel */
+        .search-container {
+            position: absolute; top: var(--safe-top); left: 12px; right: 12px;
+            z-index: 10; display: flex; flex-direction: column; gap: 12px;
+        }
+
+        .search-bar-wrap {
+            background: #fff; border-radius: 24px; height: 48px;
+            display: flex; align-items: center; padding: 0 8px 0 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 1px solid var(--border);
+        }
+        .search-bar-wrap input {
+            flex: 1; border: none; outline: none; font-size: 16px;
+            color: var(--text); background: transparent; padding: 0 12px;
+        }
+
+        .quick-chips {
+            display: flex; gap: 8px; overflow-x: auto; padding: 4px 0;
+            scrollbar-width: none;
+        }
+        .quick-chips::-webkit-scrollbar { display: none; }
+        .q-chip {
+            background: #fff; border: 1px solid var(--border); border-radius: 18px;
+            padding: 8px 14px; font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 6px; white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer;
+        }
+        .q-chip svg { color: var(--accent); }
+
+        .routing-box {
+            background: #fff; border-radius: 16px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden;
+            border: 1px solid var(--border); display: none; /* Hidden until routing mode */
+        }
+
+        .input-group {
+            display: flex; align-items: center; padding: 0 16px;
+            height: 48px; border-bottom: 1px solid var(--border);
+        }
+        .input-group:last-child { border-bottom: none; }
+        
+        .input-group input {
+            flex: 1; border: none; outline: none; font-size: 15px;
+            color: var(--text); background: transparent; padding: 0 12px;
+        }
+        .dot-origin { width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--accent); }
+        .dot-dest { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+
+        .icon-btn {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text-secondary);
+        }
+        .icon-btn:active { background: #f1f3f4; }
+
+        /* Suggestions Panel */
+        #suggestions-panel {
+            background: #fff; border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15); overflow: hidden;
+            max-height: 350px; overflow-y: auto;
+            animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .suggestion-item {
+            padding: 14px 16px; display: flex; align-items: center; gap: 16px;
+            cursor: pointer; border-bottom: 1px solid #f8f9fa;
+            transition: background 0.2s;
+        }
+        .suggestion-item:active { background: #f1f3f4; }
+        .suggestion-name { font-size: 15px; font-weight: 500; }
+        .suggestion-addr { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+        /* Route Preferences */
+        .route-options {
+            display: flex; gap: 10px; padding: 10px 16px; background: #fff;
+            border-top: 1px solid #f1f3f4;
+        }
+        .option-chip {
+            padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border);
+            font-size: 13px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: #fff; color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .option-chip.active { background: #e8f0fe; color: var(--accent); border-color: var(--accent); }
+
+        /* Bottom Sheet */
+        .bottom-sheet {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: #fff; border-radius: 28px 28px 0 0;
+            z-index: 20; padding: 8px 0 calc(16px + var(--safe-bottom));
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+            transform: translateY(105%); 
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform;
+        }
+        .bottom-sheet.visible { transform: translateY(0); }
+        .sheet-handle { width: 32px; height: 4px; background: #e8eaed; border-radius: 2px; margin: 8px auto 16px; }
+
+        .sheet-content { padding: 0 20px; }
+        .sheet-title { font-size: 24px; font-weight: 500; margin: 0; }
+        .sheet-subtitle { font-size: 14px; color: var(--text-secondary); margin: 4px 0 16px; }
+
+        .action-bar { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
+        .action-btn {
+            background: #fff; border: 1px solid var(--border); border-radius: 20px;
+            padding: 10px 20px; font-size: 14px; font-weight: 500;
+            display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--accent);
+            white-space: nowrap;
+        }
+        .action-btn.primary { background: var(--accent); color: #fff; border: none; }
+        .action-btn svg { width: 18px; height: 18px; }
+
+        .photo-strip { display: flex; gap: 12px; overflow-x: auto; margin: 0 -20px; padding: 0 20px 20px; scrollbar-width: none; }
+        .place-photo {
+            width: 280px; height: 180px; border-radius: 16px; background: #f1f3f4;
+            flex-shrink: 0; object-fit: cover;
+        }
+
+        .btn-primary {
+            width: 100%; height: 56px; border-radius: 28px;
+            background: var(--accent); color: #fff; border: none;
+            font-size: 16px; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            margin-top: 24px; transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+        }
+        .btn-primary:active { transform: scale(0.98); background: #1765cc; }
+
+        /* Navigation HUD */
+        .nav-hud {
+            position: absolute; top: 0; left: 0; right: 0;
+            background: #1a73e8; color: #fff; z-index: 100;
+            padding: calc(16px + var(--safe-top)) 20px 20px;
+            display: flex; align-items: center; gap: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideInHUD 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideInHUD {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+        .nav-info { flex: 1; }
+        .nav-dist { font-size: 28px; font-weight: 800; }
+        .nav-instr { font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .fab-container {
+            position: absolute; right: 16px; bottom: 100px;
+            display: flex; flex-direction: column; gap: 12px; z-index: 15;
+        }
+        .fab {
+            width: 52px; height: 52px; border-radius: 50%;
+            background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--accent);
+        }
+
+        /* Offline Maps Manager */
+        .offline-manager {
+            position: fixed; inset: 0; background: #fff; z-index: 300;
+            display: flex; flex-direction: column;
+            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform;
+        }
+        .offline-manager.visible { transform: translateY(0); }
+        .offline-header {
+            padding: calc(16px + var(--safe-top)) 16px 16px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 16px;
+        }
+        .offline-header h2 { margin: 0; font-size: 18px; font-weight: 500; }
+        .region-list { padding: 0 16px; overflow-y: auto; flex: 1; }
+        .region-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 0; border-bottom: 1px solid #f1f3f4;
+        }
+        .region-info h3 { margin: 0; font-size: 16px; font-weight: 500; }
+        .region-info p { margin: 4px 0 0; font-size: 13px; color: var(--text-secondary); }
+        .download-btn {
+            background: #f1f3f4; color: var(--accent); border: none;
+            padding: 8px 16px; border-radius: 16px; font-weight: 500; font-size: 13px;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .download-btn:active { background: #e8eaed; }
+        .download-btn.downloaded {
+            background: #e6f4ea; color: #1e8e3e; pointer-events: none;
+        }
+        .progress-bar-container {
+            height: 4px; background: #f1f3f4; border-radius: 2px; width: 80px;
+            overflow: hidden; display: none; margin-top: 8px;
+        }
+        .progress-bar {
+            height: 100%; background: var(--accent); width: 0%;
+            transition: width 0.2s;
+        }
+
+        .hidden { display: none !important; }
+
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <!-- Top Left Menu Button -->
+    <div id="main-menu-btn" style="position: absolute; top: calc(12px + var(--safe-top)); left: 16px; z-index: 15; background: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </div>
+
+    <!-- Search & Routing Panel -->
+    <div class="search-container" style="top: calc(16px + var(--safe-top));">
+        <div class="search-bar-wrap">
+            <input type="text" id="search-input" placeholder="Search here" autocomplete="off">
+            <div id="clear-search-btn" class="icon-btn hidden">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+            <div id="voice-btn" class="icon-btn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            </div>
+        </div>
+
+        <div class="quick-chips">
+            <div class="q-chip">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+                Restaurants
+            </div>
+            <div class="q-chip">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>
+                Hotels
+            </div>
+            <div class="q-chip">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-9H14.5V7L12 10.5 9.5 7v4H7.5V14h1.5v3H11v-3h2v3h2v-3h1.5v-3z"/></svg>
+                Attractions
+            </div>
+        </div>
+
+        <div id="routing-panel" class="routing-box">
+            <div class="input-group">
+                <div class="dot-origin"></div>
+                <input type="text" id="origin-input" placeholder="Current location" autocomplete="off">
+                <div id="gps-btn" class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+                </div>
+            </div>
+            <div class="input-group">
+                <div class="dot-dest"></div>
+                <input type="text" id="dest-input" placeholder="Choose destination" autocomplete="off">
+            </div>
+            <div class="route-options">
+                <div class="option-chip active" data-mode="fastest">Fastest</div>
+                <div class="option-chip" data-mode="safest">Safest</div>
+            </div>
+        </div>
+
+        <div id="suggestions-panel" class="hidden">
+            <div id="suggestions-list"></div>
+        </div>
+    </div>
+
+    <!-- FABs -->
+    <div class="fab-container">
+        <div id="ai-fab-btn" class="fab">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div id="locate-btn" class="fab">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        </div>
+    </div>
+
+    <!-- Bottom Sheet -->
+    <div id="place-panel" class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+            <h2 id="sheet-place-name" class="sheet-title">Mumbai</h2>
+            <div id="sheet-place-subtitle" class="sheet-subtitle">Maharashtra, India</div>
+            
+            <div class="action-bar">
+                <button id="directions-btn" class="action-btn primary">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
+                    Directions
+                </button>
+                <button class="action-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    Save
+                </button>
+                <button class="action-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    Share
+                </button>
+            </div>
+
+            <div class="photo-strip">
+                <div class="place-photo" style="background-image: url('https://images.unsplash.com/photo-1570160897040-30430ade2218?auto=format&fit=crop&w=400&q=80'); background-size: cover;"></div>
+                <div class="place-photo" style="background-image: url('https://images.unsplash.com/photo-1566550970634-970528209214?auto=format&fit=crop&w=400&q=80'); background-size: cover;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Route Detail Sheet -->
+    <div id="route-panel" class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span id="route-time" style="color: #1e8e3e; font-size: 20px; font-weight: 700;">-- min</span>
+                    <span id="route-distance" style="margin-left: 8px; color: var(--text-secondary);">-- km</span>
+                </div>
+                <div id="safety-badge" style="background: #e6f4ea; color: #1e8e3e; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">SAFEST</div>
+            </div>
+            
+            <div id="turn-by-turn-list" style="margin-top: 20px; max-height: 250px; overflow-y: auto; border-top: 1px solid #f1f3f4;"></div>
+            
+            <button id="start-navigate-btn" class="btn-primary">
+                START NAVIGATING
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation HUD -->
+    <div id="nav-hud" class="nav-hud hidden">
+        <div class="nav-info">
+            <div id="hud-distance" class="nav-dist">0.0 km</div>
+            <div id="hud-instruction" class="nav-instr">Head North towards Gate</div>
+        </div>
+        <div style="text-align: right;">
+            <div id="hud-time" style="font-size: 20px; font-weight: 800;">-- MIN</div>
+            <button id="hud-exit-btn" style="background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 6px 16px; border-radius: 16px; font-size: 12px; font-weight: 700; margin-top: 8px; cursor: pointer;">EXIT</button>
+        </div>
+    </div>
+
+    <!-- AI Assistant -->
+    <div id="ai-panel" class="hidden" style="position: fixed; inset: 0; background: #fff; z-index: 200; display: flex; flex-direction: column;">
+        <div style="padding: calc(16px + var(--safe-top)) 16px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 18px; font-weight: 700;">Neural Copilot</div>
+            <button id="ai-close-btn" style="background: none; border: none; padding: 8px; cursor: pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div id="ai-messages" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;"></div>
+        <div style="padding: 12px 16px calc(12px + var(--safe-bottom)); border-top: 1px solid var(--border); display: flex; gap: 12px;">
+            <input type="text" id="ai-input" placeholder="Ask about safety or traffic..." style="flex: 1; background: #f1f3f4; border: none; border-radius: 24px; padding: 12px 20px; outline: none;">
+            <button id="ai-send-btn" style="color: var(--accent); background: none; border: none; font-weight: 700;">SEND</button>
+        </div>
+    </div>
+
+    <div id="ai-loading-overlay" class="hidden"></div>
+    <div id="ai-progress-fill" style="display: none;"></div>
+    <div id="ai-loading-text" style="display: none;"></div>
+    
+    <!-- Offline Maps Manager Panel -->
+    <div id="offline-manager" class="offline-manager">
+        <div class="offline-header">
+            <button id="offline-close-btn" style="background: none; border: none; cursor: pointer; padding: 4px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <h2>Offline Maps</h2>
+        </div>
+        <div style="padding: 16px; background: #f8f9fa; border-bottom: 1px solid var(--border);">
+            <p style="margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.4;">Download regions over Wi-Fi to search and navigate without an internet connection. Data is stored securely on your device.</p>
+        </div>
+        <div class="region-list" id="offline-region-list">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+
+    <div id="zoom-in-btn" style="display: none;"></div>
+    <div id="zoom-out-btn" style="display: none;"></div>
+    <div id="compass-btn" style="display: none;"></div>
+    <div id="menu-btn" style="display: none;"></div>
+    <div id="engage-btn" style="display: none;"></div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+</body>
+</html>
+</body>
+</html>
+</body>
+</html>
