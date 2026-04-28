@@ -84,11 +84,22 @@ async function init() {
 
   gps.startWatching((pos) => {
     mapView.setUserLocation(pos.lng, pos.lat);
+    
+    // Auto-update origin if it was snapped to "Current Location"
+    if (state.origin && state.origin.name === 'Current Location') {
+      state.origin = { name: 'Current Location', lng: pos.lng, lat: pos.lat };
+      if (state.currentRoute && !state.isNavigating) {
+        // Refresh route as user moves to the starting point
+        calculateRoute();
+      }
+    }
+
     if (state.isNavigating) updateNavHUD(pos);
   });
 
   // Wire up UI events
   setupSearchUI();
+  setupQuickSearch(); // New: Handles Restaurants/Hotels chips
   setupRouteUI();
   setupNavUI();
   setupAIPanel();
@@ -140,7 +151,15 @@ async function loadDemoGraph() {
       'marine_drive_north': [72.8180, 18.9600],
       'cst_station': [72.8355, 18.9400],
       'mumbai_uni': [72.8300, 18.9270],
-      'mumbai_center': [72.8777, 18.9667]
+      'mumbai_center': [72.8777, 18.9667],
+      // 🇮🇳 National Highway Nodes
+      'highway_vapi': [72.9022, 20.3851],
+      'highway_surat': [72.8311, 21.1702],
+      'highway_vadodara': [73.1812, 22.3072],
+      'highway_udaipur': [73.7125, 24.5854],
+      'highway_jaipur': [75.7873, 26.9124],
+      'delhi_south': [77.2090, 28.5355],
+      'delhi_center': [77.1025, 28.7041]
     },
     edges: {
       'gateway': [
@@ -194,7 +213,35 @@ async function loadDemoGraph() {
       ],
       'mumbai_center': [
         { to: 'cst_station', dist: 3000, time: 600, type: 'primary' },
-        { to: 'marine_drive_north', dist: 2500, time: 500, type: 'primary' }
+        { to: 'marine_drive_north', dist: 2500, time: 500, type: 'primary' },
+        { to: 'highway_vapi', dist: 170000, time: 10800, type: 'motorway' }
+      ],
+      'highway_vapi': [
+        { to: 'mumbai_center', dist: 170000, time: 10800, type: 'motorway' },
+        { to: 'highway_surat', dist: 110000, time: 7200, type: 'motorway' }
+      ],
+      'highway_surat': [
+        { to: 'highway_vapi', dist: 110000, time: 7200, type: 'motorway' },
+        { to: 'highway_vadodara', dist: 150000, time: 9000, type: 'motorway' }
+      ],
+      'highway_vadodara': [
+        { to: 'highway_surat', dist: 150000, time: 9000, type: 'motorway' },
+        { to: 'highway_udaipur', dist: 280000, time: 18000, type: 'motorway' }
+      ],
+      'highway_udaipur': [
+        { to: 'highway_vadodara', dist: 280000, time: 18000, type: 'motorway' },
+        { to: 'highway_jaipur', dist: 390000, time: 25200, type: 'motorway' }
+      ],
+      'highway_jaipur': [
+        { to: 'highway_udaipur', dist: 390000, time: 25200, type: 'motorway' },
+        { to: 'delhi_south', dist: 270000, time: 16200, type: 'motorway' }
+      ],
+      'delhi_south': [
+        { to: 'highway_jaipur', dist: 270000, time: 16200, type: 'motorway' },
+        { to: 'delhi_center', dist: 15000, time: 1200, type: 'primary' }
+      ],
+      'delhi_center': [
+        { to: 'delhi_south', dist: 15000, time: 1200, type: 'primary' }
       ]
     }
   };
@@ -258,8 +305,23 @@ function setupSearchUI() {
       if (pos) {
         mapView.flyTo(pos.lng, pos.lat, 14);
         mapView.setUserLocation(pos.lng, pos.lat);
+        state.origin = { name: 'Current Location', lng: pos.lng, lat: pos.lat };
       }
     } catch (e) { alert('Location not available'); }
+  });
+}
+
+function setupQuickSearch() {
+  document.querySelectorAll('.q-chip').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      const query = chip.dataset.query;
+      searchInput.value = chip.textContent.trim();
+      const results = await geocoder.search(query);
+      if (results.length > 0) {
+        renderSuggestions(results);
+        suggestionsPanel.classList.remove('hidden');
+      }
+    });
   });
 }
 
@@ -339,13 +401,15 @@ async function selectDestination(place) {
 
 // ─── Routing ─────────────────────────────────────────────────────────────────
 async function calculateRoute() {
-  if (!state.destination) return;
-
-  // If no manually set origin, use GPS location
-  if (!state.origin) {
-    const pos = gps.getPosition();
-    if (pos) state.origin = { name: 'My Location', lng: pos.lng, lat: pos.lat };
+  // 🔍 Dynamic Destination Geocoding
+  if (!state.destination && destInput.value.length > 2) {
+    const results = await geocoder.search(destInput.value);
+    if (results.length > 0) {
+      state.destination = { name: results[0].name, lng: results[0].lng, lat: results[0].lat };
+    }
   }
+  
+  if (!state.destination) return;
 
   // If still no origin, use map center
   if (!state.origin) {
@@ -442,6 +506,22 @@ function showRoutePanel(route) {
 
   routePanel.classList.remove('hidden');
   setTimeout(() => routePanel.classList.add('visible'), 50);
+
+  // If already navigating, update the HUD immediately
+  if (state.isNavigating) {
+    updateHUD(route);
+  }
+}
+
+function updateHUD(route) {
+  const mins = Math.round(route.duration / 60);
+  const now = new Date();
+  now.setSeconds(now.getSeconds() + route.duration);
+  
+  hudTime.textContent = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins} min`;
+  hudArrival.textContent = `ETA ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  hudInstruction.textContent = `Head towards ${state.destination?.name || 'destination'}`;
+  hudDistance.textContent = `${(route.distance / 1000).toFixed(1)} km`;
 }
 
 function renderTurnByTurn(instructions) {
@@ -465,7 +545,16 @@ function renderTurnByTurn(instructions) {
 function setupNavUI() {
   document.getElementById('hud-exit-btn').addEventListener('click', stopNavigation);
   
-  const arBtn = document.getElementById('ar-mode-btn');
+  // Create AR button if not in HTML
+  let arBtn = document.getElementById('ar-mode-btn');
+  if (!arBtn) {
+    arBtn = document.createElement('button');
+    arBtn.id = 'ar-mode-btn';
+    arBtn.className = 'icon-btn';
+    arBtn.style.cssText = 'background: #000; color: #fff; margin-top: 10px; width: auto; padding: 0 16px; border-radius: 20px; font-size: 12px; font-weight: 700;';
+    arBtn.textContent = 'AR VIEW';
+    document.getElementById('hud-eta').appendChild(arBtn);
+  }
   if (arBtn) {
     arBtn.addEventListener('click', async () => {
       const arView = document.getElementById('ar-view');
@@ -493,9 +582,15 @@ function setupNavUI() {
 }
 
 function startNavigation() {
+  if (!state.currentRoute) return;
+  
   state.isNavigating = true;
   routePanel.classList.add('hidden');
   navHud.classList.remove('hidden');
+  document.getElementById('ar-mode-btn').style.display = 'flex'; // Show AR button during navigation
+
+  // Show initial instruction
+  updateHUD(state.currentRoute);
 
   // Simulate P2P Mesh Alert after 10s of navigation
   setTimeout(() => {
@@ -508,17 +603,6 @@ function startNavigation() {
       };
     }
   }, 10000);
-
-  // Show initial instruction
-  if (state.currentRoute) {
-    const mins = Math.round(state.currentRoute.duration / 60);
-    const now = new Date();
-    now.setSeconds(now.getSeconds() + state.currentRoute.duration);
-    hudTime.textContent = `${mins} min`;
-    hudArrival.textContent = `ETA ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    hudInstruction.textContent = `Head towards ${state.destination?.name || 'destination'}`;
-    hudDistance.textContent = `${(state.currentRoute.distance / 1000).toFixed(1)} km`;
-  }
 
   // Track map to follow user
   gps.startWatching((pos) => updateNavHUD(pos));
@@ -534,6 +618,7 @@ function updateNavHUD(pos) {
 function stopNavigation() {
   state.isNavigating = false;
   navHud.classList.add('hidden');
+  document.getElementById('ar-mode-btn').style.display = 'none'; // Hide AR button
   mapView.clearRoute();
   mapView.clearMarkers();
   state.destination = null;

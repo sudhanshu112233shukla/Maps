@@ -137,6 +137,19 @@ export class MapView {
     });
 
     this.routeLayerAdded = true;
+    this._startRouteAnimation();
+  }
+
+  _startRouteAnimation() {
+    let step = 0;
+    const animate = () => {
+      step = (step + 1) % 100;
+      if (this.map.getLayer('route-dash')) {
+        this.map.setPaintProperty('route-dash', 'line-dasharray', [0, 4, step / 20, 4]);
+      }
+      requestAnimationFrame(animate);
+    };
+    animate();
   }
 
   drawRoute(geojson) {
@@ -208,7 +221,7 @@ export class MapView {
 
     if (label) {
       marker.setPopup(new maplibregl.Popup({ offset: 40, closeButton: false })
-        .setHTML(`<div style="font:13px Inter,sans-serif;color:#f1f5f9;background:#111827;padding:6px 10px;border-radius:8px;">${label}</div>`)
+        .setHTML(`<div style="font: 500 14px Inter,sans-serif; color: #202124; background: #fff; padding: 8px 14px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">${label}</div>`)
       );
     }
 
