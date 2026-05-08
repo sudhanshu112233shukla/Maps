@@ -62,6 +62,7 @@ const arModeButton = document.getElementById('ar-mode-btn');
 
 let activeInput = searchInput;
 let aiBootstrapped = false;
+let activeSearchSequence = 0;
 
 async function init() {
   state.offlineRegions = await offlineStore.hydrateRegions();
@@ -227,7 +228,11 @@ async function triggerSearch(query) {
     return;
   }
 
+  const searchSequence = ++activeSearchSequence;
   const results = await geocoder.search(query);
+  if (searchSequence !== activeSearchSequence) {
+    return;
+  }
   renderSuggestions(results);
 }
 
@@ -537,7 +542,7 @@ async function loadAIProvider() {
   });
 
   try {
-    await ai.load({ enableBrowserFallback: false });
+    await ai.load();
     const providerStatus = ai.getProviderStatus();
     const providerLabel = ai.getProviderLabel();
     aiStatusDot.style.background = providerStatus?.supportsNativeMelange ? '#10b981' : '#f59e0b';
@@ -905,4 +910,5 @@ const DEMO_GRAPH = {
   },
 };
 
+window.addEventListener('beforeunload', () => mapView.destroy());
 init().catch(console.error);

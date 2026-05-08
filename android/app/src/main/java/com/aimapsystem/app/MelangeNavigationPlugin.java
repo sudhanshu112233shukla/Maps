@@ -30,6 +30,9 @@ public class MelangeNavigationPlugin extends Plugin {
         result.put("runtime", "native-bridge");
         result.put("supportsNativeMelange", false);
         result.put("supportsVoiceCommands", false);
+        result.put("supportsSemanticSearch", false);
+        result.put("supportsPredictiveCaching", false);
+        result.put("threadingModel", "ui+navigation+ai+index+background");
         result.put("llmModelName", llmModelName);
         result.put("speechModelName", speechModelName);
         call.resolve(result);
@@ -93,13 +96,13 @@ public class MelangeNavigationPlugin extends Plugin {
     }
 
     private String detectMode(String lowered) {
-        if (lowered.contains("no toll") || lowered.contains("avoid toll")) {
+        if (containsAny(lowered, "no toll", "avoid toll", "without toll", "bina toll")) {
             return "no-toll";
         }
-        if (lowered.contains("eco") || lowered.contains("fuel efficient")) {
+        if (containsAny(lowered, "eco", "fuel efficient", "kam fuel", "save fuel")) {
             return "eco";
         }
-        if (lowered.contains("safe") || lowered.contains("safer")) {
+        if (containsAny(lowered, "safe", "safer", "surakshit")) {
             return "safest";
         }
         return "fastest";
@@ -107,13 +110,13 @@ public class MelangeNavigationPlugin extends Plugin {
 
     private JSArray detectAvoidances(String lowered) {
         JSArray avoid = new JSArray();
-        if (lowered.contains("avoid toll")) {
+        if (containsAny(lowered, "avoid toll", "no toll", "bina toll")) {
             avoid.put("tolls");
         }
-        if (lowered.contains("avoid highway")) {
+        if (containsAny(lowered, "avoid highway", "no highway")) {
             avoid.put("highways");
         }
-        if (lowered.contains("avoid traffic")) {
+        if (containsAny(lowered, "avoid traffic", "no traffic", "jam avoid")) {
             avoid.put("traffic");
         }
         if (lowered.contains("avoid night")) {
@@ -123,10 +126,10 @@ public class MelangeNavigationPlugin extends Plugin {
     }
 
     private String detectPoi(String lowered) {
-        if (containsAny(lowered, "hospital", "clinic", "doctor", "emergency")) return "hospital";
-        if (containsAny(lowered, "fuel", "gas", "petrol", "diesel")) return "fuel";
-        if (containsAny(lowered, "charging", "charger", "ev")) return "charging";
-        if (containsAny(lowered, "restaurant", "food", "cafe", "coffee")) return "restaurant";
+        if (containsAny(lowered, "hospital", "clinic", "doctor", "emergency", "aspatal")) return "hospital";
+        if (containsAny(lowered, "fuel", "gas", "petrol", "diesel", "indhan")) return "fuel";
+        if (containsAny(lowered, "charging", "charger", "ev", "battery charge")) return "charging";
+        if (containsAny(lowered, "restaurant", "food", "cafe", "coffee", "chai", "khana")) return "restaurant";
         if (containsAny(lowered, "hotel", "motel", "stay", "lodge")) return "hotel";
         if (containsAny(lowered, "pharmacy", "chemist", "medicine")) return "pharmacy";
         if (containsAny(lowered, "rest area", "washroom", "toilet", "service area")) return "rest_area";

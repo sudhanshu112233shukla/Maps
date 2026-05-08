@@ -34,6 +34,9 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
             "runtime": "native-bridge",
             "supportsNativeMelange": false,
             "supportsVoiceCommands": false,
+            "supportsSemanticSearch": false,
+            "supportsPredictiveCaching": false,
+            "threadingModel": "ui+navigation+ai+index+background",
             "llmModelName": llmModelName,
             "speechModelName": speechModelName
         ])
@@ -92,13 +95,13 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private func detectMode(_ lowered: String) -> String {
-        if lowered.contains("no toll") || lowered.contains("avoid toll") {
+        if containsAny(lowered, candidates: ["no toll", "avoid toll", "without toll", "bina toll"]) {
             return "no-toll"
         }
-        if lowered.contains("eco") || lowered.contains("fuel efficient") {
+        if containsAny(lowered, candidates: ["eco", "fuel efficient", "kam fuel", "save fuel"]) {
             return "eco"
         }
-        if lowered.contains("safe") || lowered.contains("safer") {
+        if containsAny(lowered, candidates: ["safe", "safer", "surakshit"]) {
             return "safest"
         }
         return "fastest"
@@ -106,18 +109,18 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private func detectAvoidances(_ lowered: String) -> [String] {
         var avoid: [String] = []
-        if lowered.contains("avoid toll") { avoid.append("tolls") }
-        if lowered.contains("avoid highway") { avoid.append("highways") }
-        if lowered.contains("avoid traffic") { avoid.append("traffic") }
+        if containsAny(lowered, candidates: ["avoid toll", "no toll", "bina toll"]) { avoid.append("tolls") }
+        if containsAny(lowered, candidates: ["avoid highway", "no highway"]) { avoid.append("highways") }
+        if containsAny(lowered, candidates: ["avoid traffic", "no traffic", "jam avoid"]) { avoid.append("traffic") }
         if lowered.contains("avoid night") { avoid.append("night-driving") }
         return avoid
     }
 
     private func detectPoi(_ lowered: String) -> String? {
-        if containsAny(lowered, candidates: ["hospital", "clinic", "doctor", "emergency"]) { return "hospital" }
-        if containsAny(lowered, candidates: ["fuel", "gas", "petrol", "diesel"]) { return "fuel" }
-        if containsAny(lowered, candidates: ["charging", "charger", "ev"]) { return "charging" }
-        if containsAny(lowered, candidates: ["restaurant", "food", "cafe", "coffee"]) { return "restaurant" }
+        if containsAny(lowered, candidates: ["hospital", "clinic", "doctor", "emergency", "aspatal"]) { return "hospital" }
+        if containsAny(lowered, candidates: ["fuel", "gas", "petrol", "diesel", "indhan"]) { return "fuel" }
+        if containsAny(lowered, candidates: ["charging", "charger", "ev", "battery charge"]) { return "charging" }
+        if containsAny(lowered, candidates: ["restaurant", "food", "cafe", "coffee", "chai", "khana"]) { return "restaurant" }
         if containsAny(lowered, candidates: ["hotel", "motel", "stay", "lodge"]) { return "hotel" }
         if containsAny(lowered, candidates: ["pharmacy", "chemist", "medicine"]) { return "pharmacy" }
         if containsAny(lowered, candidates: ["rest area", "washroom", "toilet", "service area"]) { return "rest_area" }

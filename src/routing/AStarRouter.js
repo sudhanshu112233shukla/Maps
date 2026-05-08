@@ -19,6 +19,7 @@ const ROAD_SPEEDS = {
 const MINOR_ROADS = new Set(['residential', 'living_street', 'service', 'tertiary']);
 const MAJOR_ROADS = new Set(['motorway', 'trunk', 'primary']);
 const MAX_SNAP_DISTANCE_METERS = 35000;
+const HEURISTIC_SPEED_METERS_PER_SECOND = (130 * 1000) / 3600;
 
 function haversine([lng1, lat1], [lng2, lat2]) {
   const radius = 6371000;
@@ -128,22 +129,29 @@ export class AStarRouter {
     this.nodes = null;
     this.nodeList = [];
     this.loaded = false;
+
+    this.gridSizeDegrees = options.gridSizeDegrees || 0.02;
+    this.spatialIndex = new Map();
   }
 
   async loadGraph(graphData) {
     this.nodes = graphData.nodes;
     this.graph = graphData.edges;
     this.nodeList = Object.entries(this.nodes).map(([id, coord]) => ({ id, coord }));
+    this.#buildSpatialIndex();
     this.loaded = true;
   }
 
   snapToNode(lng, lat, maxDistanceMeters = MAX_SNAP_DISTANCE_METERS) {
     if (!this.nodeList.length) return null;
 
+    const candidates = this.#gatherCandidateNodes(lng, lat, maxDistanceMeters);
+    if (!candidates.length) return null;
+
     let closestNodeId = null;
     let closestDistance = Infinity;
 
-    for (const node of this.nodeList) {
+    for (const node of candidates) {
       const distance = haversine([lng, lat], node.coord);
       if (distance < closestDistance) {
         closestDistance = distance;
@@ -160,30 +168,39 @@ export class AStarRouter {
     const openSet = new PriorityQueue();
     const gScore = new Map([[startId, 0]]);
     const parent = new Map();
+    const closed = new Set();
     const targetCoord = this.nodes[endId];
+    const maxVisitedNodes = Math.max(this.nodeList.length * 5, 200000);
+    let visitedCount = 0;
 
     openSet.push(startId, 0);
 
     while (openSet.size > 0) {
       const current = openSet.pop()?.item;
-      if (!current) break;
+      if (!current || closed.has(current)) continue;
+
+      visitedCount += 1;
+      if (visitedCount > maxVisitedNodes) {
+        return null;
+      }
 
       if (current === endId) {
         return this.#buildRoute(parent, startId, endId);
       }
 
+      closed.add(current);
+
       const edges = this.graph[current] || [];
       for (const edge of edges) {
+        if (closed.has(edge.to)) continue;
+
         const edgeCost = this.#scoreEdge(edge, mode);
         const tentative = (gScore.get(current) || 0) + edgeCost;
 
         if (!gScore.has(edge.to) || tentative < gScore.get(edge.to)) {
           gScore.set(edge.to, tentative);
           parent.set(edge.to, current);
-          const heuristic = estimateTravelTimeSeconds(
-            haversine(this.nodes[edge.to], targetCoord),
-            'motorway',
-          );
+          const heuristic = this.#heuristicTime(this.nodes[edge.to], targetCoord);
           openSet.push(edge.to, tentative + heuristic);
         }
       }
@@ -230,6 +247,10 @@ export class AStarRouter {
     return instructions;
   }
 
+  #heuristicTime(from, to) {
+    return haversine(from, to) / HEURISTIC_SPEED_METERS_PER_SECOND;
+  }
+
   #scoreEdge(edge, mode) {
     const baseTime = Number.isFinite(edge.time)
       ? edge.time
@@ -261,6 +282,52 @@ export class AStarRouter {
     }
 
     return score;
+  }
+
+  #buildSpatialIndex() {
+    this.spatialIndex.clear();
+    this.nodeList.forEach((node) => {
+      const key = this.#cellKey(node.coord[0], node.coord[1]);
+      if (!this.spatialIndex.has(key)) {
+        this.spatialIndex.set(key, []);
+      }
+      this.spatialIndex.get(key).push(node);
+    });
+  }
+
+  #gatherCandidateNodes(lng, lat, maxDistanceMeters) {
+    if (!this.spatialIndex.size) return this.nodeList;
+
+    const candidates = [];
+    const [baseX, baseY] = this.#cellCoordinates(lng, lat);
+    const cellsPerDirection = Math.max(
+      1,
+      Math.ceil(maxDistanceMeters / (this.gridSizeDegrees * 111320)),
+    );
+
+    for (let dx = -cellsPerDirection; dx <= cellsPerDirection; dx += 1) {
+      for (let dy = -cellsPerDirection; dy <= cellsPerDirection; dy += 1) {
+        const cellKey = `${baseX + dx}:${baseY + dy}`;
+        const bucket = this.spatialIndex.get(cellKey);
+        if (bucket?.length) {
+          candidates.push(...bucket);
+        }
+      }
+    }
+
+    return candidates.length ? candidates : this.nodeList;
+  }
+
+  #cellKey(lng, lat) {
+    const [x, y] = this.#cellCoordinates(lng, lat);
+    return `${x}:${y}`;
+  }
+
+  #cellCoordinates(lng, lat) {
+    return [
+      Math.floor((lng + 180) / this.gridSizeDegrees),
+      Math.floor((lat + 90) / this.gridSizeDegrees),
+    ];
   }
 
   #buildRoute(parent, startId, endId) {

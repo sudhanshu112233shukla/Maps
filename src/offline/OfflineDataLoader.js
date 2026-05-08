@@ -9,7 +9,15 @@ async function loadJson(path) {
 }
 
 export class OfflineDataLoader {
+  constructor() {
+    this.cache = new Map();
+  }
+
   async loadRegionAssets(regionId, { graphFallback = null, poiFallback = [] } = {}) {
+    if (this.cache.has(regionId)) {
+      return this.cache.get(regionId);
+    }
+
     const region = getRegionById(regionId);
 
     const [graph, pois] = await Promise.all([
@@ -17,7 +25,17 @@ export class OfflineDataLoader {
       this.#loadPois(region?.poiPath, poiFallback),
     ]);
 
-    return { graph, pois };
+    const payload = { graph, pois };
+    this.cache.set(regionId, payload);
+    return payload;
+  }
+
+  clear(regionId = null) {
+    if (regionId) {
+      this.cache.delete(regionId);
+      return;
+    }
+    this.cache.clear();
   }
 
   async #loadGraph(graphPath, fallback) {

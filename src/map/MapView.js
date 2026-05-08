@@ -3,8 +3,9 @@ import { Protocol } from 'pmtiles';
 import { getRegionViewport } from '../offline/offlineRegions.js';
 
 const DEFAULT_SOURCE = {
+  type: 'raster',
   tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-  attribution: '© OpenStreetMap contributors',
+  attribution: 'OpenStreetMap contributors',
 };
 
 let protocolRegistered = false;
@@ -17,6 +18,8 @@ export class MapView {
     this.routeLayerAdded = false;
     this.markers = [];
     this.baseSourceConfig = DEFAULT_SOURCE;
+    this.routeAnimationFrame = null;
+    this.lastRouteGeoJson = { type: 'FeatureCollection', features: [] };
   }
 
   init(region = 'india', sourceConfig = DEFAULT_SOURCE) {
@@ -27,7 +30,6 @@ export class MapView {
     }
 
     this.baseSourceConfig = sourceConfig || DEFAULT_SOURCE;
-
     const { center, zoom } = getRegionViewport(region);
 
     this.map = new maplibregl.Map({
@@ -52,6 +54,7 @@ export class MapView {
 
   drawRoute(geojson) {
     if (!this.map || !this.routeLayerAdded) return;
+    this.lastRouteGeoJson = geojson;
     this.map.getSource('route')?.setData(geojson);
 
     if (geojson.features.length > 0) {
@@ -70,10 +73,8 @@ export class MapView {
 
   clearRoute() {
     if (!this.map || !this.routeLayerAdded) return;
-    this.map.getSource('route')?.setData({
-      type: 'FeatureCollection',
-      features: [],
-    });
+    this.lastRouteGeoJson = { type: 'FeatureCollection', features: [] };
+    this.map.getSource('route')?.setData(this.lastRouteGeoJson);
   }
 
   setUserLocation(lng, lat) {
@@ -171,41 +172,84 @@ export class MapView {
 
   updateSourceConfig(sourceConfig = DEFAULT_SOURCE) {
     this.baseSourceConfig = sourceConfig;
+    if (!this.map) return;
+
+    this.routeLayerAdded = false;
+    this.map.setStyle(this.#buildMapStyle(this.baseSourceConfig), { diff: false });
+    this.map.once('style.load', () => {
+      this.#addRouteLayer();
+      this.map.getSource('route')?.setData(this.lastRouteGeoJson);
+    });
+  }
+
+  destroy() {
+    if (this.routeAnimationFrame) {
+      cancelAnimationFrame(this.routeAnimationFrame);
+      this.routeAnimationFrame = null;
+    }
+    this.map?.remove();
+    this.map = null;
   }
 
   #buildMapStyle(sourceConfig) {
-    return {
+    const sourceType = sourceConfig.type || 'raster';
+    const baseSource = {
+      type: sourceType,
+      attribution: sourceConfig.attribution || DEFAULT_SOURCE.attribution,
+    };
+
+    if (sourceConfig.url) {
+      baseSource.url = sourceConfig.url;
+    } else {
+      baseSource.tiles = sourceConfig.tiles || DEFAULT_SOURCE.tiles;
+      if (sourceType === 'raster') {
+        baseSource.tileSize = sourceConfig.tileSize || 256;
+      }
+    }
+
+    const baseLayers = [
+      {
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': '#edf2f7' },
+      },
+    ];
+
+    if (sourceType === 'raster') {
+      baseLayers.push({
+        id: 'basemap-layer',
+        type: 'raster',
+        source: 'basemap',
+        paint: { 'raster-opacity': 1 },
+      });
+    } else if (Array.isArray(sourceConfig.layers) && sourceConfig.layers.length > 0) {
+      baseLayers.push(...sourceConfig.layers);
+    }
+
+    const style = {
       version: 8,
       sources: {
-        basemap: {
-          type: 'raster',
-          tiles: sourceConfig.tiles || DEFAULT_SOURCE.tiles,
-          tileSize: 256,
-          attribution: sourceConfig.attribution || DEFAULT_SOURCE.attribution,
-        },
+        basemap: baseSource,
       },
-      layers: [
-        {
-          id: 'background',
-          type: 'background',
-          paint: { 'background-color': '#edf2f7' },
-        },
-        {
-          id: 'basemap-layer',
-          type: 'raster',
-          source: 'basemap',
-          paint: { 'raster-opacity': 1 },
-        },
-      ],
+      layers: baseLayers,
     };
+
+    if (sourceConfig.glyphs) {
+      style.glyphs = sourceConfig.glyphs;
+    }
+    if (sourceConfig.sprite) {
+      style.sprite = sourceConfig.sprite;
+    }
+
+    return style;
   }
 
   #addRouteLayer() {
-    if (this.routeLayerAdded) return;
+    if (!this.map || this.routeLayerAdded) return;
 
     this.map.addSource('route', {
       type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
+      data: this.lastRouteGeoJson,
     });
 
     this.map.addLayer({
@@ -250,14 +294,18 @@ export class MapView {
   }
 
   #animateRoute() {
+    if (this.routeAnimationFrame) {
+      cancelAnimationFrame(this.routeAnimationFrame);
+    }
+
     let step = 0;
     const frame = () => {
       step = (step + 1) % 100;
       if (this.map?.getLayer('route-dash')) {
         this.map.setPaintProperty('route-dash', 'line-dasharray', [0, 4, step / 20, 4]);
       }
-      requestAnimationFrame(frame);
+      this.routeAnimationFrame = requestAnimationFrame(frame);
     };
-    requestAnimationFrame(frame);
+    this.routeAnimationFrame = requestAnimationFrame(frame);
   }
 }

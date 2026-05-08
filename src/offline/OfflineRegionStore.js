@@ -8,6 +8,17 @@ import {
 const STORAGE_KEY = 'melange-offline-region-status-v1';
 const DEFAULT_TILES = ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'];
 
+function buildPackSource(packPath) {
+  if (!packPath || !packPath.endsWith('.pmtiles')) return null;
+  return {
+    type: 'raster',
+    url: `pmtiles://${packPath}`,
+    attribution: 'Local PMTiles pack',
+    offlineReady: true,
+    packPath,
+  };
+}
+
 export class OfflineRegionStore {
   constructor() {
     this.statusByRegion = {};
@@ -40,15 +51,21 @@ export class OfflineRegionStore {
   getSourceConfig(regionId) {
     const region = getRegionById(regionId);
     const status = this.statusByRegion[regionId] || {};
+    const packPath = status.packPath || region?.bundledPackPath || null;
+    const packSource = status.downloaded ? buildPackSource(packPath) : null;
+    if (packSource) {
+      return packSource;
+    }
 
     return {
       name: status.downloaded ? 'local-pack-staged' : 'online-raster-fallback',
+      type: 'raster',
       tiles: status.tiles || DEFAULT_TILES,
       attribution: status.downloaded
         ? 'Local pack staged. Add a compatible native/vector basemap style to render bundled PMTiles.'
-        : '© OpenStreetMap contributors',
+        : 'OpenStreetMap contributors',
       offlineReady: Boolean(status.downloaded),
-      packPath: status.packPath || region?.bundledPackPath || null,
+      packPath,
     };
   }
 

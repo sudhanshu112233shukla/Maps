@@ -2,18 +2,17 @@ import { MelangeNavigation } from './MelangeNavigation.js';
 
 const MELANGE_LLM_MODEL = 'Qwen/Qwen3-4B';
 const MELANGE_SPEECH_MODEL = 'OpenAI/whisper-tiny-decoder';
-const BROWSER_FALLBACK_MODEL = 'Xenova/distilgpt2';
 
 const KNOWN_MODES = new Set(['fastest', 'safest', 'eco', 'no-toll']);
 const POI_ALIASES = {
-  hospital: ['hospital', 'clinic', 'doctor', 'emergency'],
-  fuel: ['fuel', 'gas', 'gas station', 'petrol', 'petrol pump'],
-  charging: ['charging', 'charger', 'ev', 'ev charger'],
-  restaurant: ['restaurant', 'food', 'eat', 'cafe', 'coffee'],
-  hotel: ['hotel', 'stay', 'motel', 'lodge'],
-  pharmacy: ['pharmacy', 'medicine', 'chemist'],
+  hospital: ['hospital', 'clinic', 'doctor', 'emergency', 'aspatal', 'hospitale'],
+  fuel: ['fuel', 'gas', 'gas station', 'petrol', 'petrol pump', 'diesel', 'indhan'],
+  charging: ['charging', 'charger', 'ev', 'ev charger', 'battery charge', 'charging point'],
+  restaurant: ['restaurant', 'food', 'eat', 'cafe', 'coffee', 'khana', 'chai'],
+  hotel: ['hotel', 'stay', 'motel', 'lodge', 'rukna'],
+  pharmacy: ['pharmacy', 'medicine', 'chemist', 'dawai'],
   atm: ['atm', 'cash', 'bank'],
-  rest_area: ['rest area', 'toilet', 'washroom', 'service area'],
+  rest_area: ['rest area', 'toilet', 'washroom', 'service area', 'rest stop'],
 };
 
 function normalizeRoutingResult(result = {}, locale = 'en-US') {
@@ -46,6 +45,10 @@ function detectPoiFromQuery(query) {
   return null;
 }
 
+function containsAny(text, terms) {
+  return terms.some((term) => text.includes(term));
+}
+
 class RuleBasedNavigationProvider {
   constructor(options = {}) {
     this.options = options;
@@ -62,11 +65,11 @@ class RuleBasedNavigationProvider {
 
   async parseRoutingQuery(query) {
     const lowered = query.toLowerCase();
-    const mode = lowered.includes('no toll') || lowered.includes('avoid toll')
+    const mode = containsAny(lowered, ['no toll', 'avoid toll', 'without toll', 'bina toll'])
       ? 'no-toll'
-      : lowered.includes('eco') || lowered.includes('fuel efficient')
+      : containsAny(lowered, ['eco', 'fuel efficient', 'kam fuel', 'save fuel'])
         ? 'eco'
-        : lowered.includes('safe') || lowered.includes('safer')
+        : containsAny(lowered, ['safe', 'safer', 'surakshit', 'night safe'])
           ? 'safest'
           : 'fastest';
 
@@ -75,10 +78,10 @@ class RuleBasedNavigationProvider {
     );
 
     const avoid = [];
-    if (lowered.includes('avoid toll')) avoid.push('tolls');
-    if (lowered.includes('avoid highway')) avoid.push('highways');
-    if (lowered.includes('avoid traffic')) avoid.push('traffic');
-    if (lowered.includes('avoid night')) avoid.push('night-driving');
+    if (containsAny(lowered, ['avoid toll', 'no toll', 'bina toll'])) avoid.push('tolls');
+    if (containsAny(lowered, ['avoid highway', 'no highway'])) avoid.push('highways');
+    if (containsAny(lowered, ['avoid traffic', 'no traffic', 'jam avoid'])) avoid.push('traffic');
+    if (containsAny(lowered, ['avoid night', 'night avoid'])) avoid.push('night-driving');
 
     return normalizeRoutingResult(
       {
@@ -176,77 +179,6 @@ class NativeMelangeProvider {
   }
 }
 
-class BrowserTransformersProvider {
-  constructor(options = {}) {
-    this.options = options;
-    this.kind = 'browser';
-    this.pipeline = null;
-  }
-
-  async load(progressCallback) {
-    const { pipeline, env } = await import('@xenova/transformers');
-    env.allowLocalModels = false;
-    env.useBrowserCache = true;
-
-    progressCallback?.(15, 'Loading browser fallback model');
-
-    this.pipeline = await pipeline('text-generation', BROWSER_FALLBACK_MODEL, {
-      quantized: true,
-      progress_callback: (progress) => {
-        if (progress.status === 'downloading' && progress.total) {
-          const percent = Math.round((progress.loaded / progress.total) * 100);
-          progressCallback?.(percent, `Downloading browser fallback ${percent}%`);
-        }
-      },
-    });
-
-    progressCallback?.(100, 'Browser fallback ready');
-  }
-
-  getLabel() {
-    return 'Browser fallback';
-  }
-
-  async parseRoutingQuery(query) {
-    const prompt = [
-      'You are a navigation assistant for an automobile-focused offline map app.',
-      'Return JSON only with keys: destination, mode, poi, language, avoid.',
-      'Mode must be one of fastest, safest, eco, no-toll.',
-      `User: ${query}`,
-      'JSON:',
-    ].join('\n');
-
-    const result = await this.pipeline(prompt, {
-      max_new_tokens: 100,
-      temperature: 0.1,
-      do_sample: false,
-    });
-
-    const text = result?.[0]?.generated_text || '{}';
-    const jsonStart = text.indexOf('{');
-    const jsonEnd = text.lastIndexOf('}') + 1;
-    const parsed = JSON.parse(text.slice(jsonStart, jsonEnd));
-    return normalizeRoutingResult(parsed, this.options.locale);
-  }
-
-  async chat(userMessage) {
-    const prompt = [
-      'You are a concise automotive navigation copilot.',
-      `User: ${userMessage}`,
-      'Assistant:',
-    ].join('\n');
-
-    const result = await this.pipeline(prompt, {
-      max_new_tokens: 120,
-      temperature: 0.5,
-      do_sample: true,
-    });
-
-    const output = result?.[0]?.generated_text || '';
-    return output.split('Assistant:').pop().trim();
-  }
-}
-
 export class AIAssistant {
   constructor(options = {}) {
     this.options = options;
@@ -283,13 +215,12 @@ export class AIAssistant {
     return typeof this.provider?.transcribeNavigationCommand === 'function';
   }
 
-  async load({ enableBrowserFallback = false } = {}) {
+  async load() {
     if (this.ready || this.loading) return;
     this.loading = true;
 
     const attempts = [
       new NativeMelangeProvider(this.options),
-      ...(enableBrowserFallback ? [new BrowserTransformersProvider(this.options)] : []),
       new RuleBasedNavigationProvider(this.options),
     ];
 
