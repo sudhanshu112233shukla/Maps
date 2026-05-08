@@ -1,23 +1,17 @@
-# Melange Automotive Integration Plan
+# Melange Automotive Integration
 
-This repo is now structured so the web app can hand off AI work to a native Melange bridge once Capacitor Android and iOS platforms are added.
+This repository already contains Android and iOS native projects and a registered `MelangeNavigation` Capacitor bridge.
 
-## What is already prepared
+Current native plugin implementations are scaffolds with deterministic fallbacks. The next step is wiring real Melange model execution.
 
-- `src/ai/MelangeNavigation.js`
-  - Capacitor plugin entry point for a future native `MelangeNavigation` implementation.
-- `src/ai/AIAssistant.js`
-  - Melange-first AI provider selection.
-  - Automotive route-intent parsing.
-  - Rule-based offline fallback when native Melange is not attached.
-- `src/offline/OfflineRegionStore.js`
-  - Persistent region download status and source metadata.
-- `src/offline/offlineRegions.js`
-  - Region metadata for pack paths, graph paths, and automotive focus.
+## Existing Integration Points
 
-## Native plugin contract
+- `src/ai/MelangeNavigation.js`: JS plugin binding
+- `src/ai/AIAssistant.js`: Melange-first provider strategy with fallback
+- `android/.../MelangeNavigationPlugin.java`: Android plugin scaffold
+- `ios/.../MelangeNavigationPlugin.swift`: iOS plugin scaffold
 
-Implement a Capacitor plugin named `MelangeNavigation` with these methods:
+## Plugin Contract
 
 ```ts
 prepare(options: {
@@ -28,7 +22,15 @@ prepare(options: {
   speechVersion: number;
   locale: string;
   domain: 'automobile';
-}): Promise<void>
+}): Promise<{
+  prepared: boolean;
+  runtime: string;
+  supportsNativeMelange: boolean;
+  supportsVoiceCommands: boolean;
+  supportsSemanticSearch?: boolean;
+  supportsPredictiveCaching?: boolean;
+  threadingModel?: string;
+}>
 
 parseRouteIntent(options: {
   query: string;
@@ -54,28 +56,27 @@ transcribeNavigationCommand(options: {
 }): Promise<{ text: string }>
 ```
 
-## Android Melange notes
+## Android Wiring Tasks
 
-Add Melange dependency in the Android app:
+1. Add Melange dependency in `android/app/build.gradle`.
+2. Initialize models in `prepare` and cache runtime/session handles.
+3. Move inference to background executors (never run on UI thread).
+4. Implement:
+   - intent parsing
+   - chat response generation
+   - speech transcription
 
-```kotlin
-implementation("com.zeticai.mlange:mlange:+")
-```
+## iOS Wiring Tasks
 
-Use `ZeticMLangeModel` for intent/chat inference and a Whisper-class Melange speech model for voice commands.
+1. Add `ZeticMLangeiOS` Swift package in Xcode.
+2. Initialize Melange models in `prepare`.
+3. Use background queues for inference.
+4. Implement matching methods and return parity JSON contracts.
 
-## iOS Melange notes
+## Production Completion Checklist
 
-Add the Swift package:
-
-- `https://github.com/zetic-ai/ZeticMLangeiOS.git`
-
-Use `ZeticMLangeModel` with the same logical plugin surface exposed to JavaScript.
-
-## Remaining work to reach full offline production
-
-1. Add Capacitor native platforms.
-2. Implement the `MelangeNavigation` plugin on Android and iOS.
-3. Replace the demo graph with a real regional road graph.
-4. Add a compatible local PMTiles style or raster pack pipeline.
-5. Replace demo POIs with a compact offline search index.
+1. Replace fallback strings with real model inference outputs.
+2. Add strict timeout and fallback handling for every AI call.
+3. Add on-device model/version telemetry.
+4. Add multilingual evaluation set (English + Hinglish + Hindi).
+5. Add battery/thermal benchmarks for sustained navigation sessions.
