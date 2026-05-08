@@ -111,11 +111,17 @@ class NativeMelangeProvider {
   constructor(options = {}) {
     this.options = options;
     this.kind = 'melange';
+    this.metadata = {
+      prepared: false,
+      runtime: 'native-bridge',
+      supportsNativeMelange: false,
+      supportsVoiceCommands: false,
+    };
   }
 
   async load(progressCallback) {
     progressCallback?.(10, 'Preparing Melange runtime');
-    await MelangeNavigation.prepare({
+    const metadata = await MelangeNavigation.prepare({
       tokenKey: this.options.tokenKey || '',
       llmModelName: this.options.llmModelName || MELANGE_LLM_MODEL,
       llmVersion: this.options.llmVersion || 1,
@@ -124,11 +130,23 @@ class NativeMelangeProvider {
       locale: this.options.locale || 'en-US',
       domain: 'automobile',
     });
+    this.metadata = {
+      ...this.metadata,
+      ...(metadata || {}),
+    };
     progressCallback?.(100, 'Melange ready');
   }
 
   getLabel() {
-    return 'Melange';
+    return this.metadata.supportsNativeMelange ? 'Melange' : 'Melange bridge';
+  }
+
+  getStatus() {
+    return this.metadata;
+  }
+
+  supportsVoiceCommands() {
+    return Boolean(this.metadata.supportsVoiceCommands);
   }
 
   async parseRoutingQuery(query) {
@@ -254,7 +272,14 @@ export class AIAssistant {
     return this.provider?.getLabel?.() || 'Unknown';
   }
 
+  getProviderStatus() {
+    return this.provider?.getStatus?.() || null;
+  }
+
   supportsVoiceCommands() {
+    if (typeof this.provider?.supportsVoiceCommands === 'function') {
+      return this.provider.supportsVoiceCommands();
+    }
     return typeof this.provider?.transcribeNavigationCommand === 'function';
   }
 

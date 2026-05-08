@@ -1,8 +1,7 @@
 {
   "appId": "com.aimapsystem.app",
-  "appName": "AI Map",
+  "appName": "Melange Maps",
   "webDir": "dist",
-  "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https",
     "allowNavigation": []
