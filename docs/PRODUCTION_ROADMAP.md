@@ -1,75 +1,53 @@
 # Production Roadmap
 
-## Phase 0: Foundation Hardening (Current)
+This roadmap is scoped to execution in this repository. Each phase has a concrete output and an acceptance check.
 
-- Stabilize offline region metadata contracts.
-- Replace linear search and linear snap bottlenecks.
-- Keep deterministic routing/search fallback paths active.
-- Ship Melange bridge contracts on Android and iOS.
+## Phase 1: Native Melange Runtime
 
-Exit criteria:
-- Offline boot works with staged region assets.
-- Search and route pipelines operate without network.
+Deliverables:
+- Replace scaffold logic in Android/iOS `MelangeNavigation` plugins with real model calls.
+- Add timeout + fallback logic for each plugin method.
+- Emit provider capability flags from real runtime state.
 
-## Phase 1: Data Pipeline and Pack Format
+Done when:
+- `prepare`, `parseRouteIntent`, `chatNavigation`, and `transcribeNavigationCommand` run on device without cloud calls.
 
-- Build region pack manifest schema:
-  - map pack version
-  - graph version
-  - index version
-  - checksum signatures
-- Add incremental delta format for updates.
-- Add resumable downloader with integrity verification.
+## Phase 2: Production Routing Data
 
-Exit criteria:
-- Regional packs can be installed, resumed, and validated offline.
+Deliverables:
+- Build OSM extraction pipeline for route graph generation.
+- Replace staged graph JSON with region graph artifacts.
+- Add metadata versioning per graph bundle.
 
-## Phase 2: Navigation Engine Upgrade
+Done when:
+- Route queries run against generated regional graph packs and pass parity checks on known test routes.
 
-- Replace demo graph with production graph extraction pipeline from OSM.
-- Integrate GraphHopper or Valhalla route core.
-- Add reroute debounce and route confidence metadata.
-- Add constrained vehicle profiles (car first, truck/EV next).
+## Phase 3: Search Core Migration
 
-Exit criteria:
-- Production-grade routing on full-region datasets.
+Deliverables:
+- Move local search core to Rust module.
+- Keep current query contract stable in JS/native boundary.
+- Add transliteration, typo tolerance, and category ranking parity tests.
 
-## Phase 3: Search Engine Upgrade
+Done when:
+- Search latency and result quality meet target budgets on reference devices.
 
-- Add Rust search module (Tantivy-backed) for multilingual retrieval.
-- Build transliteration and Hinglish-aware token pipeline.
-- Add typo tolerance and phonetic rank boosting.
-- Add query profiling and on-device benchmark harness.
+## Phase 4: Native App Shell
 
-Exit criteria:
-- P95 local query latency below 100 ms on target devices.
+Deliverables:
+- Bring up Compose shell with MapLibre Native.
+- Implement same routing/search/AI interfaces from `native/android-compose/core/contracts`.
+- Keep Capacitor runtime as regression harness until parity is reached.
 
-## Phase 4: Melange Runtime Integration
+Done when:
+- Native app matches current functional behavior for map, route, search, and AI intents.
 
-- Integrate actual Melange model initialization in native plugins.
-- Add quantized model bundles and provisioning flow.
-- Add semantic reranking and voice command parsing.
-- Add AI confidence threshold with deterministic fallback.
+## Phase 5: Pack Update and Operations
 
-Exit criteria:
-- AI-assisted navigation intent works fully on-device.
+Deliverables:
+- Implement resumable region download manager.
+- Add checksum validation and delta update flow.
+- Add device-tier resource guards and telemetry hooks.
 
-## Phase 5: Native Android Productization
-
-- Build Kotlin + Jetpack Compose shell.
-- Integrate MapLibre Native rendering.
-- Add Android Auto and Automotive OS compatibility layer.
-- Implement lifecycle-safe background services.
-
-Exit criteria:
-- Native Android app reaches functional parity with transitional runtime.
-
-## Phase 6: Scale and Operations
-
-- Rollout-safe pack update channels.
-- Device-tier feature gating.
-- Memory and thermal profiling automation.
-- Crash analytics and offline diagnostics upload.
-
-Exit criteria:
-- Global region rollout plan ready for millions of users.
+Done when:
+- Region updates are resumable, validated, and recover cleanly from interruptions.

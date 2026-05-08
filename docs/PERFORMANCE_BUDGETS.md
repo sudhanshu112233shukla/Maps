@@ -1,66 +1,34 @@
 # Performance Budgets
 
-## Device Targets
+These budgets are used to keep feature work grounded on device constraints.
 
-Primary target:
-- Android devices with `4 GB RAM`
-- Mid-range CPU
-- Low to moderate thermal headroom
+## Target Devices
 
-Secondary target:
-- Automotive head units with constrained CPU/GPU and strict reliability expectations
+- Android phones with 4 GB RAM (primary baseline)
+- Automotive Android head units (secondary baseline)
 
-## Budgets
+## Budget Table
 
-### Startup
+- Cold startup to interactive map: `<= 2.5s`
+- Warm startup to interactive map: `<= 1.2s`
+- Pan/zoom render stability: `>= 50 FPS` target
+- Search latency: `P95 <= 100ms`
+- Reroute latency (city): `<= 250ms`
+- Reroute latency (intercity): `<= 1.2s`
+- Foreground RAM: `<= 350MB` on 4 GB devices
 
-- Cold start to interactive map: `<= 2.5s`
-- Warm start to interactive map: `<= 1.2s`
+## Guardrails In Code
 
-### Rendering
+- Use bounded caches only (no unbounded maps/lists in hot paths).
+- Keep search/routing/AI work off UI thread.
+- Keep map style/source updates lifecycle-safe.
+- Avoid repeated re-indexing unless data actually changed.
 
-- Steady-state FPS during pan/zoom: `>= 50 FPS`
-- Frame drops over 5s interaction window: `< 5%`
+## Profiling Checklist
 
-### Search
+Before merge on performance-sensitive changes:
 
-- P50 query latency: `< 40 ms`
-- P95 query latency: `< 100 ms`
-- Memory growth under repeated query loop: bounded, no unbounded cache growth
-
-### Routing
-
-- City reroute latency target: `< 250 ms`
-- Intercity route latency target: `< 1.2 s`
-
-### AI Inference
-
-- Intent parse (short query): `< 400 ms` on supported accelerators
-- Voice command parse end-to-end: `< 1.5 s`
-
-### Resource Use
-
-- Foreground RAM budget:
-  - low-end device: `<= 350 MB`
-  - mainstream device: `<= 500 MB`
-- Background CPU average during idle navigation: `< 15%`
-- Sustained thermal throttle events: zero in normal navigation scenarios
-
-## Engineering Controls
-
-- Keep caches bounded (LRU by count and size).
-- Use binary-packed graph/index assets.
-- Run route and search off the UI thread.
-- Debounce high-frequency UI-driven recomputations.
-- Avoid frequent allocation spikes in hot paths.
-
-## Observability
-
-Collect on-device metrics:
-- frame time histogram
-- search latency histogram
-- routing latency histogram
-- memory snapshots by subsystem
-- model load/inference timings
-
-Export diagnostics only when connectivity is available and user policy allows it.
+1. Capture startup time (cold + warm).
+2. Capture route and search latency samples.
+3. Check memory growth under repeated search/reroute loops.
+4. Verify no frame-drop spikes during style/source swaps.

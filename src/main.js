@@ -241,7 +241,7 @@ function renderSuggestions(results) {
     .map(
       (result, index) => `
         <div class="suggestion-item" data-index="${index}">
-          <div class="suggestion-icon">${result.emoji || '📍'}</div>
+          <div class="suggestion-icon">${getSuggestionIcon(result.type)}</div>
           <div>
             <div class="suggestion-name">${result.name}</div>
             <div class="suggestion-addr">${result.type}</div>
@@ -267,6 +267,22 @@ function renderSuggestions(results) {
       suggestionsPanel.classList.add('hidden');
     });
   });
+}
+
+function getSuggestionIcon(type) {
+  const iconByType = {
+    fuel: 'F',
+    charging: 'E',
+    hospital: 'H',
+    pharmacy: 'P',
+    hotel: 'L',
+    restaurant: 'R',
+    rest_area: 'S',
+    station: 'T',
+    city: 'C',
+    landmark: 'M',
+  };
+  return iconByType[type] || 'N';
 }
 
 function showPlaceInfo(place) {
@@ -912,3 +928,4 @@ const DEMO_GRAPH = {
 
 window.addEventListener('beforeunload', () => mapView.destroy());
 init().catch(console.error);
+

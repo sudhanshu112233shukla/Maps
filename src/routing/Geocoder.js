@@ -28,7 +28,6 @@ const DEFAULT_POIS = [
   {
     name: 'Gateway of India',
     type: 'landmark',
-    emoji: '[*]',
     lng: 72.8347,
     lat: 18.922,
     region: 'india',
@@ -37,7 +36,6 @@ const DEFAULT_POIS = [
   {
     name: 'Prayagraj Junction',
     type: 'station',
-    emoji: '[R]',
     lng: 81.8463,
     lat: 25.4358,
     region: 'india',
@@ -46,7 +44,6 @@ const DEFAULT_POIS = [
   {
     name: 'Indian Oil Colaba Fuel Station',
     type: 'fuel',
-    emoji: '[F]',
     lng: 72.8311,
     lat: 18.9248,
     region: 'india',
@@ -55,7 +52,6 @@ const DEFAULT_POIS = [
   {
     name: 'Tata Power EV Charging Hub',
     type: 'charging',
-    emoji: '[E]',
     lng: 72.8403,
     lat: 18.9355,
     region: 'india',
@@ -64,7 +60,6 @@ const DEFAULT_POIS = [
   {
     name: 'Fortis Hospital Mumbai',
     type: 'hospital',
-    emoji: '[H]',
     lng: 72.8421,
     lat: 19.0596,
     region: 'india',
@@ -73,7 +68,6 @@ const DEFAULT_POIS = [
   {
     name: 'Apollo Pharmacy Colaba',
     type: 'pharmacy',
-    emoji: '[P]',
     lng: 72.8338,
     lat: 18.9231,
     region: 'india',
@@ -82,7 +76,6 @@ const DEFAULT_POIS = [
   {
     name: 'Expressway Food Plaza Lonavala',
     type: 'rest_area',
-    emoji: '[S]',
     lng: 73.4201,
     lat: 18.7546,
     region: 'india',
@@ -91,7 +84,6 @@ const DEFAULT_POIS = [
   {
     name: 'Mumbai, India',
     type: 'city',
-    emoji: '[C]',
     lng: 72.8777,
     lat: 18.9667,
     region: 'india',
@@ -100,7 +92,6 @@ const DEFAULT_POIS = [
   {
     name: 'Delhi, India',
     type: 'city',
-    emoji: '[C]',
     lng: 77.1025,
     lat: 28.7041,
     region: 'india',
@@ -109,7 +100,6 @@ const DEFAULT_POIS = [
   {
     name: 'Bangalore, India',
     type: 'city',
-    emoji: '[C]',
     lng: 77.5946,
     lat: 12.9716,
     region: 'india',
@@ -118,7 +108,6 @@ const DEFAULT_POIS = [
   {
     name: 'Pune, India',
     type: 'city',
-    emoji: '[C]',
     lng: 73.8567,
     lat: 18.5204,
     region: 'india',

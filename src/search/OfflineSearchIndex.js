@@ -10,6 +10,29 @@ import {
 
 const MIN_PREFIX_LENGTH = 2;
 const MAX_EDIT_DISTANCE = 2;
+const MAX_FUZZY_TERM_LENGTH = 32;
+
+const CATEGORY_KEYWORDS = new Map([
+  ['fuel', 'fuel'],
+  ['petrol', 'fuel'],
+  ['diesel', 'fuel'],
+  ['gas', 'fuel'],
+  ['charging', 'charging'],
+  ['charger', 'charging'],
+  ['ev', 'charging'],
+  ['hospital', 'hospital'],
+  ['clinic', 'hospital'],
+  ['pharmacy', 'pharmacy'],
+  ['chemist', 'pharmacy'],
+  ['hotel', 'hotel'],
+  ['motel', 'hotel'],
+  ['restaurant', 'restaurant'],
+  ['cafe', 'restaurant'],
+  ['food', 'restaurant'],
+  ['station', 'station'],
+  ['junction', 'station'],
+  ['railway', 'station'],
+]);
 
 function addToSetMap(map, key, value) {
   if (!key) return;
@@ -22,7 +45,23 @@ function addToSetMap(map, key, value) {
 function splitCategoryFromQuery(normalizedQuery) {
   const tokens = tokenizeNormalized(normalizedQuery);
   if (!tokens.length) return { category: null, remainingQuery: normalizedQuery };
-  return { category: null, remainingQuery: normalizedQuery };
+
+  let category = null;
+  const remainingTokens = [];
+
+  tokens.forEach((token) => {
+    const matchedCategory = CATEGORY_KEYWORDS.get(token);
+    if (matchedCategory && !category) {
+      category = matchedCategory;
+      return;
+    }
+    remainingTokens.push(token);
+  });
+
+  return {
+    category,
+    remainingQuery: remainingTokens.join(' ').trim(),
+  };
 }
 
 export class OfflineSearchIndex {
@@ -86,9 +125,11 @@ export class OfflineSearchIndex {
     const candidateIds = new Set();
     const queryTokens = new Set();
     const queryPhoneticKeys = new Set();
+    const requestedCategories = new Set();
 
     queryVariants.forEach((variant) => {
-      const { remainingQuery } = splitCategoryFromQuery(variant);
+      const { category, remainingQuery } = splitCategoryFromQuery(variant);
+      if (category) requestedCategories.add(category);
       const tokens = canonicalizeTokens(tokenizeNormalized(remainingQuery));
       tokens.forEach((token) => {
         queryTokens.add(token);
@@ -116,7 +157,14 @@ export class OfflineSearchIndex {
       .map((id) => this.documents[id])
       .map((document) => ({
         document,
-        score: this.#scoreDocument(document, queryVariants, queryTokens, queryPhoneticKeys, activeRegion),
+        score: this.#scoreDocument(
+          document,
+          queryVariants,
+          queryTokens,
+          queryPhoneticKeys,
+          requestedCategories,
+          activeRegion,
+        ),
       }))
       .filter((entry) => entry.score > 0)
       .sort((left, right) => right.score - left.score)
@@ -129,7 +177,14 @@ export class OfflineSearchIndex {
     return results;
   }
 
-  #scoreDocument(document, queryVariants, queryTokens, queryPhoneticKeys, activeRegion) {
+  #scoreDocument(
+    document,
+    queryVariants,
+    queryTokens,
+    queryPhoneticKeys,
+    requestedCategories,
+    activeRegion,
+  ) {
     let score = 0;
     const point = document.point;
 
@@ -137,6 +192,14 @@ export class OfflineSearchIndex {
       score += 45;
     } else if (point.type === 'city') {
       score += 20;
+    }
+
+    if (requestedCategories.size > 0) {
+      if (requestedCategories.has(point.type)) {
+        score += 80;
+      } else if (point.type !== 'city') {
+        score -= 10;
+      }
     }
 
     queryVariants.forEach((variant) => {
@@ -150,9 +213,15 @@ export class OfflineSearchIndex {
 
       const compactVariant = variant.replace(/\s+/g, '');
       const compactName = document.normalizedName.replace(/\s+/g, '');
-      const editDistance = damerauLevenshtein(compactVariant, compactName, MAX_EDIT_DISTANCE);
-      if (editDistance <= MAX_EDIT_DISTANCE) {
-        score += (MAX_EDIT_DISTANCE - editDistance + 1) * 35;
+      if (
+        compactVariant.length > 0 &&
+        compactVariant.length <= MAX_FUZZY_TERM_LENGTH &&
+        compactName.length <= MAX_FUZZY_TERM_LENGTH
+      ) {
+        const editDistance = damerauLevenshtein(compactVariant, compactName, MAX_EDIT_DISTANCE);
+        if (editDistance <= MAX_EDIT_DISTANCE) {
+          score += (MAX_EDIT_DISTANCE - editDistance + 1) * 35;
+        }
       }
     });
 
