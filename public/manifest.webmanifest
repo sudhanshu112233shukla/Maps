@@ -1,0 +1,23 @@
+{
+  "name": "Melange Maps",
+  "short_name": "Melange Maps",
+  "description": "Offline-first automotive navigation with Melange-ready on-device intelligence.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

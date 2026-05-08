@@ -169,6 +169,10 @@ export class MapView {
     return this.map;
   }
 
+  updateSourceConfig(sourceConfig = DEFAULT_SOURCE) {
+    this.baseSourceConfig = sourceConfig;
+  }
+
   #buildMapStyle(sourceConfig) {
     return {
       version: 8,

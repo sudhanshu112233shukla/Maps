@@ -1,0 +1,106 @@
+{
+  "nodes": {
+    "gateway": [72.8347, 18.922],
+    "taj_palace": [72.8333, 18.9217],
+    "regal_cinema": [72.8322, 18.9242],
+    "colaba_causeway": [72.8315, 18.922],
+    "mantralaya": [72.8258, 18.9298],
+    "nariman_point": [72.8208, 18.925],
+    "marine_drive_south": [72.8235, 18.932],
+    "marine_drive_mid": [72.825, 18.945],
+    "marine_drive_north": [72.818, 18.96],
+    "cst_station": [72.8355, 18.94],
+    "mumbai_uni": [72.83, 18.927],
+    "mumbai_center": [72.8777, 18.9667],
+    "highway_vapi": [72.9022, 20.3851],
+    "highway_surat": [72.8311, 21.1702],
+    "highway_vadodara": [73.1812, 22.3072],
+    "highway_udaipur": [73.7125, 24.5854],
+    "highway_jaipur": [75.7873, 26.9124],
+    "delhi_south": [77.209, 28.5355],
+    "delhi_center": [77.1025, 28.7041]
+  },
+  "edges": {
+    "gateway": [
+      { "to": "taj_palace", "dist": 150, "time": 30, "type": "primary" },
+      { "to": "regal_cinema", "dist": 350, "time": 60, "type": "secondary" }
+    ],
+    "taj_palace": [
+      { "to": "gateway", "dist": 150, "time": 30, "type": "primary" },
+      { "to": "colaba_causeway", "dist": 200, "time": 40, "type": "secondary" },
+      { "to": "mumbai_uni", "dist": 350, "time": 70, "type": "secondary" }
+    ],
+    "regal_cinema": [
+      { "to": "gateway", "dist": 350, "time": 60, "type": "secondary" },
+      { "to": "mantralaya", "dist": 800, "time": 150, "type": "primary" },
+      { "to": "cst_station", "dist": 1100, "time": 200, "type": "primary" }
+    ],
+    "colaba_causeway": [
+      { "to": "taj_palace", "dist": 200, "time": 40, "type": "secondary" },
+      { "to": "mumbai_uni", "dist": 300, "time": 60, "type": "secondary" }
+    ],
+    "mumbai_uni": [
+      { "to": "taj_palace", "dist": 350, "time": 70, "type": "secondary" },
+      { "to": "mantralaya", "dist": 400, "time": 80, "type": "primary" }
+    ],
+    "mantralaya": [
+      { "to": "regal_cinema", "dist": 800, "time": 150, "type": "primary" },
+      { "to": "nariman_point", "dist": 600, "time": 100, "type": "primary" },
+      { "to": "marine_drive_south", "dist": 400, "time": 80, "type": "primary" }
+    ],
+    "nariman_point": [
+      { "to": "mantralaya", "dist": 600, "time": 100, "type": "primary" },
+      { "to": "marine_drive_south", "dist": 500, "time": 90, "type": "primary" }
+    ],
+    "marine_drive_south": [
+      { "to": "mantralaya", "dist": 400, "time": 80, "type": "primary" },
+      { "to": "marine_drive_mid", "dist": 1200, "time": 200, "type": "primary" }
+    ],
+    "marine_drive_mid": [
+      { "to": "marine_drive_south", "dist": 1200, "time": 200, "type": "primary" },
+      { "to": "marine_drive_north", "dist": 1500, "time": 250, "type": "primary" },
+      { "to": "cst_station", "dist": 1000, "time": 180, "type": "secondary" }
+    ],
+    "marine_drive_north": [
+      { "to": "marine_drive_mid", "dist": 1500, "time": 250, "type": "primary" },
+      { "to": "mumbai_center", "dist": 2500, "time": 500, "type": "primary" }
+    ],
+    "cst_station": [
+      { "to": "regal_cinema", "dist": 1100, "time": 200, "type": "primary" },
+      { "to": "marine_drive_mid", "dist": 1000, "time": 180, "type": "secondary" },
+      { "to": "mumbai_center", "dist": 3000, "time": 600, "type": "primary" }
+    ],
+    "mumbai_center": [
+      { "to": "cst_station", "dist": 3000, "time": 600, "type": "primary" },
+      { "to": "marine_drive_north", "dist": 2500, "time": 500, "type": "primary" },
+      { "to": "highway_vapi", "dist": 170000, "time": 10800, "type": "motorway", "toll": true }
+    ],
+    "highway_vapi": [
+      { "to": "mumbai_center", "dist": 170000, "time": 10800, "type": "motorway", "toll": true },
+      { "to": "highway_surat", "dist": 110000, "time": 7200, "type": "motorway", "toll": true }
+    ],
+    "highway_surat": [
+      { "to": "highway_vapi", "dist": 110000, "time": 7200, "type": "motorway", "toll": true },
+      { "to": "highway_vadodara", "dist": 150000, "time": 9000, "type": "motorway", "toll": true }
+    ],
+    "highway_vadodara": [
+      { "to": "highway_surat", "dist": 150000, "time": 9000, "type": "motorway", "toll": true },
+      { "to": "highway_udaipur", "dist": 280000, "time": 18000, "type": "motorway", "toll": true }
+    ],
+    "highway_udaipur": [
+      { "to": "highway_vadodara", "dist": 280000, "time": 18000, "type": "motorway", "toll": true },
+      { "to": "highway_jaipur", "dist": 390000, "time": 25200, "type": "motorway", "toll": true }
+    ],
+    "highway_jaipur": [
+      { "to": "highway_udaipur", "dist": 390000, "time": 25200, "type": "motorway", "toll": true },
+      { "to": "delhi_south", "dist": 270000, "time": 16200, "type": "motorway", "toll": true }
+    ],
+    "delhi_south": [
+      { "to": "highway_jaipur", "dist": 270000, "time": 16200, "type": "motorway", "toll": true },
+      { "to": "delhi_center", "dist": 15000, "time": 1200, "type": "primary" }
+    ],
+    "delhi_center": [
+      { "to": "delhi_south", "dist": 15000, "time": 1200, "type": "primary" }
+    ]
+  }
+}

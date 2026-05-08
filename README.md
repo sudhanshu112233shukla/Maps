@@ -27,8 +27,15 @@ Neural Maps is a state-of-the-art, 100% offline navigation application designed 
 - **Engine**: MapLibre GL JS (WebGL accelerated rendering)
 - **Logic**: Vanilla JavaScript (ES6+)
 - **Routing**: Custom A* Implementation with Priority Queue
-- **AI**: Transformers.js (Xenova)
+- **AI**: Melange-ready Capacitor bridge with offline fallback logic
 - **Container**: Capacitor (for iOS/Android deployment)
+
+## Architecture Direction
+
+- `src/ai/AIAssistant.js` now prefers a native `MelangeNavigation` Capacitor plugin and falls back to deterministic offline behavior when native Melange is not attached yet.
+- `android/` and `ios/` native projects are now part of the repo, so the Melange runtime can be wired directly into mobile builds.
+- `public/data/graph/india.json` and `public/data/poi/india.json` stage local routing/search assets for a more realistic offline boot path.
+- `public/sw.js` and `public/manifest.webmanifest` add app-shell caching and installable PWA behavior for offline resilience.
 
 ##  Future Scope
 

@@ -20,7 +20,7 @@ const CATEGORY_ALIASES = {
   service: 'rest_area',
 };
 
-const DEMO_POIS = [
+const DEFAULT_POIS = [
   { name: 'Gateway of India', type: 'landmark', emoji: '📍', lng: 72.8347, lat: 18.922, region: 'india', keywords: ['mumbai', 'tourist'] },
   { name: 'Taj Mahal Palace', type: 'hotel', emoji: '🏨', lng: 72.8333, lat: 18.9217, region: 'india', keywords: ['mumbai', 'stay'] },
   { name: 'Indian Oil Colaba Fuel Station', type: 'fuel', emoji: '⛽', lng: 72.8311, lat: 18.9248, region: 'india', keywords: ['petrol', 'gas', 'diesel'] },
@@ -75,10 +75,18 @@ export class Geocoder {
     this.activeRegion = options.region || 'india';
     this.allowOnlineFallback = Boolean(options.allowOnlineFallback);
     this.cache = new Map();
+    this.points = [...DEFAULT_POIS];
   }
 
   setRegion(region) {
     this.activeRegion = region;
+  }
+
+  setDataset(points) {
+    this.points = Array.isArray(points) && points.length > 0
+      ? points
+      : [...DEFAULT_POIS];
+    this.cache.clear();
   }
 
   async search(query, limit = 6) {
@@ -91,7 +99,7 @@ export class Geocoder {
       return this.cache.get(cacheKey);
     }
 
-    const scoped = DEMO_POIS.filter(
+    const scoped = this.points.filter(
       (poi) => poi.region === this.activeRegion || poi.type === 'city',
     );
 
@@ -119,7 +127,7 @@ export class Geocoder {
 
     const canonicalType = normalizeCategory(type.toLowerCase());
 
-    return DEMO_POIS
+    return this.points
       .filter((poi) => poi.region === this.activeRegion && poi.type === canonicalType)
       .map((poi) => ({
         ...poi,
@@ -131,7 +139,7 @@ export class Geocoder {
   }
 
   async reverseGeocode(lng, lat) {
-    const nearest = DEMO_POIS
+    const nearest = this.points
       .map((poi) => ({
         poi,
         distance: haversine([lng, lat], [poi.lng, poi.lat]),

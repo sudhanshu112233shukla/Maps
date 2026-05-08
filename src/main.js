@@ -7,6 +7,8 @@ import { Geocoder } from './routing/Geocoder.js';
 import { GPSTracker } from './gps/GPSTracker.js';
 import { AIAssistant } from './ai/AIAssistant.js';
 import { OfflineRegionStore } from './offline/OfflineRegionStore.js';
+import { OfflineDataLoader } from './offline/OfflineDataLoader.js';
+import { registerServiceWorker } from './registerServiceWorker.js';
 
 const state = {
   activeRegion: 'india',
@@ -25,6 +27,7 @@ const geocoder = new Geocoder({ allowOnlineFallback: false, region: 'india' });
 const gps = new GPSTracker();
 const ai = new AIAssistant({ locale: 'en-US' });
 const offlineStore = new OfflineRegionStore();
+const offlineDataLoader = new OfflineDataLoader();
 
 const searchInput = document.getElementById('search-input');
 const originInput = document.getElementById('origin-input');
@@ -64,8 +67,7 @@ async function init() {
   state.offlineRegions = await offlineStore.hydrateRegions();
 
   mapView.init(state.activeRegion, offlineStore.getSourceConfig(state.activeRegion));
-  geocoder.setRegion(state.activeRegion);
-  await router.loadGraph(DEMO_GRAPH);
+  await syncRegionAssets(state.activeRegion, { recenter: false });
 
   await bootstrapLocation();
   setupSearchUI();
@@ -75,6 +77,7 @@ async function init() {
   setupAIPanel();
   setupOfflineManager();
   setupFABs();
+  registerServiceWorker();
 
   gps.startWatching(handlePositionUpdate);
 }
@@ -89,12 +92,28 @@ async function bootstrapLocation() {
 
     const inferredRegion = offlineStore.inferRegionForPosition(position.lng, position.lat);
     if (inferredRegion && inferredRegion.id !== state.activeRegion) {
-      state.activeRegion = inferredRegion.id;
-      geocoder.setRegion(state.activeRegion);
-      mapView.setRegion(state.activeRegion);
+      await syncRegionAssets(inferredRegion.id, { recenter: true });
     }
   } catch {
     return;
+  }
+}
+
+async function syncRegionAssets(regionId, { recenter = false } = {}) {
+  state.activeRegion = regionId;
+  geocoder.setRegion(regionId);
+  mapView.updateSourceConfig(offlineStore.getSourceConfig(regionId));
+
+  const { graph, pois } = await offlineDataLoader.loadRegionAssets(regionId, {
+    graphFallback: DEMO_GRAPH,
+    poiFallback: [],
+  });
+
+  geocoder.setDataset(pois);
+  await router.loadGraph(graph);
+
+  if (recenter) {
+    mapView.setRegion(regionId);
   }
 }
 
@@ -519,13 +538,17 @@ async function loadAIProvider() {
 
   try {
     await ai.load({ enableBrowserFallback: false });
-    aiStatusDot.style.background = ai.getProviderLabel() === 'Melange' ? '#10b981' : '#f59e0b';
-    aiProviderNote.textContent = `${ai.getProviderLabel()} active`;
+    const providerStatus = ai.getProviderStatus();
+    const providerLabel = ai.getProviderLabel();
+    aiStatusDot.style.background = providerStatus?.supportsNativeMelange ? '#10b981' : '#f59e0b';
+    aiProviderNote.textContent = providerStatus?.supportsNativeMelange
+      ? `${providerLabel} active`
+      : `${providerLabel} ready`;
     addAIMessage(
       'assistant',
-      ai.getProviderLabel() === 'Melange'
+      providerStatus?.supportsNativeMelange
         ? 'Melange is active for local navigation intelligence.'
-        : 'Melange native runtime is not attached yet. The automotive fallback assistant is active.',
+        : 'Native plugin bridge is active. Replace the bridge internals with Melange runtime calls to enable full on-device inference.',
     );
   } catch {
     aiStatusDot.style.background = '#ef4444';
@@ -610,6 +633,15 @@ function addAIMessage(role, text) {
 }
 
 async function startVoiceInput() {
+  if (!aiBootstrapped) {
+    try {
+      await loadAIProvider();
+      aiBootstrapped = true;
+    } catch {
+      return fallbackVoiceInput();
+    }
+  }
+
   if (ai.supportsVoiceCommands()) {
     try {
       const transcript = await ai.transcribeNavigationCommand();
@@ -707,11 +739,14 @@ function setupOfflineManager() {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
-    state.offlineRegions = await offlineStore.markDownloaded(regionId, {
-      packPath: `/data/maps/${regionId}.pmtiles`,
-    });
-    renderRegions();
-  };
+      state.offlineRegions = await offlineStore.markDownloaded(regionId, {
+        packPath: `/data/maps/${regionId}.pmtiles`,
+      });
+      if (regionId === state.activeRegion) {
+        await syncRegionAssets(regionId, { recenter: false });
+      }
+      renderRegions();
+    };
 }
 
 function setupFABs() {
