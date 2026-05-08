@@ -1,0 +1,101 @@
+import { Preferences } from '@capacitor/preferences';
+import {
+  OFFLINE_REGIONS,
+  getRegionById,
+  inferRegionFromCoordinates,
+} from './offlineRegions.js';
+
+const STORAGE_KEY = 'melange-offline-region-status-v1';
+const DEFAULT_TILES = ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'];
+
+export class OfflineRegionStore {
+  constructor() {
+    this.statusByRegion = {};
+  }
+
+  async hydrateRegions() {
+    await this.#load();
+    return this.getRegions();
+  }
+
+  getRegions() {
+    return OFFLINE_REGIONS.map((region) => {
+      const status = this.statusByRegion[region.id] || {};
+      return {
+        ...region,
+        downloaded: Boolean(status.downloaded),
+        progress: Number.isFinite(status.progress)
+          ? status.progress
+          : status.downloaded
+            ? 100
+            : 0,
+        downloadedAt: status.downloadedAt || null,
+        packPath: status.packPath || region.bundledPackPath,
+        graphPath: status.graphPath || region.graphPath,
+        poiPath: status.poiPath || region.poiPath,
+      };
+    });
+  }
+
+  getSourceConfig(regionId) {
+    const region = getRegionById(regionId);
+    const status = this.statusByRegion[regionId] || {};
+
+    return {
+      name: status.downloaded ? 'local-pack-staged' : 'online-raster-fallback',
+      tiles: status.tiles || DEFAULT_TILES,
+      attribution: status.downloaded
+        ? 'Local pack staged. Add a compatible native/vector basemap style to render bundled PMTiles.'
+        : '© OpenStreetMap contributors',
+      offlineReady: Boolean(status.downloaded),
+      packPath: status.packPath || region?.bundledPackPath || null,
+    };
+  }
+
+  inferRegionForPosition(lng, lat) {
+    return inferRegionFromCoordinates(lng, lat);
+  }
+
+  async updateProgress(regionId, progress, patch = {}) {
+    const current = this.statusByRegion[regionId] || {};
+    const downloaded = progress >= 100;
+
+    this.statusByRegion[regionId] = {
+      ...current,
+      ...patch,
+      progress,
+      downloaded,
+      downloadedAt:
+        downloaded && !current.downloadedAt
+          ? new Date().toISOString()
+          : current.downloadedAt || null,
+    };
+
+    await this.#save();
+    return this.getRegions();
+  }
+
+  async markDownloaded(regionId, patch = {}) {
+    return this.updateProgress(regionId, 100, patch);
+  }
+
+  async #load() {
+    try {
+      const { value } = await Preferences.get({ key: STORAGE_KEY });
+      this.statusByRegion = value ? JSON.parse(value) : {};
+    } catch {
+      this.statusByRegion = {};
+    }
+  }
+
+  async #save() {
+    try {
+      await Preferences.set({
+        key: STORAGE_KEY,
+        value: JSON.stringify(this.statusByRegion),
+      });
+    } catch {
+      return;
+    }
+  }
+}
