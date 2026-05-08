@@ -1,172 +1,337 @@
-/**
- * AIAssistant.js — On-device AI using Transformers.js (Xenova)
- * Model: Phi-3 Mini 3.8B (Q4 quantized) — runs fully on-device
- * Parses natural language queries into routing parameters
- */
+import { MelangeNavigation } from './MelangeNavigation.js';
 
-const MODEL_ID = 'Xenova/Phi-3-mini-4k-instruct';
-const FALLBACK_MODEL_ID = 'Xenova/distilgpt2'; // tiny fallback for testing
+const MELANGE_LLM_MODEL = 'Qwen/Qwen3-4B';
+const MELANGE_SPEECH_MODEL = 'OpenAI/whisper-tiny-decoder';
+const BROWSER_FALLBACK_MODEL = 'Xenova/distilgpt2';
+
+const KNOWN_MODES = new Set(['fastest', 'safest', 'eco', 'no-toll']);
+const POI_ALIASES = {
+  hospital: ['hospital', 'clinic', 'doctor', 'emergency'],
+  fuel: ['fuel', 'gas', 'gas station', 'petrol', 'petrol pump'],
+  charging: ['charging', 'charger', 'ev', 'ev charger'],
+  restaurant: ['restaurant', 'food', 'eat', 'cafe', 'coffee'],
+  hotel: ['hotel', 'stay', 'motel', 'lodge'],
+  pharmacy: ['pharmacy', 'medicine', 'chemist'],
+  atm: ['atm', 'cash', 'bank'],
+  rest_area: ['rest area', 'toilet', 'washroom', 'service area'],
+};
+
+function normalizeRoutingResult(result = {}, locale = 'en-US') {
+  const language = result.language || locale.split('-')[0] || 'en';
+  const mode = KNOWN_MODES.has(result.mode) ? result.mode : 'fastest';
+  const avoid = Array.isArray(result.avoid)
+    ? result.avoid.filter(Boolean)
+    : [];
+
+  return {
+    destination: typeof result.destination === 'string' && result.destination.trim()
+      ? result.destination.trim()
+      : null,
+    mode,
+    poi: typeof result.poi === 'string' && result.poi.trim()
+      ? result.poi.trim().toLowerCase()
+      : null,
+    language,
+    avoid,
+  };
+}
+
+function detectPoiFromQuery(query) {
+  const lowered = query.toLowerCase();
+  for (const [poi, aliases] of Object.entries(POI_ALIASES)) {
+    if (aliases.some((alias) => lowered.includes(alias))) {
+      return poi;
+    }
+  }
+  return null;
+}
+
+class RuleBasedNavigationProvider {
+  constructor(options = {}) {
+    this.options = options;
+    this.kind = 'rules';
+  }
+
+  async load(progressCallback) {
+    progressCallback?.(100, 'Offline automotive assistant ready');
+  }
+
+  getLabel() {
+    return 'Offline automotive assistant';
+  }
+
+  async parseRoutingQuery(query) {
+    const lowered = query.toLowerCase();
+    const mode = lowered.includes('no toll') || lowered.includes('avoid toll')
+      ? 'no-toll'
+      : lowered.includes('eco') || lowered.includes('fuel efficient')
+        ? 'eco'
+        : lowered.includes('safe') || lowered.includes('safer')
+          ? 'safest'
+          : 'fastest';
+
+    const destinationMatch = lowered.match(
+      /(?:to|navigate to|take me to|directions to|route to|drive to)\s+(.+?)(?:\s+(?:avoiding|avoid|with|via|and)|$)/i,
+    );
+
+    const avoid = [];
+    if (lowered.includes('avoid toll')) avoid.push('tolls');
+    if (lowered.includes('avoid highway')) avoid.push('highways');
+    if (lowered.includes('avoid traffic')) avoid.push('traffic');
+    if (lowered.includes('avoid night')) avoid.push('night-driving');
+
+    return normalizeRoutingResult(
+      {
+        destination: destinationMatch?.[1] || null,
+        mode,
+        poi: detectPoiFromQuery(query),
+        language: this.options.locale?.split('-')[0] || 'en',
+        avoid,
+      },
+      this.options.locale,
+    );
+  }
+
+  async chat(userMessage) {
+    const lowered = userMessage.toLowerCase();
+    if (lowered.includes('fuel') || lowered.includes('petrol') || lowered.includes('gas')) {
+      return 'I can route to nearby fuel stops and keep you on primary roads where possible.';
+    }
+    if (lowered.includes('safe') || lowered.includes('night')) {
+      return 'Safest mode prefers major roads and penalizes minor streets, especially during late hours.';
+    }
+    if (lowered.includes('offline')) {
+      return 'The navigation logic, search index, and route engine are designed to keep working without network access.';
+    }
+    return 'Ask for a destination, a nearby stop, or a driving preference like safest, eco, or no-toll.';
+  }
+}
+
+class NativeMelangeProvider {
+  constructor(options = {}) {
+    this.options = options;
+    this.kind = 'melange';
+  }
+
+  async load(progressCallback) {
+    progressCallback?.(10, 'Preparing Melange runtime');
+    await MelangeNavigation.prepare({
+      tokenKey: this.options.tokenKey || '',
+      llmModelName: this.options.llmModelName || MELANGE_LLM_MODEL,
+      llmVersion: this.options.llmVersion || 1,
+      speechModelName: this.options.speechModelName || MELANGE_SPEECH_MODEL,
+      speechVersion: this.options.speechVersion || 1,
+      locale: this.options.locale || 'en-US',
+      domain: 'automobile',
+    });
+    progressCallback?.(100, 'Melange ready');
+  }
+
+  getLabel() {
+    return 'Melange';
+  }
+
+  async parseRoutingQuery(query) {
+    const result = await MelangeNavigation.parseRouteIntent({
+      query,
+      locale: this.options.locale || 'en-US',
+      vehicleProfile: 'automobile',
+    });
+    return normalizeRoutingResult(result, this.options.locale);
+  }
+
+  async chat(userMessage, history = []) {
+    const result = await MelangeNavigation.chatNavigation({
+      message: userMessage,
+      history,
+      locale: this.options.locale || 'en-US',
+      vehicleProfile: 'automobile',
+    });
+    return result?.text || result?.message || '';
+  }
+
+  async transcribeNavigationCommand() {
+    const result = await MelangeNavigation.transcribeNavigationCommand({
+      locale: this.options.locale || 'en-US',
+    });
+    return result?.text || '';
+  }
+}
+
+class BrowserTransformersProvider {
+  constructor(options = {}) {
+    this.options = options;
+    this.kind = 'browser';
+    this.pipeline = null;
+  }
+
+  async load(progressCallback) {
+    const { pipeline, env } = await import('@xenova/transformers');
+    env.allowLocalModels = false;
+    env.useBrowserCache = true;
+
+    progressCallback?.(15, 'Loading browser fallback model');
+
+    this.pipeline = await pipeline('text-generation', BROWSER_FALLBACK_MODEL, {
+      quantized: true,
+      progress_callback: (progress) => {
+        if (progress.status === 'downloading' && progress.total) {
+          const percent = Math.round((progress.loaded / progress.total) * 100);
+          progressCallback?.(percent, `Downloading browser fallback ${percent}%`);
+        }
+      },
+    });
+
+    progressCallback?.(100, 'Browser fallback ready');
+  }
+
+  getLabel() {
+    return 'Browser fallback';
+  }
+
+  async parseRoutingQuery(query) {
+    const prompt = [
+      'You are a navigation assistant for an automobile-focused offline map app.',
+      'Return JSON only with keys: destination, mode, poi, language, avoid.',
+      'Mode must be one of fastest, safest, eco, no-toll.',
+      `User: ${query}`,
+      'JSON:',
+    ].join('\n');
+
+    const result = await this.pipeline(prompt, {
+      max_new_tokens: 100,
+      temperature: 0.1,
+      do_sample: false,
+    });
+
+    const text = result?.[0]?.generated_text || '{}';
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}') + 1;
+    const parsed = JSON.parse(text.slice(jsonStart, jsonEnd));
+    return normalizeRoutingResult(parsed, this.options.locale);
+  }
+
+  async chat(userMessage) {
+    const prompt = [
+      'You are a concise automotive navigation copilot.',
+      `User: ${userMessage}`,
+      'Assistant:',
+    ].join('\n');
+
+    const result = await this.pipeline(prompt, {
+      max_new_tokens: 120,
+      temperature: 0.5,
+      do_sample: true,
+    });
+
+    const output = result?.[0]?.generated_text || '';
+    return output.split('Assistant:').pop().trim();
+  }
+}
 
 export class AIAssistant {
-  constructor() {
-    this.pipeline = null;
-    this.tokenizer = null;
-    this.model = null;
+  constructor(options = {}) {
+    this.options = options;
+    this.provider = new RuleBasedNavigationProvider(options);
     this.ready = false;
     this.loading = false;
     this.progressCallbacks = [];
   }
 
-  onProgress(cb) { this.progressCallbacks.push(cb); }
-
-  _emitProgress(pct, text) {
-    this.progressCallbacks.forEach(cb => cb(pct, text));
+  onProgress(callback) {
+    this.progressCallbacks.push(callback);
   }
 
-  async load(useFallback = false) {
+  isReady() {
+    return this.ready;
+  }
+
+  isLoading() {
+    return this.loading;
+  }
+
+  getProviderLabel() {
+    return this.provider?.getLabel?.() || 'Unknown';
+  }
+
+  supportsVoiceCommands() {
+    return typeof this.provider?.transcribeNavigationCommand === 'function';
+  }
+
+  async load({ enableBrowserFallback = false } = {}) {
     if (this.ready || this.loading) return;
     this.loading = true;
 
-    try {
-      const { pipeline, env } = await import('@xenova/transformers');
+    const attempts = [
+      new NativeMelangeProvider(this.options),
+      ...(enableBrowserFallback ? [new BrowserTransformersProvider(this.options)] : []),
+      new RuleBasedNavigationProvider(this.options),
+    ];
 
-      // Allow local model caching via OPFS (Origin Private File System)
-      env.allowLocalModels = false;
-      env.useBrowserCache = true;
+    let lastError = null;
 
-      this._emitProgress(5, 'Initializing AI engine…');
+    for (const candidate of attempts) {
+      try {
+        await candidate.load((percent, message) => this.#emitProgress(percent, message));
+        this.provider = candidate;
+        this.ready = true;
+        break;
+      } catch (error) {
+        lastError = error;
+      }
+    }
 
-      const modelId = useFallback ? FALLBACK_MODEL_ID : MODEL_ID;
+    this.loading = false;
 
-      this.pipeline = await pipeline('text-generation', modelId, {
-        quantized: true,
-        progress_callback: (prog) => {
-          if (prog.status === 'downloading') {
-            const pct = Math.round((prog.loaded / prog.total) * 100);
-            this._emitProgress(pct, `Downloading AI model… ${pct}%`);
-          } else if (prog.status === 'loading') {
-            this._emitProgress(95, 'Loading model into memory…');
-          }
-        }
-      });
-
-      this._emitProgress(100, 'AI ready!');
-      this.ready = true;
-      this.loading = false;
-      console.log('[AI] Model loaded:', modelId);
-    } catch (err) {
-      console.error('[AI] Failed to load model:', err);
-      this.loading = false;
-      throw err;
+    if (!this.ready) {
+      throw lastError || new Error('No AI provider available');
     }
   }
 
-  /**
-   * Parse a natural language routing query into structured params
-   * Returns: { destination, avoidTolls, mode, poi }
-   */
   async parseRoutingQuery(query) {
     if (!this.ready) {
-      return this._ruleBasedParse(query);
+      return normalizeRoutingResult(
+        await new RuleBasedNavigationProvider(this.options).parseRoutingQuery(query),
+        this.options.locale,
+      );
     }
 
-    const systemPrompt = `You are a navigation assistant. Parse the user's routing request into JSON with fields:
-- destination: string (place name or null)
-- mode: "fastest" | "eco" | "no-toll"
-- poi: string (point of interest type like "hospital", "petrol station", "restaurant" or null)
-- language: detected language code
-
-Return ONLY valid JSON, no explanation.`;
-
-    const prompt = `${systemPrompt}\n\nUser: "${query}"\nJSON:`;
-
     try {
-      const result = await this.pipeline(prompt, {
-        max_new_tokens: 150,
-        temperature: 0.1,
-        do_sample: false,
-      });
-
-      const text = result[0].generated_text.split('JSON:')[1]?.trim() || '{}';
-      const jsonStart = text.indexOf('{');
-      const jsonEnd = text.lastIndexOf('}') + 1;
-      return JSON.parse(text.slice(jsonStart, jsonEnd));
-    } catch (e) {
-      return this._ruleBasedParse(query);
+      return normalizeRoutingResult(
+        await this.provider.parseRoutingQuery(query),
+        this.options.locale,
+      );
+    } catch {
+      return normalizeRoutingResult(
+        await new RuleBasedNavigationProvider(this.options).parseRoutingQuery(query),
+        this.options.locale,
+      );
     }
   }
 
-  /**
-   * Generate a conversational response for general queries
-   */
   async chat(userMessage, history = []) {
     if (!this.ready) {
-      return this._ruleBasedChat(userMessage);
+      return new RuleBasedNavigationProvider(this.options).chat(userMessage, history);
     }
-
-    const contextMessages = history.slice(-4).map(m =>
-      `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`
-    ).join('\n');
-
-    const prompt = `You are an offline navigation AI assistant. Answer briefly and helpfully about routes, POIs, and navigation. 
-${contextMessages}
-User: ${userMessage}
-Assistant:`;
 
     try {
-      const result = await this.pipeline(prompt, {
-        max_new_tokens: 200,
-        temperature: 0.7,
-        do_sample: true,
-        repetition_penalty: 1.1
-      });
-      const text = result[0].generated_text;
-      return text.split('Assistant:').pop().trim();
-    } catch (e) {
-      return this._ruleBasedChat(userMessage);
+      return (
+        await this.provider.chat(userMessage, history)
+      ) || new RuleBasedNavigationProvider(this.options).chat(userMessage, history);
+    } catch {
+      return new RuleBasedNavigationProvider(this.options).chat(userMessage, history);
     }
   }
 
-  /** Rule-based fallback when model isn't loaded */
-  _ruleBasedParse(query) {
-    const q = query.toLowerCase();
-    const result = { destination: null, mode: 'fastest', poi: null, language: 'en' };
-
-    const poiKeywords = {
-      hospital: ['hospital', 'emergency', 'clinic', 'doctor', 'अस्पताल'],
-      petrol: ['petrol', 'gas', 'fuel', 'station', 'petrol station', 'ईंधन'],
-      restaurant: ['restaurant', 'food', 'eat', 'cafe', 'खाना'],
-      atm: ['atm', 'cash', 'bank'],
-      hotel: ['hotel', 'stay', 'lodge', 'accommodation'],
-      pharmacy: ['pharmacy', 'medicine', 'drug store', 'chemist']
-    };
-
-    for (const [poi, keywords] of Object.entries(poiKeywords)) {
-      if (keywords.some(k => q.includes(k))) { result.poi = poi; break; }
+  async transcribeNavigationCommand() {
+    if (!this.supportsVoiceCommands()) {
+      throw new Error('Voice transcription is unavailable on the current provider');
     }
 
-    if (q.includes('avoid toll') || q.includes('no toll') || q.includes('without toll')) {
-      result.mode = 'no-toll';
-    } else if (q.includes('eco') || q.includes('fuel efficient') || q.includes('save fuel')) {
-      result.mode = 'eco';
-    }
-
-    // Extract destination after "to", "navigate to", "take me to" etc.
-    const destMatch = q.match(/(?:to|navigate to|take me to|directions? to|find)\s+(.+?)(?:\s+(?:from|via|avoid|and|,|$))/i);
-    if (destMatch) result.destination = destMatch[1].trim();
-
-    return result;
+    return this.provider.transcribeNavigationCommand();
   }
 
-  _ruleBasedChat(query) {
-    const q = query.toLowerCase();
-    if (q.includes('hello') || q.includes('hi')) return "Hello! I'm your offline navigation assistant. Ask me for directions, nearby places, or route suggestions!";
-    if (q.includes('hospital') || q.includes('emergency')) return "I'll find the nearest hospital on your current map region. Tap the search bar and type 'hospital' to see POIs.";
-    if (q.includes('route') || q.includes('navigate')) return "To start navigation, enter your destination in the search bar above. I support fastest, eco, and toll-free routes!";
-    if (q.includes('offline')) return "Yes! This app works fully offline once map data is downloaded. No internet needed for navigation.";
-    return "I'm your on-device navigation AI. I can help with routes, finding places, and navigation tips — all offline!";
+  #emitProgress(percent, message) {
+    this.progressCallbacks.forEach((callback) => callback(percent, message));
   }
-
-  isReady() { return this.ready; }
-  isLoading() { return this.loading; }
 }

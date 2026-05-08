@@ -5,280 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Neural Maps — Offline Premium Navigation</title>
     
-    <script src="https://unpkg.com/pmtiles@2.11.0/dist/index.js"></script>
-    <script src="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet" />
-        .btn-primary {
-            width: 100%; height: 56px; border-radius: 28px;
-            background: var(--accent); color: #fff; border: none;
-            font-size: 16px; font-weight: 700; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; gap: 12px;
-            margin-top: 24px; transition: transform 0.2s, background 0.2s;
-            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
-        }
-        .btn-primary:active { transform: scale(0.98); background: #1765cc; }
-
-        /* Navigation HUD */
-        .nav-hud {
-            position: absolute; top: 0; left: 0; right: 0;
-            background: #1a73e8; color: #fff; z-index: 100;
-            padding: calc(16px + var(--safe-top)) 20px 20px;
-            display: flex; align-items: center; gap: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            animation: slideInHUD 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        @keyframes slideInHUD {
-            from { transform: translateY(-100%); }
-            to { transform: translateY(0); }
-        }
-        .nav-info { flex: 1; }
-        .nav-dist { font-size: 28px; font-weight: 800; }
-        .nav-instr { font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        .fab-container {
-            position: absolute; right: 16px; bottom: 100px;
-            display: flex; flex-direction: column; gap: 12px; z-index: 15;
-        }
-        .fab {
-            width: 52px; height: 52px; border-radius: 50%;
-            background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; color: var(--accent);
-        }
-
-        /* Offline Maps Manager */
-        .offline-manager {
-            position: fixed; inset: 0; background: #fff; z-index: 300;
-            display: flex; flex-direction: column;
-            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            will-change: transform;
-        }
-        .offline-manager.visible { transform: translateY(0); }
-        .offline-header {
-            padding: calc(16px + var(--safe-top)) 16px 16px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; gap: 16px;
-        }
-        .offline-header h2 { margin: 0; font-size: 18px; font-weight: 500; }
-        .region-list { padding: 0 16px; overflow-y: auto; flex: 1; }
-        .region-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 0; border-bottom: 1px solid #f1f3f4;
-        }
-        .region-info h3 { margin: 0; font-size: 16px; font-weight: 500; }
-        .region-info p { margin: 4px 0 0; font-size: 13px; color: var(--text-secondary); }
-        .download-btn {
-            background: #f1f3f4; color: var(--accent); border: none;
-            padding: 8px 16px; border-radius: 16px; font-weight: 500; font-size: 13px;
-            cursor: pointer; transition: background 0.2s;
-        }
-        .download-btn:active { background: #e8eaed; }
-        .download-btn.downloaded {
-            background: #e6f4ea; color: #1e8e3e; pointer-events: none;
-        }
-        .progress-bar-container {
-            height: 4px; background: #f1f3f4; border-radius: 2px; width: 80px;
-            overflow: hidden; display: none; margin-top: 8px;
-        }
-        .progress-bar {
-            height: 100%; background: var(--accent); width: 0%;
-            transition: width 0.2s;
-        }
-
-        /* AR HUD & P2P Alerts */
-        .ar-view {
-            position: fixed; inset: 0; background: #000; z-index: 1000;
-            display: none; flex-direction: column;
-        }
-        .ar-view.active { display: flex; }
-        #ar-video { width: 100%; height: 100%; object-fit: cover; }
-        .ar-overlay {
-            position: absolute; inset: 0; pointer-events: none;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 40px;
-        }
-        .ar-instruction {
-            background: rgba(0,0,0,0.7); color: #fff; padding: 20px 30px;
-            border-radius: 40px; font-size: 24px; font-weight: 700;
-            text-align: center; backdrop-filter: blur(10px);
-            border: 2px solid var(--accent); animation: pulse 2s infinite;
-        }
-        .ar-arrow {
-            width: 120px; height: 120px; color: var(--accent); margin-bottom: 20px;
-            filter: drop-shadow(0 0 15px var(--accent));
-        }
-
-        .mesh-alert {
-            position: fixed; top: calc(20px + var(--safe-top)); left: 12px; right: 12px;
-            background: #fdf2f2; border: 1px solid #fecaca; border-radius: 12px;
-            padding: 12px 16px; display: none; align-items: center; gap: 12px;
-            z-index: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .mesh-alert.visible { display: flex; }
-        .mesh-badge { background: #ef4444; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.9; }
-            50% { transform: scale(1.05); opacity: 1; }
-            100% { transform: scale(1); opacity: 0.9; }
-        }
-
-        .hidden { display: none !important; }
-
+    <style>
+        /* Minimal critical CSS to prevent FOUC, most styles come from src/styles/main.css */
+        body { background: #0a0e1a; margin: 0; padding: 0; }
+        #map { position: fixed; inset: 0; background: #f8f9fa; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
 
-    <!-- Top Left Menu Button -->
-    <div id="main-menu-btn" style="position: absolute; top: calc(12px + var(--safe-top)); left: 16px; z-index: 15; background: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-    </div>
-
-    <!-- Search & Routing Panel -->
-    <div class="search-container" style="top: calc(16px + var(--safe-top));">
-        <div class="search-bar-wrap">
-            <input type="text" id="search-input" placeholder="Search here" autocomplete="off">
-            <div id="clear-search-btn" class="icon-btn hidden">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </div>
-            <div id="voice-btn" class="icon-btn">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-            </div>
-        </div>
-
-        <div class="quick-chips">
-            <div class="q-chip">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
-                Restaurants
-            </div>
-            <div class="q-chip">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>
-                Hotels
-            </div>
-            <div class="q-chip">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-9H14.5V7L12 10.5 9.5 7v4H7.5V14h1.5v3H11v-3h2v3h2v-3h1.5v-3z"/></svg>
-                Attractions
-            </div>
-        </div>
-
-        <div id="routing-panel" class="routing-box">
-            <div class="input-group">
-                <div class="dot-origin"></div>
-                <input type="text" id="origin-input" placeholder="Current location" autocomplete="off">
-                <div id="gps-btn" class="icon-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-                </div>
-            </div>
-            <div class="input-group">
-                <div class="dot-dest"></div>
-                <input type="text" id="dest-input" placeholder="Choose destination" autocomplete="off">
-            </div>
-            <div class="route-options">
-                <div class="option-chip active" data-mode="fastest">Fastest</div>
-                <div class="option-chip" data-mode="safest">Safest</div>
-            </div>
-        </div>
-
-        <div id="suggestions-panel" class="hidden">
-            <div id="suggestions-list"></div>
-        </div>
-    </div>
-
-    <!-- FABs -->
-    <div class="fab-container">
-        <div id="ai-fab-btn" class="fab">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div id="locate-btn" class="fab">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-        </div>
-    </div>
-
-    <!-- Bottom Sheet -->
-    <div id="place-panel" class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <div class="sheet-content">
-            <h2 id="sheet-place-name" class="sheet-title">Mumbai</h2>
-            <div id="sheet-place-subtitle" class="sheet-subtitle">Maharashtra, India</div>
-            
-            <div class="action-bar">
-                <button id="directions-btn" class="action-btn primary">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
-                    Directions
-                </button>
-                <button class="action-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                    Save
-                </button>
-                <button class="action-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                    Share
-                </button>
-            </div>
-
-            <div class="photo-strip">
-                <div class="place-photo" style="background-image: url('https://images.unsplash.com/photo-1570160897040-30430ade2218?auto=format&fit=crop&w=400&q=80'); background-size: cover;"></div>
-                <div class="place-photo" style="background-image: url('https://images.unsplash.com/photo-1566550970634-970528209214?auto=format&fit=crop&w=400&q=80'); background-size: cover;"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Route Detail Sheet -->
-    <div id="route-panel" class="bottom-sheet">
-        <div class="sheet-handle"></div>
-        <div class="sheet-content">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <span id="route-time" style="color: #1e8e3e; font-size: 20px; font-weight: 700;">-- min</span>
-                    <span id="route-distance" style="margin-left: 8px; color: var(--text-secondary);">-- km</span>
-                </div>
-                <div id="safety-badge" style="background: #e6f4ea; color: #1e8e3e; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">SAFEST</div>
-            </div>
-            
-            <div id="turn-by-turn-list" style="margin-top: 20px; max-height: 250px; overflow-y: auto; border-top: 1px solid #f1f3f4;"></div>
-            
-            <div style="display: flex; gap: 10px; margin-top: 24px;">
-                <button id="ar-mode-btn" class="action-btn" style="flex: 1; justify-content: center; background: #000; color: #fff; border: none;">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-9H14.5V7L12 10.5 9.5 7v4H7.5V14h1.5v3H11v-3h2v3h2v-3h1.5v-3z"/></svg>
-                    AR VIEW
-                </button>
-                <button id="start-navigate-btn" class="btn-primary" style="flex: 2; margin-top: 0;">
-                    START NAVIGATING
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-        </div>
-        <div id="main-menu-btn" class="fab">
+    <!-- Top UI (Search & Menu) -->
+    <div id="top-bar">
+        <button id="main-menu-btn" class="icon-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div id="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="search-input" placeholder="Search for a destination" autocomplete="off">
+            <div id="clear-search-btn" class="icon-btn-sm hidden">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+            <div id="voice-btn" class="icon-btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            </div>
         </div>
+    </div>
+
+    <!-- Quick Search Chips -->
+    <div id="quick-search">
+        <div class="q-chip" data-query="restaurant">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>
+            Restaurants
+        </div>
+        <div class="q-chip" data-query="hotel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z"/></svg>
+            Hotels
+        </div>
+        <div class="q-chip" data-query="gas">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1v5c0 1.1.9 2 2 2s2-.9 2-2V12c.51-.19.91-.6 1.14-1.09L21 11.75l.77-1.54-2-1.23zM7 10c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"/></svg>
+            Gas
+        </div>
+        <div class="q-chip" data-query="attraction">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-9H14.5V7L12 10.5 9.5 7v4H7.5V14h1.5v3H11v-3h2v3h2v-3h1.5v-3z"/></svg>
+            Attractions
+        </div>
+    </div>
+
+    <!-- Routing Panel -->
+    <div id="routing-panel" class="hidden" style="position: fixed; top: calc(12px + var(--safe-top)); left: 12px; right: 12px; background: #fff; z-index: 101; border-radius: 20px; padding: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px; border-bottom: 1px solid #f1f3f4; height: 44px;">
+                <div style="width: 8px; height: 8px; background: #1a73e8; border-radius: 50%;"></div>
+                <input type="text" id="origin-input" placeholder="Your location" style="flex: 1; border: none; outline: none; font-size: 14px;">
+                <div id="gps-btn" class="icon-btn-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px; height: 44px;">
+                <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></div>
+                <input type="text" id="dest-input" placeholder="Choose destination" style="flex: 1; border: none; outline: none; font-size: 14px;">
+            </div>
+            <div class="route-options" style="display: flex; gap: 8px; margin-top: 4px;">
+                <button class="option-chip active" data-mode="fastest" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">FASTEST</button>
+                <button class="option-chip" data-mode="safest" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">SAFEST</button>
+                <button class="option-chip" data-mode="eco" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">ECO</button>
+                <button class="option-chip" data-mode="no-toll" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">NO TOLL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Suggestions -->
+    <div id="suggestions-panel" class="hidden">
+        <div id="suggestions-list"></div>
     </div>
 
     <!-- Navigation HUD -->
-    <div id="nav-hud" class="nav-hud hidden">
+    <div id="nav-hud" class="hidden">
         <div id="hud-turn-arrow">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
         </div>
         <div id="hud-info">
             <div id="hud-distance">0.0 km</div>
-            <div id="hud-instruction">Head North towards Gate</div>
+            <div id="hud-instruction">Head North</div>
         </div>
         <div id="hud-eta">
-            <div id="hud-time">-- MIN</div>
+            <div id="hud-time">-- min</div>
             <div id="hud-arrival">ETA --:--</div>
             <button id="hud-exit-btn">EXIT</button>
         </div>
     </div>
 
-    <!-- Place Panel (Bottom Sheet) -->
+    <!-- Place Panel -->
     <div id="place-panel" class="bottom-sheet">
         <div class="sheet-handle"></div>
         <h2 id="sheet-place-name" class="sheet-title">Place Name</h2>
         <p id="sheet-place-subtitle" class="sheet-subtitle">City, Country</p>
         
         <div class="photo-strip">
-            <img class="photo-thumb" src="https://images.unsplash.com/photo-1570160897040-30430ade2245?auto=format&fit=crop&w=400&q=80" alt="View">
-            <img class="photo-thumb" src="https://images.unsplash.com/photo-1566550970634-08db301de446?auto=format&fit=crop&w=400&q=80" alt="Entrance">
-            <img class="photo-thumb" src="https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=400&q=80" alt="Interior">
+            <div class="photo-thumb placeholder">
+                <span class="photo-label">Offline Route Pack</span>
+            </div>
+            <div class="photo-thumb placeholder alt">
+                <span class="photo-label">Automotive Guidance</span>
+            </div>
         </div>
 
         <div class="action-row">
@@ -290,14 +118,10 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                 Save
             </button>
-            <button class="action-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                Share
-            </button>
         </div>
     </div>
 
-    <!-- Route Panel (Bottom Sheet) -->
+    <!-- Route Panel -->
     <div id="route-panel" class="bottom-sheet">
         <div class="sheet-handle"></div>
         <div id="route-header">
@@ -306,38 +130,50 @@
                 <div id="route-distance">-- km</div>
             </div>
             <div id="route-actions">
-                <div id="safety-badge" class="badge">STANDARD ROUTE</div>
+                <div id="safety-badge" class="chip" style="background: #e6f4ea; color: #1e8e3e; font-weight: 700; font-size: 11px;">STANDARD ROUTE</div>
             </div>
         </div>
 
         <div id="turn-by-turn-list"></div>
 
         <div id="navigate-btn-wrap">
-            <button id="start-navigate-btn">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
-                START NAVIGATING
-            </button>
-        </div>
-    </div>
-
-    <!-- AR Navigation View -->
-    <div id="ar-view" class="ar-view">
-        <video id="ar-video" autoplay playsinline muted></video>
-        <div class="ar-overlay">
-            <div class="ar-arrow">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button id="ar-mode-btn" class="icon-btn" style="width: 54px; height: 54px; background: #000; color: #fff; border: none; border-radius: 14px;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-9H14.5V7L12 10.5 9.5 7v4H7.5V14h1.5v3H11v-3h2v3h2v-3h1.5v-3z"/></svg>
+                </button>
+                <button id="start-navigate-btn" style="flex: 1;">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+                    START NAVIGATING
+                </button>
             </div>
-            <div id="ar-text" class="ar-instruction">Continue Straight</div>
-            <button id="exit-ar-btn" style="position: absolute; bottom: 40px; background: #fff; color: #000; border: none; padding: 12px 30px; border-radius: 25px; font-weight: 700;">EXIT AR</button>
         </div>
     </div>
 
-    <!-- AI Panel (Bottom Sheet) -->
-    <div id="ai-panel" class="bottom-sheet" style="height: 60vh;">
-        <div class="sheet-handle"></div>
+    <!-- FAB Group -->
+    <div id="fab-group">
+        <button id="ai-fab-btn" class="fab">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button id="locate-btn" class="fab">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+        </button>
+        <button id="zoom-in-btn" class="fab">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button id="zoom-out-btn" class="fab">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button id="compass-btn" class="fab">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/><circle cx="12" cy="12" r="10"/></svg>
+        </button>
+    </div>
+
+    <!-- AI Panel -->
+    <div id="ai-panel" class="hidden">
         <div id="ai-header">
             <div id="ai-status-dot"></div>
             <div id="ai-title">Neural Copilot</div>
+            <div id="ai-provider-note">Waiting for Melange</div>
             <button id="ai-close-btn">&times;</button>
         </div>
         <div id="ai-messages"></div>
@@ -347,14 +183,13 @@
         </div>
     </div>
 
-    <!-- Mesh Alert Overlay -->
-    <div id="mesh-alert" class="mesh-alert">
-        <div class="mesh-badge">MESH UPDATE</div>
-        <div style="flex: 1; font-size: 13px; color: #1f2937;">
-            <strong>Road Closure Ahead</strong>
-            <div style="color: #6b7280; font-size: 11px;">Received from community P2P</div>
+    <!-- AR Navigation View -->
+    <div id="ar-view" class="hidden" style="position: fixed; inset: 0; background: #000; z-index: 2000;">
+        <video id="ar-video" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; padding: 40px;">
+            <div id="ar-text" style="background: rgba(0,0,0,0.7); color: #fff; padding: 20px 30px; border-radius: 40px; font-size: 24px; font-weight: 700; text-align: center; backdrop-filter: blur(10px); border: 2px solid #3b82f6;">Continue Straight</div>
         </div>
-        <button id="mesh-reroute-btn">REROUTE</button>
+        <button id="exit-ar-btn" style="position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; border: none; padding: 12px 30px; border-radius: 25px; font-weight: 700; cursor: pointer;">EXIT AR</button>
     </div>
 
     <!-- Offline Manager -->
@@ -366,12 +201,22 @@
         <div id="offline-region-list" class="region-list"></div>
     </div>
 
+    <!-- AI Loading Overlay -->
     <div id="ai-loading-overlay" class="hidden">
         <div id="ai-loading-card">
             <div id="ai-spinner"></div>
             <div id="ai-loading-text">Downloading Neural Engine...</div>
             <div id="ai-progress-bar"><div id="ai-progress-fill"></div></div>
         </div>
+    </div>
+
+    <!-- Mesh Alert -->
+    <div id="mesh-alert" style="position: fixed; top: calc(80px + var(--safe-top)); left: 16px; right: 16px; background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 500; display: none; align-items: center; gap: 12px; border-left: 5px solid #ef4444;">
+        <div style="flex: 1;">
+            <div style="font-weight: 700; color: #ef4444; font-size: 11px; margin-bottom: 2px;">MESH UPDATE</div>
+            <div style="font-size: 13px; color: #202124;">Road closure detected ahead by community.</div>
+        </div>
+        <button id="mesh-reroute-btn" style="background: #1a73e8; color: #fff; border: none; padding: 8px 16px; border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer;">REROUTE</button>
     </div>
 
     <script type="module" src="/src/main.js"></script>

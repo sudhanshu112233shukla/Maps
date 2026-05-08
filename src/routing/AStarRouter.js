@@ -1,232 +1,197 @@
-/**
- * AStarRouter.js — On-device A* routing engine
- * Works entirely offline using pre-built OSM road graph
- */
-
-// Road type speed limits (km/h)
 const ROAD_SPEEDS = {
-  motorway: 120, motorway_link: 80,
-  trunk: 100,    trunk_link: 70,
-  primary: 80,   primary_link: 60,
-  secondary: 60, secondary_link: 50,
-  tertiary: 50,  tertiary_link: 40,
-  residential: 30, living_street: 15,
-  service: 20, unclassified: 40,
-  default: 40
+  motorway: 120,
+  motorway_link: 80,
+  trunk: 100,
+  trunk_link: 70,
+  primary: 80,
+  primary_link: 60,
+  secondary: 60,
+  secondary_link: 50,
+  tertiary: 50,
+  tertiary_link: 40,
+  residential: 30,
+  living_street: 15,
+  service: 20,
+  unclassified: 40,
+  default: 40,
 };
 
-// Toll penalties by mode
-const TOLL_PENALTY = { fastest: 0, eco: 0, 'no-toll': 1e9 };
+const MINOR_ROADS = new Set(['residential', 'living_street', 'service', 'tertiary']);
+const MAJOR_ROADS = new Set(['motorway', 'trunk', 'primary']);
+const MAX_SNAP_DISTANCE_METERS = 35000;
 
-/**
- * Haversine distance between two [lng, lat] points in meters
- */
 function haversine([lng1, lat1], [lng2, lat2]) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) *
-    Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const radius = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/**
- * Priority Queue (min-heap) for A*
- */
+function speedForRoadType(roadType) {
+  return ROAD_SPEEDS[roadType] || ROAD_SPEEDS.default;
+}
+
+function estimateTravelTimeSeconds(distanceMeters, roadType) {
+  const speedMetersPerSecond = (speedForRoadType(roadType) * 1000) / 3600;
+  return distanceMeters / speedMetersPerSecond;
+}
+
+function bearing(from, to) {
+  const [lng1, lat1] = from.map((value) => (value * Math.PI) / 180);
+  const [lng2, lat2] = to.map((value) => (value * Math.PI) / 180);
+  const y = Math.sin(lng2 - lng1) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(lng2 - lng1);
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+function normalizeTurn(delta) {
+  let angle = delta;
+  while (angle > 180) angle -= 360;
+  while (angle < -180) angle += 360;
+  return angle;
+}
+
 class PriorityQueue {
-  constructor() { this.heap = []; }
+  constructor() {
+    this.heap = [];
+  }
 
   push(item, priority) {
     this.heap.push({ item, priority });
-    this._bubbleUp(this.heap.length - 1);
+    this.#bubbleUp(this.heap.length - 1);
   }
 
   pop() {
     const top = this.heap[0];
-    const last = this.heap.pop();
-    if (this.heap.length > 0) {
-      this.heap[0] = last;
-      this._sinkDown(0);
+    const tail = this.heap.pop();
+    if (this.heap.length > 0 && tail) {
+      this.heap[0] = tail;
+      this.#sinkDown(0);
     }
     return top;
   }
 
-  get size() { return this.heap.length; }
+  get size() {
+    return this.heap.length;
+  }
 
-  _bubbleUp(i) {
-    while (i > 0) {
-      const parent = Math.floor((i - 1) / 2);
-      if (this.heap[parent].priority <= this.heap[i].priority) break;
-      [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];
-      i = parent;
+  #bubbleUp(index) {
+    let currentIndex = index;
+    while (currentIndex > 0) {
+      const parentIndex = Math.floor((currentIndex - 1) / 2);
+      if (this.heap[parentIndex].priority <= this.heap[currentIndex].priority) break;
+      [this.heap[parentIndex], this.heap[currentIndex]] = [
+        this.heap[currentIndex],
+        this.heap[parentIndex],
+      ];
+      currentIndex = parentIndex;
     }
   }
 
-  _sinkDown(i) {
-    const n = this.heap.length;
+  #sinkDown(index) {
+    let currentIndex = index;
     while (true) {
-      let min = i;
-      const l = 2 * i + 1, r = 2 * i + 2;
-      if (l < n && this.heap[l].priority < this.heap[min].priority) min = l;
-      if (r < n && this.heap[r].priority < this.heap[min].priority) min = r;
-      if (min === i) break;
-      [this.heap[min], this.heap[i]] = [this.heap[i], this.heap[min]];
-      i = min;
+      const left = currentIndex * 2 + 1;
+      const right = currentIndex * 2 + 2;
+      let smallest = currentIndex;
+
+      if (left < this.heap.length && this.heap[left].priority < this.heap[smallest].priority) {
+        smallest = left;
+      }
+
+      if (right < this.heap.length && this.heap[right].priority < this.heap[smallest].priority) {
+        smallest = right;
+      }
+
+      if (smallest === currentIndex) break;
+
+      [this.heap[currentIndex], this.heap[smallest]] = [
+        this.heap[smallest],
+        this.heap[currentIndex],
+      ];
+      currentIndex = smallest;
     }
   }
 }
 
 export class AStarRouter {
-  constructor() {
-    this.graph = null;   // adjacency list: nodeId → [{nodeId, distance, time, roadType, isToll}]
-    this.nodes = null;   // nodeId → [lng, lat]
-    this.kdTree = null;  // spatial index
+  constructor(options = {}) {
+    this.vehicleProfile = options.vehicleProfile || 'automobile';
+    this.graph = null;
+    this.nodes = null;
+    this.nodeList = [];
     this.loaded = false;
   }
 
-  /**
-   * Load road graph from IndexedDB or a pre-built JSON blob
-   * graph: { nodes: {id: [lng,lat]}, edges: {id: [{to,dist,time,type,toll}]} }
-   */
   async loadGraph(graphData) {
     this.nodes = graphData.nodes;
     this.graph = graphData.edges;
-    this._buildKDTree();
-    this.loaded = true;
-    console.log(`[Router] Graph loaded: ${Object.keys(this.nodes).length} nodes`);
-  }
-
-  /**
-   * Simple KD-tree approximation using sorted arrays
-   * For production, swap with a proper KD-tree library
-   */
-  _buildKDTree() {
     this.nodeList = Object.entries(this.nodes).map(([id, coord]) => ({ id, coord }));
-    // Sort by longitude for fast lookup
-    this.nodeListSortedLng = [...this.nodeList].sort((a, b) => a.coord[0] - b.coord[0]);
+    this.loaded = true;
   }
 
-  /**
-   * Snap a [lng, lat] point to the nearest graph node
-   */
-  snapToNode(lng, lat) {
-    if (!this.nodeList) return null;
-    let best = null, bestDist = Infinity;
+  snapToNode(lng, lat, maxDistanceMeters = MAX_SNAP_DISTANCE_METERS) {
+    if (!this.nodeList.length) return null;
+
+    let closestNodeId = null;
+    let closestDistance = Infinity;
+
     for (const node of this.nodeList) {
-      const d = haversine([lng, lat], node.coord);
-      if (d < bestDist) { bestDist = d; best = node.id; }
+      const distance = haversine([lng, lat], node.coord);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestNodeId = node.id;
+      }
     }
-    return best;
+
+    return closestDistance <= maxDistanceMeters ? closestNodeId : null;
   }
 
-  /**
-   * A* routing between two node IDs
-   * @param {string} startId - start node ID
-   * @param {string} endId   - end node ID
-   * @param {string} mode    - 'fastest' | 'eco' | 'no-toll'
-   * @returns {{ path: string[], distance: number, duration: number } | null}
-   */
   route(startId, endId, mode = 'fastest') {
     if (!this.loaded) throw new Error('Graph not loaded');
 
-    const endCoord = this.nodes[endId];
-    const tollPenalty = TOLL_PENALTY[mode] ?? 0;
+    const openSet = new PriorityQueue();
+    const gScore = new Map([[startId, 0]]);
+    const parent = new Map();
+    const targetCoord = this.nodes[endId];
 
-    const g = new Map();       // cost so far
-    const came = new Map();    // path tracking
-    const open = new PriorityQueue();
+    openSet.push(startId, 0);
 
-    g.set(startId, 0);
-    open.push(startId, 0);
-
-    while (open.size > 0) {
-      const { item: current } = open.pop();
+    while (openSet.size > 0) {
+      const current = openSet.pop()?.item;
+      if (!current) break;
 
       if (current === endId) {
-        return this._reconstructPath(came, startId, endId);
+        return this.#buildRoute(parent, startId, endId);
       }
 
-      const neighbors = this.graph[current] || [];
-      const currentHour = new Date().getHours();
-      
-      for (const edge of neighbors) {
-        const toll = edge.toll ? tollPenalty : 0;
-        
-        // 🚦 Dynamic Traffic Simulation (Offline)
-        // Peak hours (8-10 AM and 5-8 PM) increase primary road costs
-        let trafficFactor = 1.0;
-        const isPeak = (currentHour >= 8 && currentHour <= 10) || (currentHour >= 17 && currentHour <= 20);
-        if (isPeak && (edge.type === 'primary' || edge.type === 'motorway')) {
-          trafficFactor = 1.5; // 50% slower in peak traffic
-        }
+      const edges = this.graph[current] || [];
+      for (const edge of edges) {
+        const edgeCost = this.#scoreEdge(edge, mode);
+        const tentative = (gScore.get(current) || 0) + edgeCost;
 
-        // Safety factor: penalize non-primary/motorway roads in 'safest' mode
-        let safetyPenalty = 0;
-        if (mode === 'safest') {
-          const isSafe = ['motorway', 'trunk', 'primary'].includes(edge.type);
-          if (!isSafe) safetyPenalty = edge.dist * 2; // Double the "cost" of minor roads
-        }
-
-        const edgeCost = mode === 'eco'
-          ? edge.dist * trafficFactor           // minimize distance (weighted by traffic)
-          : (edge.time * trafficFactor) + toll + safetyPenalty; // minimize time + safety
-
-        const newCost = (g.get(current) || 0) + edgeCost;
-
-        if (!g.has(edge.to) || newCost < g.get(edge.to)) {
-          g.set(edge.to, newCost);
-          came.set(edge.to, current);
-          // Heuristic: haversine time to goal
-          const heuristic = haversine(this.nodes[edge.to], endCoord) / (120000 / 3600);
-          open.push(edge.to, newCost + heuristic);
+        if (!gScore.has(edge.to) || tentative < gScore.get(edge.to)) {
+          gScore.set(edge.to, tentative);
+          parent.set(edge.to, current);
+          const heuristic = estimateTravelTimeSeconds(
+            haversine(this.nodes[edge.to], targetCoord),
+            'motorway',
+          );
+          openSet.push(edge.to, tentative + heuristic);
         }
       }
     }
 
-    return null; // No path found
+    return null;
   }
 
-  _reconstructPath(came, startId, endId) {
-    const path = [];
-    let current = endId;
-    while (current !== startId) {
-      path.unshift(current);
-      current = came.get(current);
-      if (!current) return null;
-    }
-    path.unshift(startId);
-
-    // Build GeoJSON + calculate stats
-    let totalDist = 0, totalTime = 0;
-    const coords = path.map(id => this.nodes[id]);
-
-    for (let i = 1; i < path.length; i++) {
-      const edges = this.graph[path[i - 1]] || [];
-      const edge = edges.find(e => e.to === path[i]);
-      if (edge) { totalDist += edge.dist; totalTime += edge.time; }
-    }
-
-    return {
-      path,
-      coords,
-      distance: Math.round(totalDist),      // meters
-      duration: Math.round(totalTime),       // seconds
-      geojson: {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: { type: 'LineString', coordinates: coords },
-          properties: { distance: totalDist, duration: totalTime }
-        }]
-      }
-    };
-  }
-
-  /**
-   * Full route: lat/lng → lat/lng (snaps to graph internally)
-   */
   async routeLatLng(startLng, startLat, endLng, endLat, mode = 'fastest') {
     const startId = this.snapToNode(startLng, startLat);
     const endId = this.snapToNode(endLng, endLat);
@@ -234,32 +199,123 @@ export class AStarRouter {
     return this.route(startId, endId, mode);
   }
 
-  /**
-   * Generate turn-by-turn instructions from path
-   */
   generateInstructions(path, coords) {
-    const instructions = [];
-    if (!coords || coords.length < 2) return instructions;
+    if (!coords || coords.length < 2) return [];
 
-    instructions.push({ text: 'Start on route', dist: 0, icon: 'start' });
+    const instructions = [{ text: 'Start on the highlighted route', dist: 0, icon: 'start' }];
+    let distanceSinceLastTurn = 0;
+    let previousBearing = bearing(coords[0], coords[1]);
 
-    for (let i = 1; i < coords.length - 1; i += Math.ceil(coords.length / 8)) {
-      const dx = coords[i + 1][0] - coords[i][0];
-      const dy = coords[i + 1][1] - coords[i][1];
-      const prevDx = coords[i][0] - coords[i - 1][0];
-      const prevDy = coords[i][1] - coords[i - 1][1];
-      const cross = prevDx * dy - prevDy * dx;
-      const dist = Math.round(haversine(coords[i - 1], coords[i]));
+    for (let index = 1; index < coords.length - 1; index += 1) {
+      distanceSinceLastTurn += haversine(coords[index - 1], coords[index]);
+      const nextBearing = bearing(coords[index], coords[index + 1]);
+      const turn = normalizeTurn(nextBearing - previousBearing);
 
-      let text = 'Continue straight';
-      let icon = 'straight';
-      if (cross > 0.0001) { text = 'Turn right'; icon = 'right'; }
-      else if (cross < -0.0001) { text = 'Turn left'; icon = 'left'; }
+      if (Math.abs(turn) < 25) {
+        previousBearing = nextBearing;
+        continue;
+      }
 
-      instructions.push({ text, dist, icon });
+      instructions.push({
+        text: this.#turnText(turn),
+        dist: Math.round(distanceSinceLastTurn),
+        icon: turn > 0 ? 'right' : 'left',
+      });
+
+      distanceSinceLastTurn = 0;
+      previousBearing = nextBearing;
     }
 
     instructions.push({ text: 'Arrive at destination', dist: 0, icon: 'arrive' });
     return instructions;
+  }
+
+  #scoreEdge(edge, mode) {
+    const baseTime = Number.isFinite(edge.time)
+      ? edge.time
+      : estimateTravelTimeSeconds(edge.dist, edge.type);
+    const currentHour = new Date().getHours();
+    const isPeakTraffic = (currentHour >= 8 && currentHour <= 10) || (currentHour >= 17 && currentHour <= 20);
+    const isNight = currentHour >= 21 || currentHour <= 5;
+    const trafficMultiplier =
+      isPeakTraffic && (edge.type === 'motorway' || edge.type === 'primary') ? 1.35 : 1;
+
+    let score = baseTime * trafficMultiplier;
+
+    if (mode === 'no-toll' && edge.toll) {
+      score += 1e7;
+    }
+
+    if (mode === 'eco') {
+      score += edge.dist * 0.0015;
+      score += Math.abs(speedForRoadType(edge.type) - 65) * 4;
+    }
+
+    if (mode === 'safest') {
+      if (MINOR_ROADS.has(edge.type)) score += edge.dist * 0.03;
+      if (isNight && !MAJOR_ROADS.has(edge.type)) score += edge.dist * 0.05;
+    }
+
+    if (this.vehicleProfile === 'automobile' && edge.type === 'living_street') {
+      score += 300;
+    }
+
+    return score;
+  }
+
+  #buildRoute(parent, startId, endId) {
+    const path = [];
+    let cursor = endId;
+
+    while (cursor !== startId) {
+      path.unshift(cursor);
+      cursor = parent.get(cursor);
+      if (!cursor) return null;
+    }
+
+    path.unshift(startId);
+
+    const coords = path.map((nodeId) => this.nodes[nodeId]);
+    let distance = 0;
+    let duration = 0;
+
+    for (let index = 1; index < path.length; index += 1) {
+      const previousNode = path[index - 1];
+      const currentNode = path[index];
+      const edge = (this.graph[previousNode] || []).find((candidate) => candidate.to === currentNode);
+      if (!edge) continue;
+
+      distance += edge.dist;
+      duration += Number.isFinite(edge.time)
+        ? edge.time
+        : estimateTravelTimeSeconds(edge.dist, edge.type);
+    }
+
+    return {
+      path,
+      coords,
+      distance: Math.round(distance),
+      duration: Math.round(duration),
+      geojson: {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: coords,
+            },
+            properties: { distance, duration },
+          },
+        ],
+      },
+    };
+  }
+
+  #turnText(turnAngle) {
+    const absolute = Math.abs(turnAngle);
+    if (absolute >= 140) return turnAngle > 0 ? 'Make a sharp right' : 'Make a sharp left';
+    if (absolute >= 60) return turnAngle > 0 ? 'Turn right' : 'Turn left';
+    return turnAngle > 0 ? 'Bear right' : 'Bear left';
   }
 }
