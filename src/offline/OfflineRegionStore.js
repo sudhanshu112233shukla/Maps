@@ -44,6 +44,9 @@ export class OfflineRegionStore {
         packPath: status.packPath || region.bundledPackPath,
         graphPath: status.graphPath || region.graphPath,
         poiPath: status.poiPath || region.poiPath,
+        dataVersion: status.dataVersion || region.dataVersion || 'unversioned',
+        verifiedAt: status.verifiedAt || null,
+        lastError: status.lastError || null,
       };
     });
   }
@@ -82,6 +85,7 @@ export class OfflineRegionStore {
       ...patch,
       progress,
       downloaded,
+      lastError: patch.lastError || null,
       downloadedAt:
         downloaded && !current.downloadedAt
           ? new Date().toISOString()
@@ -94,6 +98,18 @@ export class OfflineRegionStore {
 
   async markDownloaded(regionId, patch = {}) {
     return this.updateProgress(regionId, 100, patch);
+  }
+
+  async markFailed(regionId, reason) {
+    const current = this.statusByRegion[regionId] || {};
+    this.statusByRegion[regionId] = {
+      ...current,
+      downloaded: false,
+      progress: 0,
+      lastError: reason || 'Provisioning failed',
+    };
+    await this.#save();
+    return this.getRegions();
   }
 
   async #load() {

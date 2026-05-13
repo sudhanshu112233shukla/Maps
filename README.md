@@ -7,6 +7,7 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 ## What Works Today
 
 - Offline boot with staged graph and POI data.
+- Deterministic region provisioning with asset verification.
 - Local routing with automobile-focused cost modes (`fastest`, `safest`, `eco`, `no-toll`).
 - Local search with token, prefix, phonetic, and fuzzy ranking.
 - Native Android/iOS Melange bridge scaffolds with deterministic fallback behavior.

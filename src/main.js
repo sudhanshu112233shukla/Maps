@@ -8,6 +8,7 @@ import { GPSTracker } from './gps/GPSTracker.js';
 import { AIAssistant } from './ai/AIAssistant.js';
 import { OfflineRegionStore } from './offline/OfflineRegionStore.js';
 import { OfflineDataLoader } from './offline/OfflineDataLoader.js';
+import { RegionProvisioner } from './offline/RegionProvisioner.js';
 import { registerServiceWorker } from './registerServiceWorker.js';
 
 const state = {
@@ -28,6 +29,7 @@ const gps = new GPSTracker();
 const ai = new AIAssistant({ locale: 'en-US' });
 const offlineStore = new OfflineRegionStore();
 const offlineDataLoader = new OfflineDataLoader();
+const regionProvisioner = new RegionProvisioner({ offlineDataLoader });
 
 const searchInput = document.getElementById('search-input');
 const originInput = document.getElementById('origin-input');
@@ -715,11 +717,14 @@ function setupOfflineManager() {
               <h3>${region.name}</h3>
               <p>${region.sizeLabel}</p>
               <p class="region-meta">${region.automotiveFocus}</p>
+              <p class="region-meta">Data ${region.dataVersion}</p>
+              ${region.lastError ? `<p class="region-meta" style="color:#b91c1c;">${region.lastError}</p>` : ''}
             </div>
             <div style="text-align: right; min-width: 120px;">
               ${
                 region.downloaded
-                  ? `<button class="download-btn downloaded">Ready</button>`
+                  ? `<button class="download-btn downloaded">Ready</button>
+                     <div class="region-meta">${region.verifiedAt ? `Verified ${new Date(region.verifiedAt).toLocaleDateString()}` : ''}</div>`
                   : `<button class="download-btn" onclick="startDownload('${region.id}')">Download</button>
                      <div class="progress-bar-container" id="progress-${region.id}">
                        <div class="progress-bar" id="bar-${region.id}"></div>
@@ -752,21 +757,27 @@ function setupOfflineManager() {
     button.style.display = 'none';
     progressContainer.style.display = 'block';
 
-    let progress = 0;
-    while (progress < 100) {
-      progress = Math.min(100, progress + Math.round(Math.random() * 18 + 10));
-      progressBar.style.width = `${progress}%`;
-      state.offlineRegions = await offlineStore.updateProgress(regionId, progress);
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-
-      state.offlineRegions = await offlineStore.markDownloaded(regionId, {
-        packPath: `/data/maps/${regionId}.pmtiles`,
+    try {
+      const patch = await regionProvisioner.provisionRegion(regionId, async (progress) => {
+        progressBar.style.width = `${progress}%`;
+        state.offlineRegions = await offlineStore.updateProgress(regionId, progress);
       });
+
+      state.offlineRegions = await offlineStore.markDownloaded(regionId, patch);
       if (regionId === state.activeRegion) {
         await syncRegionAssets(regionId, { recenter: false });
       }
       renderRegions();
+    } catch (error) {
+      button.style.display = 'inline-flex';
+      progressContainer.style.display = 'none';
+      progressBar.style.width = '0%';
+      state.offlineRegions = await offlineStore.markFailed(
+        regionId,
+        error?.message || 'Download failed',
+      );
+      renderRegions();
+    }
     };
 }
 
