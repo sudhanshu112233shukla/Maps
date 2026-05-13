@@ -1,0 +1,28 @@
+{
+  "regions": [
+    {
+      "id": "india",
+      "enabled": true,
+      "pbf_url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+      "pbf_file": "india-latest.osm.pbf",
+      "output_graph": "public/data/graph/india.json",
+      "max_nodes": 450000
+    },
+    {
+      "id": "usa",
+      "enabled": false,
+      "pbf_url": "https://download.geofabrik.de/north-america/us-latest.osm.pbf",
+      "pbf_file": "us-latest.osm.pbf",
+      "output_graph": "public/data/graph/usa.json",
+      "max_nodes": 600000
+    },
+    {
+      "id": "japan",
+      "enabled": false,
+      "pbf_url": "https://download.geofabrik.de/asia/japan-latest.osm.pbf",
+      "pbf_file": "japan-latest.osm.pbf",
+      "output_graph": "public/data/graph/japan.json",
+      "max_nodes": 400000
+    }
+  ]
+}

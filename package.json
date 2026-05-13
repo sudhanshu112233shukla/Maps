@@ -13,7 +13,9 @@
     "cap:open:android": "npx cap open android",
     "cap:open:ios": "npx cap open ios",
     "cap:run:android": "npx cap run android",
-    "mobile:build": "vite build && npx cap sync"
+    "mobile:build": "vite build && npx cap sync",
+    "graph:build": "python tools/osm_pipeline/build_from_manifest.py",
+    "graph:build:india": "python tools/osm_pipeline/build_from_manifest.py --region-id india"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
