@@ -16,6 +16,7 @@ import argparse
 import json
 import math
 import re
+from datetime import datetime, timezone
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
@@ -224,9 +225,14 @@ def main() -> None:
     node_collector.apply_file(str(pbf_path), locations=False)
 
     graph = build_graph(way_collector.ways, node_collector.coords)
+    source_stat = pbf_path.stat()
     graph["meta"] = {
         "regionId": args.region_id,
         "source": str(pbf_path),
+        "sourceBytes": source_stat.st_size,
+        "sourceMtimeUtc": datetime.fromtimestamp(source_stat.st_mtime, tz=timezone.utc).isoformat(),
+        "generatedAtUtc": datetime.now(tz=timezone.utc).isoformat(),
+        "bundleVersion": 1,
         "nodeCount": len(graph["nodes"]),
         "edgeCount": sum(len(v) for v in graph["edges"].values()),
         "formatVersion": "v2",

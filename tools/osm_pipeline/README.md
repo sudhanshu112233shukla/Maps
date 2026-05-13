@@ -35,6 +35,13 @@ python tools/osm_pipeline/build_from_manifest.py --region-id india
 python tools/osm_pipeline/build_from_manifest.py --region-id india --skip-download
 ```
 
+## Validate Generated Graph Bundles
+
+```bash
+python tools/osm_pipeline/validate_graph_bundle.py
+python tools/osm_pipeline/validate_graph_bundle.py --region-id india
+```
+
 ## Notes
 
 - Graph output keeps only drivable highway classes.
