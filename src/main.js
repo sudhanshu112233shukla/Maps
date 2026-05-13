@@ -20,6 +20,7 @@ const state = {
   isNavigating: false,
   aiHistory: [],
   offlineRegions: [],
+  searchBackend: 'js-fallback',
 };
 
 const mapView = new MapView('map');
@@ -106,6 +107,7 @@ async function syncRegionAssets(regionId, { recenter = false } = {}) {
   state.activeRegion = regionId;
   geocoder.setRegion(regionId);
   mapView.updateSourceConfig(offlineStore.getSourceConfig(regionId));
+  const regionMeta = state.offlineRegions.find((region) => region.id === regionId) || null;
 
   const { graph, pois } = await offlineDataLoader.loadRegionAssets(regionId, {
     graphFallback: DEMO_GRAPH,
@@ -113,6 +115,13 @@ async function syncRegionAssets(regionId, { recenter = false } = {}) {
   });
 
   geocoder.setDataset(pois);
+  await geocoder.prepareRegionIndex({
+    regionId,
+    graphPath: regionMeta?.graphPath || null,
+    poiPath: regionMeta?.poiPath || null,
+    dataVersion: regionMeta?.dataVersion || null,
+  });
+  state.searchBackend = geocoder.getBackendStatus().backend;
   await router.loadGraph(graph);
 
   if (recenter) {

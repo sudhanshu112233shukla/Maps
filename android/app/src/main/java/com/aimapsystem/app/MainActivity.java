@@ -7,6 +7,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(MelangeNavigationPlugin.class);
+        registerPlugin(RustSearchPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

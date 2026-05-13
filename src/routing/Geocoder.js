@@ -1,6 +1,7 @@
 import { LRUCache } from '../utils/LRUCache.js';
 import { normalizeSearchText } from '../search/SearchNormalizer.js';
 import { OfflineSearchIndex } from '../search/OfflineSearchIndex.js';
+import { RustSearchBridge } from '../search/RustSearchBridge.js';
 
 const CATEGORY_ALIASES = {
   gas: 'fuel',
@@ -140,6 +141,10 @@ export class Geocoder {
     this.points = [...DEFAULT_POIS];
     this.index = new OfflineSearchIndex();
     this.index.build(this.points);
+    this.rustBridge = new RustSearchBridge();
+    this.searchBackend = 'js-fallback';
+    this.paritySampleRate = 0.1;
+    this.parityMismatches = 0;
   }
 
   setRegion(region) {
@@ -152,6 +157,33 @@ export class Geocoder {
     this.cache.clear();
   }
 
+  async prepareRegionIndex({ regionId, graphPath, poiPath, dataVersion }) {
+    this.activeRegion = regionId || this.activeRegion;
+    const status = await this.rustBridge.prepareIndex({
+      regionId: this.activeRegion,
+      graphPath,
+      poiPath,
+      dataVersion,
+    });
+
+    this.searchBackend = status?.nativeAvailable && status?.prepared ? 'rust-native' : 'js-fallback';
+    return {
+      backend: this.searchBackend,
+      nativeAvailable: Boolean(status?.nativeAvailable),
+      prepared: Boolean(status?.prepared),
+    };
+  }
+
+  getBackendStatus() {
+    return {
+      backend: this.searchBackend,
+      parityMismatches: this.parityMismatches,
+      nativeAvailable: this.rustBridge.nativeAvailable,
+      prepared: this.rustBridge.prepared,
+      nativeLatencyMs: this.rustBridge.lastLatencyMs,
+    };
+  }
+
   async search(query, limit = 6) {
     if (!query || query.trim().length < 2) return [];
 
@@ -159,6 +191,23 @@ export class Geocoder {
     const cacheKey = `${this.activeRegion}:${normalizedQuery}:${limit}`;
     const cached = this.cache.get(cacheKey);
     if (cached) return cached;
+
+    const nativeResults = await this.rustBridge.search({
+      query,
+      regionId: this.activeRegion,
+      limit,
+    });
+    if (Array.isArray(nativeResults) && nativeResults.length > 0) {
+      const filteredNative = nativeResults
+        .filter((poi) => poi.region === this.activeRegion || poi.type === 'city')
+        .slice(0, limit);
+      if (filteredNative.length > 0) {
+        this.searchBackend = 'rust-native';
+        this.cache.set(cacheKey, filteredNative);
+        this.#runParityCheck(query, limit, filteredNative);
+        return filteredNative;
+      }
+    }
 
     const indexedResults = this.index.search(query, {
       limit: Math.max(limit * 3, 12),
@@ -170,7 +219,9 @@ export class Geocoder {
       .slice(0, limit);
 
     if (filtered.length > 0 || !this.allowOnlineFallback || !navigator.onLine) {
+      this.searchBackend = 'js-fallback';
       this.cache.set(cacheKey, filtered);
+      this.#runParityCheck(query, limit, filtered);
       return filtered;
     }
 
@@ -206,5 +257,26 @@ export class Geocoder {
     }
 
     return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+
+  async #runParityCheck(query, limit, fallbackResults) {
+    if (Math.random() > this.paritySampleRate) {
+      return;
+    }
+
+    const nativeResults = await this.rustBridge.search({
+      query,
+      regionId: this.activeRegion,
+      limit,
+    });
+    if (!Array.isArray(nativeResults) || nativeResults.length === 0) {
+      return;
+    }
+
+    const fallbackTop = fallbackResults[0]?.name || '';
+    const nativeTop = nativeResults[0]?.name || '';
+    if (fallbackTop && nativeTop && fallbackTop !== nativeTop) {
+      this.parityMismatches += 1;
+    }
   }
 }

@@ -10,7 +10,8 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 - Deterministic region provisioning with asset verification.
 - Local routing with automobile-focused cost modes (`fastest`, `safest`, `eco`, `no-toll`).
 - Local search with token, prefix, phonetic, and fuzzy ranking.
-- Native Android/iOS Melange bridge scaffolds with deterministic fallback behavior.
+- Native Android/iOS Melange inference path (with deterministic fallback when runtime init fails).
+- Rust search bridge path with JS fallback/parity checks.
 
 ## What Is Still In Progress
 
@@ -24,6 +25,7 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 - `src/`: current runtime (map UI, search, routing, AI orchestration)
 - `android/`, `ios/`: Capacitor native shells + plugin scaffolds
 - `public/data/`: staged offline graph/POI assets
+- `tools/osm_pipeline/`: OSM PBF to routing graph generation pipeline
 - `docs/`: architecture, roadmap, performance budgets
 - `native/`: native-stack contracts and module skeletons
 
