@@ -1,41 +1,78 @@
 package com.aimapsystem.app;
 
+import android.content.Context;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 @CapacitorPlugin(name = "MelangeNavigation")
 public class MelangeNavigationPlugin extends Plugin {
 
+    private static final int MAX_GENERATED_TOKENS = 320;
+    private static final String SYSTEM_PROMPT = "You are an offline automotive navigation assistant. "
+      + "Always return strict JSON without markdown.";
+    private static final String INTENT_PROMPT_TEMPLATE =
+      SYSTEM_PROMPT + " Return object keys: destination, mode, poi, avoid. "
+      + "mode must be fastest|safest|eco|no-toll. avoid must be an array of strings. "
+      + "If unknown, use null or empty array. Query: %s";
+
+    private final ExecutorService inferenceExecutor = Executors.newSingleThreadExecutor();
+    private final Pattern destinationPattern = Pattern.compile(
+      "(?:to|navigate to|take me to|directions to|route to|drive to)\\s+(.+?)(?:\\s+(?:avoiding|avoid|with|via|and)|$)"
+    );
+
     private boolean prepared = false;
-    private String llmModelName = "Qwen/Qwen3-4B";
+    private boolean nativeModelReady = false;
+    private String llmModelName = "google/gemma-3-4b-it";
     private String speechModelName = "OpenAI/whisper-tiny-decoder";
+    private String personalKey = "";
     private String locale = "en-US";
+    private Object llmModel = null;
+    private String llmRuntimeClass = null;
+
+    @Override
+    protected void handleOnDestroy() {
+        super.handleOnDestroy();
+        releaseModel();
+        inferenceExecutor.shutdownNow();
+    }
 
     @PluginMethod
     public void prepare(PluginCall call) {
+        personalKey = valueOrDefault(call.getString("tokenKey"), personalKey);
         llmModelName = valueOrDefault(call.getString("llmModelName"), llmModelName);
         speechModelName = valueOrDefault(call.getString("speechModelName"), speechModelName);
         locale = valueOrDefault(call.getString("locale"), locale);
-        prepared = true;
 
-        JSObject result = new JSObject();
-        result.put("prepared", true);
-        result.put("runtime", "native-bridge");
-        result.put("supportsNativeMelange", false);
-        result.put("supportsVoiceCommands", false);
-        result.put("supportsSemanticSearch", false);
-        result.put("supportsPredictiveCaching", false);
-        result.put("threadingModel", "ui+navigation+ai+index+background");
-        result.put("llmModelName", llmModelName);
-        result.put("speechModelName", speechModelName);
-        call.resolve(result);
+        inferenceExecutor.execute(() -> {
+            try {
+                initializeModel();
+                prepared = true;
+                JSObject result = buildPrepareResult();
+                call.resolve(result);
+            } catch (Exception error) {
+                prepared = true;
+                nativeModelReady = false;
+                JSObject result = buildPrepareResult();
+                result.put("error", error.getMessage());
+                call.resolve(result);
+            }
+        });
     }
 
     @PluginMethod
@@ -46,53 +83,243 @@ public class MelangeNavigationPlugin extends Plugin {
             return;
         }
 
-        String lowered = query.toLowerCase(Locale.US);
-        JSObject result = new JSObject();
-        String destination = extractDestination(lowered);
-        if (destination != null) {
-            result.put("destination", destination);
-        }
+        inferenceExecutor.execute(() -> {
+            try {
+                JSObject result = new JSObject();
+                String normalized = query.toLowerCase(Locale.US);
 
-        String poi = detectPoi(lowered);
-        if (poi != null) {
-            result.put("poi", poi);
-        }
+                JSObject melangeIntent = runIntentModel(query);
+                if (melangeIntent != null) {
+                    mergeIntentResult(result, melangeIntent, normalized);
+                    result.put("runtime", "melange-llm");
+                } else {
+                    applyHeuristicIntent(result, normalized);
+                    result.put("runtime", prepared ? "native-fallback" : "cold-start-fallback");
+                }
 
-        result.put("mode", detectMode(lowered));
-        result.put("language", locale.split("-")[0]);
-        result.put("avoid", detectAvoidances(lowered));
-        result.put("runtime", prepared ? "native-bridge" : "native-fallback");
-        call.resolve(result);
+                result.put("language", locale.split("-")[0]);
+                call.resolve(result);
+            } catch (Exception error) {
+                JSObject fallback = new JSObject();
+                applyHeuristicIntent(fallback, query.toLowerCase(Locale.US));
+                fallback.put("runtime", "native-fallback");
+                fallback.put("language", locale.split("-")[0]);
+                fallback.put("error", error.getMessage());
+                call.resolve(fallback);
+            }
+        });
     }
 
     @PluginMethod
     public void chatNavigation(PluginCall call) {
-        String message = call.getString("message", "").trim().toLowerCase(Locale.US);
+        String message = call.getString("message", "").trim();
         if (message.isEmpty()) {
             call.reject("Message is required");
             return;
         }
 
-        String text;
-        if (message.contains("fuel") || message.contains("petrol") || message.contains("gas")) {
-            text = "Native bridge is active. I can route you to fuel stops and keep the route biased toward primary roads.";
-        } else if (message.contains("safe") || message.contains("night")) {
-            text = "Safest mode prefers major roads and reduces exposure to minor roads, especially at night.";
-        } else if (message.contains("offline")) {
-            text = "This build keeps routing, search, and app-shell assets available offline after provisioning.";
-        } else {
-            text = "Native bridge is live. Add Melange runtime calls here to replace this fallback guidance.";
-        }
-
-        JSObject result = new JSObject();
-        result.put("text", text);
-        result.put("runtime", prepared ? "native-bridge" : "native-fallback");
-        call.resolve(result);
+        inferenceExecutor.execute(() -> {
+            try {
+                String response = runChatModel(message);
+                JSObject result = new JSObject();
+                if (response != null && !response.isEmpty()) {
+                    result.put("text", response);
+                    result.put("runtime", "melange-llm");
+                } else {
+                    result.put("text", fallbackChatResponse(message.toLowerCase(Locale.US)));
+                    result.put("runtime", "native-fallback");
+                }
+                call.resolve(result);
+            } catch (Exception error) {
+                JSObject result = new JSObject();
+                result.put("text", fallbackChatResponse(message.toLowerCase(Locale.US)));
+                result.put("runtime", "native-fallback");
+                result.put("error", error.getMessage());
+                call.resolve(result);
+            }
+        });
     }
 
     @PluginMethod
     public void transcribeNavigationCommand(PluginCall call) {
-        call.reject("Native Melange speech transcription is not wired yet in this build");
+        call.reject(
+          "Speech model integration requires melange tensor I/O wiring for model: " + speechModelName
+        );
+    }
+
+    private JSObject runIntentModel(String query) {
+        if (!nativeModelReady) return null;
+
+        String prompt = String.format(Locale.US, INTENT_PROMPT_TEMPLATE, query);
+        String generated = runPrompt(prompt);
+        if (generated == null || generated.isEmpty()) return null;
+        String jsonSlice = extractJson(generated);
+        if (jsonSlice == null) return null;
+        try {
+            return new JSObject(jsonSlice);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String runChatModel(String message) {
+        if (!nativeModelReady) return null;
+        String prompt = SYSTEM_PROMPT + " Respond in 1-2 short sentences. User: " + message;
+        String generated = runPrompt(prompt);
+        if (generated == null) return null;
+        String cleaned = generated.trim();
+        if (cleaned.startsWith("{") && cleaned.endsWith("}")) {
+            try {
+                JSONObject candidate = new JSONObject(cleaned);
+                if (candidate.has("text")) return candidate.optString("text", "").trim();
+            } catch (Exception ignored) {
+                return cleaned;
+            }
+        }
+        return cleaned;
+    }
+
+    private String runPrompt(String prompt) {
+        if (llmModel == null) return null;
+        try {
+            invokeMethod(llmModel, "run", new Class<?>[] { String.class }, new Object[] { prompt });
+
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < MAX_GENERATED_TOKENS; i++) {
+                Object tokenResult = invokeMethod(llmModel, "waitForNextToken", new Class<?>[] {}, new Object[] {});
+                if (tokenResult == null) break;
+
+                int generatedTokens = readIntMember(tokenResult, "generatedTokens", "getGeneratedTokens");
+                if (generatedTokens == 0) break;
+                String token = readStringMember(tokenResult, "token", "getToken");
+                if (token != null) builder.append(token);
+            }
+            return builder.toString();
+        } catch (Exception error) {
+            nativeModelReady = false;
+            return null;
+        }
+    }
+
+    private JSObject buildPrepareResult() {
+        JSObject result = new JSObject();
+        result.put("prepared", prepared);
+        result.put("runtime", nativeModelReady ? "melange-llm" : "native-bridge");
+        result.put("supportsNativeMelange", nativeModelReady);
+        result.put("supportsVoiceCommands", false);
+        result.put("supportsSemanticSearch", nativeModelReady);
+        result.put("supportsPredictiveCaching", nativeModelReady);
+        result.put("threadingModel", "ui+navigation+ai+index+background");
+        result.put("llmModelName", llmModelName);
+        result.put("speechModelName", speechModelName);
+        result.put("llmRuntimeClass", llmRuntimeClass == null ? JSONObject.NULL : llmRuntimeClass);
+        return result;
+    }
+
+    private void initializeModel() throws Exception {
+        releaseModel();
+        if (personalKey == null || personalKey.trim().isEmpty()) {
+            nativeModelReady = false;
+            return;
+        }
+
+        String[] classCandidates = new String[] {
+          "ai.zetic.mlange.llm.ZeticMLangeLLMModel",
+          "ai.zetic.mlange.ZeticMLangeLLMModel",
+          "ai.zetic.mlange.models.ZeticMLangeLLMModel"
+        };
+
+        Exception lastError = null;
+        for (String className : classCandidates) {
+            try {
+                Class<?> modelClass = Class.forName(className);
+                Constructor<?> constructor = modelClass.getConstructor(
+                  Context.class,
+                  String.class,
+                  String.class
+                );
+                llmModel = constructor.newInstance(getContext(), personalKey, llmModelName);
+                llmRuntimeClass = className;
+                nativeModelReady = true;
+                return;
+            } catch (Exception error) {
+                lastError = error;
+            }
+        }
+
+        nativeModelReady = false;
+        if (lastError != null) throw lastError;
+    }
+
+    private void releaseModel() {
+        if (llmModel == null) return;
+        try {
+            invokeMethod(llmModel, "deinit", new Class<?>[] {}, new Object[] {});
+        } catch (Exception ignored) {
+            // ignore
+        }
+        llmModel = null;
+        llmRuntimeClass = null;
+        nativeModelReady = false;
+    }
+
+    private void applyHeuristicIntent(JSObject target, String lowered) {
+        String destination = extractDestination(lowered);
+        if (destination != null) target.put("destination", destination);
+
+        String poi = detectPoi(lowered);
+        if (poi != null) target.put("poi", poi);
+
+        target.put("mode", detectMode(lowered));
+        target.put("avoid", detectAvoidances(lowered));
+    }
+
+    private void mergeIntentResult(JSObject target, JSObject source, String loweredQuery) {
+        String destination = source.optString("destination", "").trim();
+        if (destination.isEmpty()) {
+            destination = extractDestination(loweredQuery);
+        }
+        if (destination != null && !destination.isEmpty()) {
+            target.put("destination", destination);
+        }
+
+        String mode = source.optString("mode", "").trim();
+        target.put("mode", normalizeMode(mode.isEmpty() ? detectMode(loweredQuery) : mode));
+
+        String poi = source.optString("poi", "").trim();
+        if (poi.isEmpty()) {
+            poi = detectPoi(loweredQuery);
+        }
+        if (poi != null && !poi.isEmpty()) {
+            target.put("poi", poi);
+        }
+
+        JSArray avoid = new JSArray();
+        JSONArray sourceAvoid = source.optJSONArray("avoid");
+        if (sourceAvoid != null) {
+            for (int i = 0; i < sourceAvoid.length(); i++) {
+                String value = sourceAvoid.optString(i, "").trim();
+                if (!value.isEmpty()) {
+                    avoid.put(value);
+                }
+            }
+        } else {
+            avoid = detectAvoidances(loweredQuery);
+        }
+        target.put("avoid", avoid);
+    }
+
+    private String fallbackChatResponse(String loweredMessage) {
+        if (containsAny(loweredMessage, "fuel", "petrol", "gas")) {
+            return "Nearest fuel routing is available offline and prefers primary corridors.";
+        }
+        if (containsAny(loweredMessage, "safe", "night")) {
+            return "Safest mode penalizes minor roads and prioritizes major corridors.";
+        }
+        if (containsAny(loweredMessage, "offline")) {
+            return "Routing, search, and region data provisioning remain available offline.";
+        }
+        return "Provide destination or stop type with routing preferences like safest, eco, or no toll.";
     }
 
     private String detectMode(String lowered) {
@@ -106,6 +333,21 @@ public class MelangeNavigationPlugin extends Plugin {
             return "safest";
         }
         return "fastest";
+    }
+
+    private String normalizeMode(String mode) {
+        switch (mode.toLowerCase(Locale.US)) {
+            case "safest":
+            case "eco":
+            case "no-toll":
+            case "fastest":
+                return mode.toLowerCase(Locale.US);
+            case "notoll":
+            case "no_toll":
+                return "no-toll";
+            default:
+                return "fastest";
+        }
     }
 
     private JSArray detectAvoidances(String lowered) {
@@ -137,8 +379,7 @@ public class MelangeNavigationPlugin extends Plugin {
     }
 
     private String extractDestination(String lowered) {
-        Pattern pattern = Pattern.compile("(?:to|navigate to|take me to|directions to|route to|drive to)\\s+(.+?)(?:\\s+(?:avoiding|avoid|with|via|and)|$)");
-        Matcher matcher = pattern.matcher(lowered);
+        Matcher matcher = destinationPattern.matcher(lowered);
         if (matcher.find()) {
             return matcher.group(1).trim();
         }
@@ -156,5 +397,71 @@ public class MelangeNavigationPlugin extends Plugin {
 
     private String valueOrDefault(String value, String fallback) {
         return value == null || value.trim().isEmpty() ? fallback : value.trim();
+    }
+
+    private Object invokeMethod(
+      Object target,
+      String methodName,
+      Class<?>[] parameterTypes,
+      Object[] args
+    ) throws Exception {
+        Method method = target.getClass().getMethod(methodName, parameterTypes);
+        method.setAccessible(true);
+        return method.invoke(target, args);
+    }
+
+    private int readIntMember(Object target, String fieldName, String getterName) {
+        List<Integer> candidates = new ArrayList<>();
+        try {
+            Field field = target.getClass().getField(fieldName);
+            Object value = field.get(target);
+            if (value instanceof Number) {
+                candidates.add(((Number) value).intValue());
+            }
+        } catch (Exception ignored) {
+            // ignore
+        }
+        try {
+            Method getter = target.getClass().getMethod(getterName);
+            Object value = getter.invoke(target);
+            if (value instanceof Number) {
+                candidates.add(((Number) value).intValue());
+            }
+        } catch (Exception ignored) {
+            // ignore
+        }
+        return candidates.isEmpty() ? 0 : candidates.get(0);
+    }
+
+    private String readStringMember(Object target, String fieldName, String getterName) {
+        try {
+            Field field = target.getClass().getField(fieldName);
+            Object value = field.get(target);
+            if (value != null) {
+                return value.toString();
+            }
+        } catch (Exception ignored) {
+            // ignore
+        }
+
+        try {
+            Method getter = target.getClass().getMethod(getterName);
+            Object value = getter.invoke(target);
+            if (value != null) {
+                return value.toString();
+            }
+        } catch (Exception ignored) {
+            // ignore
+        }
+        return null;
+    }
+
+    private String extractJson(String source) {
+        int start = source.indexOf('{');
+        int end = source.lastIndexOf('}');
+        if (start < 0 || end <= start) {
+            return null;
+        }
+        return source.substring(start, end + 1);
     }
 }

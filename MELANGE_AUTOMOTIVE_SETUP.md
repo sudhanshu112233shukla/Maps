@@ -2,14 +2,14 @@
 
 This repository already contains Android and iOS native projects and a registered `MelangeNavigation` Capacitor bridge.
 
-Current native plugin implementations are scaffolds with deterministic fallbacks. The next step is wiring real Melange model execution.
+Native plugins now include on-device inference execution paths with deterministic fallback behavior when runtime initialization fails.
 
 ## Existing Integration Points
 
 - `src/ai/MelangeNavigation.js`: JS plugin binding
 - `src/ai/AIAssistant.js`: Melange-first provider strategy with fallback
-- `android/.../MelangeNavigationPlugin.java`: Android plugin scaffold
-- `ios/.../MelangeNavigationPlugin.swift`: iOS plugin scaffold
+- `android/.../MelangeNavigationPlugin.java`: Android plugin with reflective Melange LLM runtime loading
+- `ios/.../MelangeNavigationPlugin.swift`: iOS plugin with direct `ZeticMLangeLLMModel` path under `canImport(ZeticMLange)`
 
 ## Plugin Contract
 
@@ -56,22 +56,27 @@ transcribeNavigationCommand(options: {
 }): Promise<{ text: string }>
 ```
 
-## Android Wiring Tasks
+## Android Status
 
-1. Add Melange dependency in `android/app/build.gradle`.
-2. Initialize models in `prepare` and cache runtime/session handles.
-3. Move inference to background executors (never run on UI thread).
-4. Implement:
-   - intent parsing
-   - chat response generation
-   - speech transcription
+Completed:
+1. Added Melange dependency in `android/app/build.gradle`.
+2. Added background inference executor in plugin.
+3. Added real prompt-run-token loop path for intent parsing and chat generation.
 
-## iOS Wiring Tasks
+Remaining:
+1. Replace reflective class probing with fixed SDK API binding after final SDK version lock.
+2. Implement speech tensor I/O path for `transcribeNavigationCommand`.
 
-1. Add `ZeticMLangeiOS` Swift package in Xcode.
-2. Initialize Melange models in `prepare`.
-3. Use background queues for inference.
-4. Implement matching methods and return parity JSON contracts.
+## iOS Status
+
+Completed:
+1. Added `canImport(ZeticMLange)` runtime path with `ZeticMLangeLLMModel`.
+2. Added background inference queue.
+3. Added intent/chat model execution with fallback behavior.
+
+Remaining:
+1. Add Swift package in Xcode and verify on physical devices.
+2. Implement speech tensor I/O path for `transcribeNavigationCommand`.
 
 ## Production Completion Checklist
 
