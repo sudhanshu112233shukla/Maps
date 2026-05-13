@@ -17,6 +17,7 @@
 		5A0E1B2C3D4E5F6000010001 /* MelangeBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0E1B2C3D4E5F6000010003 /* MelangeBridgeViewController.swift */; };
 		5A0E1B2C3D4E5F6000010002 /* MelangeNavigationPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0E1B2C3D4E5F6000010004 /* MelangeNavigationPlugin.swift */; };
 		5A0E1B2C3D4E5F6000010005 /* RustSearchPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A0E1B2C3D4E5F6000010006 /* RustSearchPlugin.swift */; };
+		5A0E1B2C3D4E5F6000010010 /* ZeticMLange in Frameworks */ = {isa = PBXBuildFile; productRef = 5A0E1B2C3D4E5F6000010011 /* ZeticMLange */; };
 		A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF277DCFFFF123FFC6DF26C7 /* Pods_App.framework */; };
 /* End PBXBuildFile section */
 
@@ -44,6 +45,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A084ECDBA7D38E1E42DFC39D /* Pods_App.framework in Frameworks */,
+				5A0E1B2C3D4E5F6000010010 /* ZeticMLange in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -121,6 +123,9 @@
 			dependencies = (
 			);
 			name = App;
+			packageProductDependencies = (
+				5A0E1B2C3D4E5F6000010011 /* ZeticMLange */,
+			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
@@ -151,6 +156,7 @@
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
+				5A0E1B2C3D4E5F6000010012 /* XCRemoteSwiftPackageReference "ZeticMLangeiOS" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -394,6 +400,25 @@
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5A0E1B2C3D4E5F6000010012 /* XCRemoteSwiftPackageReference "ZeticMLangeiOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/zetic-ai/ZeticMLangeiOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5A0E1B2C3D4E5F6000010011 /* ZeticMLange */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A0E1B2C3D4E5F6000010012 /* XCRemoteSwiftPackageReference "ZeticMLangeiOS" */;
+			productName = ZeticMLange;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCConfigurationList section */
 		504EC2FF1FED79650016851F /* Build configuration list for PBXProject "App" */ = {

@@ -3,10 +3,10 @@
     {
       "id": "india",
       "enabled": true,
-      "pbf_url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
-      "pbf_file": "india-latest.osm.pbf",
+      "pbf_url": "https://download.geofabrik.de/asia/india/western-zone-latest.osm.pbf",
+      "pbf_file": "india-western-zone-latest.osm.pbf",
       "output_graph": "public/data/graph/india.json",
-      "max_nodes": 450000
+      "max_nodes": 220000
     },
     {
       "id": "usa",

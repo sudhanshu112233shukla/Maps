@@ -129,7 +129,9 @@ private final class RustSearchBridge {
     }
 
     init() {
-        if let existing = dlopen(nil, RTLD_NOW) {
+        if let dynamicHandle = RustSearchBridge.openDynamicLibrary() {
+            handle = dynamicHandle
+        } else if let existing = dlopen(nil, RTLD_NOW) {
             handle = existing
         } else {
             handle = nil
@@ -187,5 +189,22 @@ private final class RustSearchBridge {
         guard let handle else { return nil }
         guard let symbol = dlsym(handle, name) else { return nil }
         return unsafeBitCast(symbol, to: T.self)
+    }
+
+    private static func openDynamicLibrary() -> UnsafeMutableRawPointer? {
+        let candidates: [String] = [
+            "libmelange_rust_search.dylib",
+            "melange_rust_search.framework/melange_rust_search"
+        ]
+
+        for candidate in candidates {
+            if let frameworksPath = Bundle.main.privateFrameworksPath {
+                let fullPath = "\(frameworksPath)/\(candidate)"
+                if let handle = dlopen(fullPath, RTLD_NOW | RTLD_GLOBAL) {
+                    return handle
+                }
+            }
+        }
+        return nil
     }
 }

@@ -15,6 +15,18 @@ cd native/rust-search
 cargo build --release
 ```
 
+Android outputs (`.so` to `android/app/src/main/jniLibs`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File native/rust-search/scripts/build_android.ps1
+```
+
+iOS static library (`libmelange_rust_search.a`):
+
+```bash
+bash native/rust-search/scripts/build_ios.sh
+```
+
 ## Integration Notes
 
 - Android plugin expects shared library name: `libmelange_rust_search.so`.

@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local large map artifacts
+data/osm/
+
+# Native build outputs
+native/rust-search/target/
+ios/App/App/Frameworks/libmelange_rust_search.a

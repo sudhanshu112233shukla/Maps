@@ -15,7 +15,8 @@
     "cap:run:android": "npx cap run android",
     "mobile:build": "vite build && npx cap sync",
     "graph:build": "python tools/osm_pipeline/build_from_manifest.py",
-    "graph:build:india": "python tools/osm_pipeline/build_from_manifest.py --region-id india"
+    "graph:build:india": "python tools/osm_pipeline/build_from_manifest.py --region-id india",
+    "rust:search:android": "powershell -ExecutionPolicy Bypass -File native/rust-search/scripts/build_android.ps1"
   },
   "dependencies": {
     "@capacitor/android": "^6.2.1",
