@@ -29,6 +29,10 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 - `docs/`: architecture, roadmap, performance budgets
 - `native/`: native-stack contracts and module skeletons
 
+## Production Blueprint
+
+- `docs/PRODUCTION_BLUEPRINT.md` is the primary target architecture and execution plan for the offline-first AI maps platform.
+
 ## Development
 
 ```bash
