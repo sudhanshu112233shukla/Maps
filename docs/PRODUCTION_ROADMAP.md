@@ -51,6 +51,7 @@ Deliverables:
 - Ship per-region pack manifest files (`/data/packs/<region>.manifest.json`) with asset checksums.
 - Enforce transactional update semantics (`download -> verify -> activate -> rollback`) per region.
 - Add delta manifests (`/data/packs/<region>.delta.json`) with `baseVersion`, `patchAssets`, and `deleteAssets`.
+- Persist resumable chunk metadata per asset (`downloadedBytes`, `totalBytes`, `retryCount`, status) across restarts.
 
 Done when:
 - Region updates are resumable, validated, and recover cleanly from interruptions.

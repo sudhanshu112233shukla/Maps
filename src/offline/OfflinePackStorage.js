@@ -1,7 +1,9 @@
 import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
+import { ChunkDownloadState } from './ChunkDownloadState.js';
 
 const ROOT_DIR = 'melange-offline-packs';
+const CHUNK_SIZE_BYTES = 1024 * 1024;
 
 function isNativeRuntime() {
   try {
@@ -98,9 +100,17 @@ async function writeBase64File(path, data) {
   });
 }
 
+async function getContentLength(path) {
+  const response = await fetch(path, { method: 'HEAD', cache: 'no-store' }).catch(() => null);
+  const value = response?.headers?.get('content-length');
+  const parsed = value ? Number.parseInt(value, 10) : NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export class OfflinePackStorage {
   constructor() {
     this.native = isNativeRuntime();
+    this.chunkState = new ChunkDownloadState();
   }
 
   isNative() {
@@ -124,31 +134,9 @@ export class OfflinePackStorage {
 
     const stagedAssets = [];
     for (const asset of manifest.assets || []) {
-      const response = await fetch(asset.path, { cache: 'no-store' });
-      if (!response.ok) {
-        if (asset.required === false) {
-          continue;
-        }
-        throw new Error(`Failed to download asset ${asset.path}`);
-      }
-
-      const buffer = await response.arrayBuffer();
-      if (asset.sha256) {
-        const checksum = await sha256Hex(buffer);
-        if (checksum.toLowerCase() !== String(asset.sha256).toLowerCase()) {
-          throw new Error(`Checksum mismatch for ${asset.path}`);
-        }
-      }
-
       const relativePath = trimPublicPrefix(asset.path);
       const nativePath = `${stageDir}/${relativePath}`;
-      const parentDir = nativePath.slice(0, nativePath.lastIndexOf('/'));
-      await ensureDir(parentDir);
-      await Filesystem.writeFile({
-        path: nativePath,
-        directory: Directory.Data,
-        data: bufferToBase64(buffer),
-      });
+      await this.#downloadAssetResumable(regionId, transactionId, asset.path, nativePath, asset.sha256);
 
       const uri = await Filesystem.getUri({
         path: nativePath,
@@ -188,18 +176,13 @@ export class OfflinePackStorage {
       const stagedPath = `${stageDir}/${relativePath}`;
 
       if (patchAsset) {
-        const response = await fetch(patchAsset.path, { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`Failed to download patch asset ${patchAsset.path}`);
-        }
-        const buffer = await response.arrayBuffer();
-        if (patchAsset.sha256) {
-          const checksum = await sha256Hex(buffer);
-          if (checksum.toLowerCase() !== String(patchAsset.sha256).toLowerCase()) {
-            throw new Error(`Checksum mismatch for patch ${patchAsset.path}`);
-          }
-        }
-        await writeBase64File(stagedPath, bufferToBase64(buffer));
+        await this.#downloadAssetResumable(
+          regionId,
+          transactionId,
+          patchAsset.path,
+          stagedPath,
+          patchAsset.sha256 || fullAsset.sha256,
+        );
       } else {
         const activePath = `${activeDir}/${relativePath}`;
         try {
@@ -307,5 +290,106 @@ export class OfflinePackStorage {
     }
     await removeDir(activeDir);
     await renameDir(backupDir, activeDir).catch(() => null);
+  }
+
+  async #downloadAssetResumable(regionId, transactionId, sourcePath, stagedPath, expectedSha256) {
+    const existing = await this.chunkState.get(regionId, transactionId, sourcePath);
+    const totalBytes = (await getContentLength(sourcePath)) || existing?.totalBytes || null;
+    let downloadedBytes = Number.isFinite(existing?.downloadedBytes) ? existing.downloadedBytes : 0;
+    let started = downloadedBytes > 0;
+    let retryCount = existing?.retryCount || 0;
+
+    await this.chunkState.upsert(regionId, transactionId, sourcePath, {
+      status: 'downloading',
+      totalBytes,
+      downloadedBytes,
+      retryCount,
+      lastError: null,
+    });
+
+    if (totalBytes === null) {
+      const response = await fetch(sourcePath, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Failed to download ${sourcePath}: HTTP ${response.status}`);
+      }
+      const buffer = await response.arrayBuffer();
+      await writeBase64File(stagedPath, bufferToBase64(buffer));
+      downloadedBytes = buffer.byteLength;
+    }
+
+    while (totalBytes !== null && downloadedBytes < totalBytes) {
+      const nextEnd =
+        totalBytes === null
+          ? downloadedBytes + CHUNK_SIZE_BYTES - 1
+          : Math.min(downloadedBytes + CHUNK_SIZE_BYTES - 1, totalBytes - 1);
+      const rangeHeader = `bytes=${downloadedBytes}-${nextEnd}`;
+
+      try {
+        const response = await fetch(sourcePath, {
+          cache: 'no-store',
+          headers: { Range: rangeHeader },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const buffer = await response.arrayBuffer();
+        const base64Data = bufferToBase64(buffer);
+        if (!started || downloadedBytes === 0) {
+          await writeBase64File(stagedPath, base64Data);
+          started = true;
+        } else {
+          await Filesystem.appendFile({
+            path: stagedPath,
+            directory: Directory.Data,
+            data: base64Data,
+          });
+        }
+        downloadedBytes += buffer.byteLength;
+        await this.chunkState.upsert(regionId, transactionId, sourcePath, {
+          status: 'downloading',
+          totalBytes,
+          downloadedBytes,
+          retryCount,
+          lastError: null,
+        });
+
+        if (buffer.byteLength === 0) {
+          break;
+        }
+      } catch (error) {
+        retryCount += 1;
+        await this.chunkState.upsert(regionId, transactionId, sourcePath, {
+          status: 'retrying',
+          totalBytes,
+          downloadedBytes,
+          retryCount,
+          lastError: error?.message || 'Chunk download failed',
+        });
+        if (retryCount >= 5) {
+          throw new Error(`Failed to download ${sourcePath} after ${retryCount} retries`);
+        }
+      }
+    }
+
+    if (expectedSha256) {
+      const buffer = await readNativeFileAsBuffer(stagedPath);
+      const checksum = await sha256Hex(buffer);
+      if (checksum.toLowerCase() !== String(expectedSha256).toLowerCase()) {
+        await this.chunkState.upsert(regionId, transactionId, sourcePath, {
+          status: 'failed',
+          totalBytes,
+          downloadedBytes,
+          lastError: 'Checksum mismatch',
+        });
+        throw new Error(`Checksum mismatch for ${sourcePath}`);
+      }
+    }
+
+    await this.chunkState.upsert(regionId, transactionId, sourcePath, {
+      status: 'completed',
+      totalBytes,
+      downloadedBytes,
+      lastError: null,
+    });
   }
 }

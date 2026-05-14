@@ -52,6 +52,7 @@ export class OfflineRegionStore {
         transactionId: status.transactionId || null,
         transactionStatus: status.transactionStatus || null,
         transactionError: status.transactionError || null,
+        transactionDataVersion: status.transactionDataVersion || null,
         transactionUpdatedAt: status.transactionUpdatedAt || null,
         lastError: status.lastError || null,
       };

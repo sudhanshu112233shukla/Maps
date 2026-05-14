@@ -27,15 +27,20 @@ export class OfflinePackManager {
       throw new Error(`Pack manifest not found for region ${region.id}`);
     }
     const deltaManifest = await loadDeltaManifest(region.id);
-    const installedVersion = this.offlineStore?.getRegionStatus?.(region.id)?.dataVersion || region.dataVersion;
+    const regionStatus = this.offlineStore?.getRegionStatus?.(region.id) || null;
+    const installedVersion = regionStatus?.dataVersion || region.dataVersion;
     const useDelta =
       Boolean(deltaManifest) &&
       deltaManifest.baseVersion === installedVersion &&
       deltaManifest.dataVersion === manifest.dataVersion;
 
-    const transactionId = `${region.id}-${Date.now()}`;
+    const canResumeTransaction =
+      regionStatus?.transactionId &&
+      ['download', 'verify', 'activate'].includes(regionStatus.transactionStatus) &&
+      regionStatus.transactionDataVersion === manifest.dataVersion;
+    const transactionId = canResumeTransaction ? regionStatus.transactionId : `${region.id}-${Date.now()}`;
 
-    await this.#setTransaction(region.id, transactionId, 'download');
+    await this.#setTransaction(region.id, transactionId, 'download', manifest.dataVersion);
     progressCallback?.(10, useDelta ? 'Downloading delta assets' : 'Downloading pack assets');
     const staged = useDelta
       ? await this.packStorage.stageDeltaAssets(region.id, transactionId, manifest, deltaManifest)
@@ -44,12 +49,12 @@ export class OfflinePackManager {
       await this.#downloadAssets(manifest, useDelta ? deltaManifest : null);
     }
 
-    await this.#setTransaction(region.id, transactionId, 'verify');
+    await this.#setTransaction(region.id, transactionId, 'verify', manifest.dataVersion);
     progressCallback?.(45, 'Verifying pack checksums');
     await this.packStorage.verifyStagedAssets(staged.stagedAssets);
     await this.#verifyAssets(manifest);
 
-    await this.#setTransaction(region.id, transactionId, 'activate');
+    await this.#setTransaction(region.id, transactionId, 'activate', manifest.dataVersion);
     progressCallback?.(80, 'Activating pack transaction');
     const activation = await this.packStorage.activateStagedRegion(
       region.id,
@@ -59,7 +64,7 @@ export class OfflinePackManager {
     );
     const patch = this.#buildActivationPatch(region, manifest, activation.assets);
     this.lastRollbackTokenByRegion.set(region.id, activation.rollbackToken);
-    await this.#setTransaction(region.id, transactionId, 'completed');
+    await this.#setTransaction(region.id, transactionId, 'completed', null);
 
     progressCallback?.(100, 'Pack transaction completed');
     return patch;
@@ -72,6 +77,7 @@ export class OfflinePackManager {
     await this.offlineStore?.updateTransaction(regionId, {
       transactionStatus: 'rollback',
       transactionError: reason,
+      transactionDataVersion: null,
     });
     return {
       ...previousActive,
@@ -125,11 +131,12 @@ export class OfflinePackManager {
     };
   }
 
-  async #setTransaction(regionId, transactionId, transactionStatus) {
+  async #setTransaction(regionId, transactionId, transactionStatus, transactionDataVersion = null) {
     await this.offlineStore?.updateTransaction(regionId, {
       transactionId,
       transactionStatus,
       transactionError: null,
+      transactionDataVersion,
       transactionUpdatedAt: new Date().toISOString(),
     });
   }
