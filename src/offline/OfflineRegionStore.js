@@ -54,6 +54,18 @@ export class OfflineRegionStore {
         transactionError: status.transactionError || null,
         transactionDataVersion: status.transactionDataVersion || null,
         transactionUpdatedAt: status.transactionUpdatedAt || null,
+        transactionAssetPath: status.transactionAssetPath || null,
+        transactionDownloadedBytes: Number.isFinite(status.transactionDownloadedBytes)
+          ? status.transactionDownloadedBytes
+          : null,
+        transactionTotalBytes: Number.isFinite(status.transactionTotalBytes)
+          ? status.transactionTotalBytes
+          : null,
+        transactionRetryCount: Number.isFinite(status.transactionRetryCount)
+          ? status.transactionRetryCount
+          : null,
+        transactionChunkStatus: status.transactionChunkStatus || null,
+        transactionChunkError: status.transactionChunkError || null,
         lastError: status.lastError || null,
       };
     });

@@ -728,6 +728,23 @@ function setupOfflineManager() {
               <p class="region-meta">${region.automotiveFocus}</p>
               <p class="region-meta">Data ${region.dataVersion}</p>
               ${region.transactionStatus ? `<p class="region-meta">Update ${region.transactionStatus}</p>` : ''}
+              ${
+                region.transactionAssetPath
+                  ? `<p class="region-meta">Asset ${region.transactionAssetPath.split('/').pop()}</p>`
+                  : ''
+              }
+              ${
+                Number.isFinite(region.transactionDownloadedBytes) && Number.isFinite(region.transactionTotalBytes)
+                  ? `<p class="region-meta">Bytes ${Math.round(region.transactionDownloadedBytes / 1024)} KB / ${Math.round(region.transactionTotalBytes / 1024)} KB</p>`
+                  : ''
+              }
+              ${
+                Number.isFinite(region.transactionRetryCount)
+                  ? `<p class="region-meta">Retries ${region.transactionRetryCount}</p>`
+                  : ''
+              }
+              ${region.transactionChunkStatus ? `<p class="region-meta">Chunk ${region.transactionChunkStatus}</p>` : ''}
+              ${region.transactionChunkError ? `<p class="region-meta" style="color:#b91c1c;">${region.transactionChunkError}</p>` : ''}
               ${region.lastError ? `<p class="region-meta" style="color:#b91c1c;">${region.lastError}</p>` : ''}
             </div>
             <div style="text-align: right; min-width: 120px;">

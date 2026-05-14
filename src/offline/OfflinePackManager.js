@@ -48,14 +48,34 @@ export class OfflinePackManager {
           transactionId,
           manifest,
           deltaManifest,
-          (fraction) => {
-            const bounded = Math.max(0, Math.min(1, fraction));
+          async (details) => {
+            const bounded = Math.max(0, Math.min(1, details?.fraction ?? 0));
             progressCallback?.(10 + Math.round(bounded * 35), 'Downloading delta assets');
+            await this.offlineStore?.updateTransaction(region.id, {
+              transactionAssetPath: details?.assetPath || null,
+              transactionDownloadedBytes: Number.isFinite(details?.downloadedBytes)
+                ? details.downloadedBytes
+                : null,
+              transactionTotalBytes: Number.isFinite(details?.totalBytes) ? details.totalBytes : null,
+              transactionRetryCount: Number.isFinite(details?.retryCount) ? details.retryCount : 0,
+              transactionChunkStatus: details?.status || null,
+              transactionChunkError: details?.lastError || null,
+            });
           },
         )
-      : await this.packStorage.stageAssets(region.id, transactionId, manifest, (fraction) => {
-          const bounded = Math.max(0, Math.min(1, fraction));
+      : await this.packStorage.stageAssets(region.id, transactionId, manifest, async (details) => {
+          const bounded = Math.max(0, Math.min(1, details?.fraction ?? 0));
           progressCallback?.(10 + Math.round(bounded * 35), 'Downloading pack assets');
+          await this.offlineStore?.updateTransaction(region.id, {
+            transactionAssetPath: details?.assetPath || null,
+            transactionDownloadedBytes: Number.isFinite(details?.downloadedBytes)
+              ? details.downloadedBytes
+              : null,
+            transactionTotalBytes: Number.isFinite(details?.totalBytes) ? details.totalBytes : null,
+            transactionRetryCount: Number.isFinite(details?.retryCount) ? details.retryCount : 0,
+            transactionChunkStatus: details?.status || null,
+            transactionChunkError: details?.lastError || null,
+          });
         });
     if (!this.packStorage.isNative()) {
       await this.#downloadAssets(manifest, useDelta ? deltaManifest : null);
@@ -90,6 +110,12 @@ export class OfflinePackManager {
       transactionStatus: 'rollback',
       transactionError: reason,
       transactionDataVersion: null,
+      transactionAssetPath: null,
+      transactionDownloadedBytes: null,
+      transactionTotalBytes: null,
+      transactionRetryCount: null,
+      transactionChunkStatus: null,
+      transactionChunkError: null,
     });
     return {
       ...previousActive,
@@ -149,6 +175,12 @@ export class OfflinePackManager {
       transactionStatus,
       transactionError: null,
       transactionDataVersion,
+      transactionAssetPath: null,
+      transactionDownloadedBytes: null,
+      transactionTotalBytes: null,
+      transactionRetryCount: null,
+      transactionChunkStatus: null,
+      transactionChunkError: null,
       transactionUpdatedAt: new Date().toISOString(),
     });
   }
