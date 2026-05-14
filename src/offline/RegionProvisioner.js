@@ -4,6 +4,7 @@ import {
   loadPackManifest,
   verifyAssetChecksum,
 } from './PackIntegrity.js';
+import { OfflinePackManager } from './OfflinePackManager.js';
 
 async function assertOk(response, path) {
   if (!response.ok) {
@@ -15,6 +16,7 @@ export class RegionProvisioner {
   constructor(options = {}) {
     this.offlineDataLoader = options.offlineDataLoader || null;
     this.offlineStore = options.offlineStore || null;
+    this.packManager = options.packManager || new OfflinePackManager({ offlineStore: this.offlineStore });
   }
 
   async provisionRegion(regionId, progressCallback = null) {
@@ -23,25 +25,40 @@ export class RegionProvisioner {
       throw new Error(`Unknown region: ${regionId}`);
     }
 
+    const previousActive = {
+      packPath: region.bundledPackPath || null,
+      graphPath: region.graphPath || null,
+      poiPath: region.poiPath || null,
+      dataVersion: region.dataVersion || 'unversioned',
+    };
+    let patch = previousActive;
+
+    try {
+      patch = await this.packManager.updateRegion(region, progressCallback);
+    } catch (error) {
+      await this.packManager.rollbackRegion(regionId, previousActive, error?.message || 'Pack transaction failed');
+      throw error;
+    }
+
     const manifest = await loadPackManifest(regionId);
     const steps = [
       {
         key: 'pack',
         weight: 35,
         label: 'Verifying map pack',
-        run: () => this.#verifyMapPack(region.bundledPackPath, manifest),
+        run: () => this.#verifyMapPack(patch.packPath, manifest),
       },
       {
         key: 'graph',
         weight: 40,
         label: 'Verifying route graph',
-        run: () => this.#verifyGraph(region.graphPath, manifest),
+        run: () => this.#verifyGraph(patch.graphPath, manifest),
       },
       {
         key: 'poi',
         weight: 25,
         label: 'Verifying place index',
-        run: () => this.#verifyPoi(region.poiPath, manifest),
+        run: () => this.#verifyPoi(patch.poiPath, manifest),
       },
     ].filter((step) => step.run);
 
@@ -67,11 +84,8 @@ export class RegionProvisioner {
 
     progressCallback?.(100, 'Region ready for offline use');
     return {
-      packPath: region.bundledPackPath || null,
-      graphPath: region.graphPath || null,
-      poiPath: region.poiPath || null,
-      dataVersion: region.dataVersion || 'unversioned',
-      verifiedAt: new Date().toISOString(),
+      ...patch,
+      verifiedAt: patch.verifiedAt || new Date().toISOString(),
     };
   }
 

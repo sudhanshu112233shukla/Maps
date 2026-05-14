@@ -727,6 +727,7 @@ function setupOfflineManager() {
               <p>${region.sizeLabel}</p>
               <p class="region-meta">${region.automotiveFocus}</p>
               <p class="region-meta">Data ${region.dataVersion}</p>
+              ${region.transactionStatus ? `<p class="region-meta">Update ${region.transactionStatus}</p>` : ''}
               ${region.lastError ? `<p class="region-meta" style="color:#b91c1c;">${region.lastError}</p>` : ''}
             </div>
             <div style="text-align: right; min-width: 120px;">

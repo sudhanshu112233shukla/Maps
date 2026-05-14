@@ -49,6 +49,10 @@ export class OfflineRegionStore {
         stageKey: status.stageKey || null,
         stageStatus: status.stageStatus || null,
         stageProgress: Number.isFinite(status.stageProgress) ? status.stageProgress : null,
+        transactionId: status.transactionId || null,
+        transactionStatus: status.transactionStatus || null,
+        transactionError: status.transactionError || null,
+        transactionUpdatedAt: status.transactionUpdatedAt || null,
         lastError: status.lastError || null,
       };
     });
@@ -129,6 +133,16 @@ export class OfflineRegionStore {
       stageStatus: stageStatus || null,
       stageProgress: Number.isFinite(stageProgress) ? stageProgress : null,
       lastError: null,
+    };
+    await this.#save();
+    return this.getRegions();
+  }
+
+  async updateTransaction(regionId, patch = {}) {
+    const current = this.statusByRegion[regionId] || {};
+    this.statusByRegion[regionId] = {
+      ...current,
+      ...patch,
     };
     await this.#save();
     return this.getRegions();
