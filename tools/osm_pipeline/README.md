@@ -31,6 +31,9 @@ python tools/osm_pipeline/build_from_manifest.py --region-id india
 python tools/osm_pipeline/build_from_manifest.py --region-id usa
 python tools/osm_pipeline/build_from_manifest.py --region-id skorea
 python tools/osm_pipeline/build_from_manifest.py --region-id europe
+python tools/osm_pipeline/build_from_manifest.py --region-id uk
+python tools/osm_pipeline/build_from_manifest.py --region-id russia
+python tools/osm_pipeline/build_from_manifest.py --region-id australia
 ```
 
 ## Rebuild From Existing PBF
@@ -47,6 +50,9 @@ python tools/osm_pipeline/validate_graph_bundle.py --region-id india
 python tools/osm_pipeline/validate_graph_bundle.py --region-id usa
 python tools/osm_pipeline/validate_graph_bundle.py --region-id skorea
 python tools/osm_pipeline/validate_graph_bundle.py --region-id europe
+python tools/osm_pipeline/validate_graph_bundle.py --region-id uk
+python tools/osm_pipeline/validate_graph_bundle.py --region-id russia
+python tools/osm_pipeline/validate_graph_bundle.py --region-id australia
 ```
 
 ## Notes
