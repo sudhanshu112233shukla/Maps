@@ -30,7 +30,7 @@ const gps = new GPSTracker();
 const ai = new AIAssistant({ locale: 'en-US' });
 const offlineStore = new OfflineRegionStore();
 const offlineDataLoader = new OfflineDataLoader();
-const regionProvisioner = new RegionProvisioner({ offlineDataLoader });
+const regionProvisioner = new RegionProvisioner({ offlineDataLoader, offlineStore });
 
 const searchInput = document.getElementById('search-input');
 const originInput = document.getElementById('origin-input');

@@ -48,6 +48,7 @@ Deliverables:
 - Implement resumable region download manager.
 - Add checksum validation and delta update flow.
 - Add device-tier resource guards and telemetry hooks.
+- Ship per-region pack manifest files (`/data/packs/<region>.manifest.json`) with asset checksums.
 
 Done when:
 - Region updates are resumable, validated, and recover cleanly from interruptions.

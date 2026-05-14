@@ -1,0 +1,21 @@
+{
+  "regionId": "india",
+  "dataVersion": "2026.05",
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "path": "/data/maps/india.pmtiles",
+      "required": false
+    },
+    {
+      "path": "/data/graph/india.json",
+      "required": true,
+      "sha256": "5e9083c3a3e5c93327d258ceb009584605ac2b9d9408bb9566a144bd09465456"
+    },
+    {
+      "path": "/data/poi/india.json",
+      "required": true,
+      "sha256": "0cf21553e1591e44bc0c61e3ea9fe7cf326651f6af2ee81afce8555a5d284d03"
+    }
+  ]
+}

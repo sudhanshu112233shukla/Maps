@@ -46,6 +46,9 @@ export class OfflineRegionStore {
         poiPath: status.poiPath || region.poiPath,
         dataVersion: status.dataVersion || region.dataVersion || 'unversioned',
         verifiedAt: status.verifiedAt || null,
+        stageKey: status.stageKey || null,
+        stageStatus: status.stageStatus || null,
+        stageProgress: Number.isFinite(status.stageProgress) ? status.stageProgress : null,
         lastError: status.lastError || null,
       };
     });
@@ -86,10 +89,10 @@ export class OfflineRegionStore {
       progress,
       downloaded,
       lastError: patch.lastError || null,
-      downloadedAt:
-        downloaded && !current.downloadedAt
-          ? new Date().toISOString()
-          : current.downloadedAt || null,
+        downloadedAt:
+          downloaded && !current.downloadedAt
+            ? new Date().toISOString()
+            : current.downloadedAt || null,
     };
 
     await this.#save();
@@ -97,7 +100,12 @@ export class OfflineRegionStore {
   }
 
   async markDownloaded(regionId, patch = {}) {
-    return this.updateProgress(regionId, 100, patch);
+    return this.updateProgress(regionId, 100, {
+      ...patch,
+      stageKey: null,
+      stageStatus: 'completed',
+      stageProgress: 100,
+    });
   }
 
   async markFailed(regionId, reason) {
@@ -106,7 +114,21 @@ export class OfflineRegionStore {
       ...current,
       downloaded: false,
       progress: 0,
+      stageStatus: 'failed',
       lastError: reason || 'Provisioning failed',
+    };
+    await this.#save();
+    return this.getRegions();
+  }
+
+  async updateStage(regionId, stageKey, stageStatus, stageProgress = null) {
+    const current = this.statusByRegion[regionId] || {};
+    this.statusByRegion[regionId] = {
+      ...current,
+      stageKey: stageKey || null,
+      stageStatus: stageStatus || null,
+      stageProgress: Number.isFinite(stageProgress) ? stageProgress : null,
+      lastError: null,
     };
     await this.#save();
     return this.getRegions();
