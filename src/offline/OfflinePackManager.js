@@ -1,4 +1,5 @@
 import { findAssetInManifest, loadPackManifest, verifyAssetChecksum } from './PackIntegrity.js';
+import { OfflinePackStorage } from './OfflinePackStorage.js';
 
 async function fetchRequiredAsset(path) {
   const response = await fetch(path, { cache: 'no-store' });
@@ -11,6 +12,8 @@ async function fetchRequiredAsset(path) {
 export class OfflinePackManager {
   constructor(options = {}) {
     this.offlineStore = options.offlineStore || null;
+    this.packStorage = options.packStorage || new OfflinePackStorage();
+    this.lastRollbackTokenByRegion = new Map();
   }
 
   async updateRegion(region, progressCallback = null) {
@@ -20,19 +23,27 @@ export class OfflinePackManager {
     }
 
     const transactionId = `${region.id}-${Date.now()}`;
-    const previousActive = this.#snapshotRegion(region);
 
     await this.#setTransaction(region.id, transactionId, 'download');
     progressCallback?.(10, 'Downloading pack assets');
+    const staged = await this.packStorage.stageAssets(region.id, transactionId, manifest);
     await this.#downloadAssets(manifest);
 
     await this.#setTransaction(region.id, transactionId, 'verify');
     progressCallback?.(45, 'Verifying pack checksums');
+    await this.packStorage.verifyStagedAssets(staged.stagedAssets);
     await this.#verifyAssets(manifest);
 
     await this.#setTransaction(region.id, transactionId, 'activate');
     progressCallback?.(80, 'Activating pack transaction');
-    const patch = this.#buildActivationPatch(region, manifest);
+    const activation = await this.packStorage.activateStagedRegion(
+      region.id,
+      transactionId,
+      staged.stagedAssets,
+      staged.stageDir,
+    );
+    const patch = this.#buildActivationPatch(region, manifest, activation.assets);
+    this.lastRollbackTokenByRegion.set(region.id, activation.rollbackToken);
     await this.#setTransaction(region.id, transactionId, 'completed');
 
     progressCallback?.(100, 'Pack transaction completed');
@@ -40,6 +51,9 @@ export class OfflinePackManager {
   }
 
   async rollbackRegion(regionId, previousActive, reason = 'Activation failed') {
+    const rollbackToken = this.lastRollbackTokenByRegion.get(regionId) || null;
+    await this.packStorage.rollbackActivation(rollbackToken);
+    this.lastRollbackTokenByRegion.delete(regionId);
     await this.offlineStore?.updateTransaction(regionId, {
       transactionStatus: 'rollback',
       transactionError: reason,
@@ -47,15 +61,6 @@ export class OfflinePackManager {
     return {
       ...previousActive,
       rollbackAt: new Date().toISOString(),
-    };
-  }
-
-  #snapshotRegion(region) {
-    return {
-      packPath: region.bundledPackPath || null,
-      graphPath: region.graphPath || null,
-      poiPath: region.poiPath || null,
-      dataVersion: region.dataVersion || 'unversioned',
     };
   }
 
@@ -80,15 +85,17 @@ export class OfflinePackManager {
     }
   }
 
-  #buildActivationPatch(region, manifest) {
-    const graphAsset = findAssetInManifest(manifest, region.graphPath);
-    const poiAsset = findAssetInManifest(manifest, region.poiPath);
-    const packAsset = findAssetInManifest(manifest, region.bundledPackPath);
+  #buildActivationPatch(region, manifest, activatedAssets = []) {
+    const bySourcePath = new Map(activatedAssets.map((asset) => [asset.path, asset]));
+    const graphAsset = bySourcePath.get(region.graphPath) || findAssetInManifest(manifest, region.graphPath);
+    const poiAsset = bySourcePath.get(region.poiPath) || findAssetInManifest(manifest, region.poiPath);
+    const packAsset =
+      bySourcePath.get(region.bundledPackPath) || findAssetInManifest(manifest, region.bundledPackPath);
 
     return {
-      packPath: packAsset?.path || region.bundledPackPath || null,
-      graphPath: graphAsset?.path || region.graphPath || null,
-      poiPath: poiAsset?.path || region.poiPath || null,
+      packPath: packAsset?.activePath || packAsset?.path || region.bundledPackPath || null,
+      graphPath: graphAsset?.activePath || graphAsset?.path || region.graphPath || null,
+      poiPath: poiAsset?.activePath || poiAsset?.path || region.poiPath || null,
       dataVersion: manifest.dataVersion || region.dataVersion || 'unversioned',
       manifestVersion: manifest.schemaVersion || 1,
       activatedAt: new Date().toISOString(),
