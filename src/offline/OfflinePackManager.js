@@ -43,8 +43,20 @@ export class OfflinePackManager {
     await this.#setTransaction(region.id, transactionId, 'download', manifest.dataVersion);
     progressCallback?.(10, useDelta ? 'Downloading delta assets' : 'Downloading pack assets');
     const staged = useDelta
-      ? await this.packStorage.stageDeltaAssets(region.id, transactionId, manifest, deltaManifest)
-      : await this.packStorage.stageAssets(region.id, transactionId, manifest);
+      ? await this.packStorage.stageDeltaAssets(
+          region.id,
+          transactionId,
+          manifest,
+          deltaManifest,
+          (fraction) => {
+            const bounded = Math.max(0, Math.min(1, fraction));
+            progressCallback?.(10 + Math.round(bounded * 35), 'Downloading delta assets');
+          },
+        )
+      : await this.packStorage.stageAssets(region.id, transactionId, manifest, (fraction) => {
+          const bounded = Math.max(0, Math.min(1, fraction));
+          progressCallback?.(10 + Math.round(bounded * 35), 'Downloading pack assets');
+        });
     if (!this.packStorage.isNative()) {
       await this.#downloadAssets(manifest, useDelta ? deltaManifest : null);
     }

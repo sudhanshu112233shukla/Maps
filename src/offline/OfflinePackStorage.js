@@ -117,7 +117,7 @@ export class OfflinePackStorage {
     return this.native;
   }
 
-  async stageAssets(regionId, transactionId, manifest) {
+  async stageAssets(regionId, transactionId, manifest, onProgress = null) {
     if (!this.native) {
       return {
         stagedAssets: (manifest.assets || []).map((asset) => ({
@@ -133,10 +133,24 @@ export class OfflinePackStorage {
     await ensureDir(stageDir);
 
     const stagedAssets = [];
+    const requiredAssets = (manifest.assets || []).filter((asset) => asset.required !== false);
+    const totalAssets = Math.max(1, requiredAssets.length);
+    let completedAssets = 0;
+
     for (const asset of manifest.assets || []) {
       const relativePath = trimPublicPrefix(asset.path);
       const nativePath = `${stageDir}/${relativePath}`;
-      await this.#downloadAssetResumable(regionId, transactionId, asset.path, nativePath, asset.sha256);
+      await this.#downloadAssetResumable(
+        regionId,
+        transactionId,
+        asset.path,
+        nativePath,
+        asset.sha256,
+        (fraction) => {
+          const overall = (completedAssets + Math.max(0, Math.min(1, fraction))) / totalAssets;
+          onProgress?.(overall, asset.path);
+        },
+      );
 
       const uri = await Filesystem.getUri({
         path: nativePath,
@@ -148,12 +162,14 @@ export class OfflinePackStorage {
         stagedPath: nativePath,
         activePath: Capacitor.convertFileSrc(uri.uri),
       });
+      completedAssets += 1;
+      onProgress?.(completedAssets / totalAssets, asset.path);
     }
 
     return { stagedAssets, stageDir };
   }
 
-  async stageDeltaAssets(regionId, transactionId, fullManifest, deltaManifest) {
+  async stageDeltaAssets(regionId, transactionId, fullManifest, deltaManifest, onProgress = null) {
     if (!this.native) {
       return this.stageAssets(regionId, transactionId, fullManifest);
     }
@@ -165,6 +181,9 @@ export class OfflinePackStorage {
     const deletedPaths = new Set(deltaManifest.deleteAssets || []);
     const activeDir = `${ROOT_DIR}/${regionId}/active`;
     const stagedAssets = [];
+
+    const totalAssets = Math.max(1, (fullManifest.assets || []).length);
+    let completedAssets = 0;
 
     for (const fullAsset of fullManifest.assets || []) {
       if (deletedPaths.has(fullAsset.path)) {
@@ -182,12 +201,17 @@ export class OfflinePackStorage {
           patchAsset.path,
           stagedPath,
           patchAsset.sha256 || fullAsset.sha256,
+          (fraction) => {
+            const overall = (completedAssets + Math.max(0, Math.min(1, fraction))) / totalAssets;
+            onProgress?.(overall, fullAsset.path);
+          },
         );
       } else {
         const activePath = `${activeDir}/${relativePath}`;
         try {
           const base64Data = await readNativeFileAsBase64(activePath);
           await writeBase64File(stagedPath, base64Data);
+          onProgress?.((completedAssets + 1) / totalAssets, fullAsset.path);
         } catch {
           const response = await fetch(fullAsset.path, { cache: 'no-store' });
           if (!response.ok) {
@@ -195,6 +219,7 @@ export class OfflinePackStorage {
           }
           const buffer = await response.arrayBuffer();
           await writeBase64File(stagedPath, bufferToBase64(buffer));
+          onProgress?.((completedAssets + 1) / totalAssets, fullAsset.path);
         }
       }
 
@@ -208,6 +233,8 @@ export class OfflinePackStorage {
         stagedPath,
         activePath: Capacitor.convertFileSrc(uri.uri),
       });
+      completedAssets += 1;
+      onProgress?.(completedAssets / totalAssets, fullAsset.path);
     }
 
     return { stagedAssets, stageDir };
@@ -292,7 +319,14 @@ export class OfflinePackStorage {
     await renameDir(backupDir, activeDir).catch(() => null);
   }
 
-  async #downloadAssetResumable(regionId, transactionId, sourcePath, stagedPath, expectedSha256) {
+  async #downloadAssetResumable(
+    regionId,
+    transactionId,
+    sourcePath,
+    stagedPath,
+    expectedSha256,
+    onProgress = null,
+  ) {
     const existing = await this.chunkState.get(regionId, transactionId, sourcePath);
     const totalBytes = (await getContentLength(sourcePath)) || existing?.totalBytes || null;
     let downloadedBytes = Number.isFinite(existing?.downloadedBytes) ? existing.downloadedBytes : 0;
@@ -315,6 +349,7 @@ export class OfflinePackStorage {
       const buffer = await response.arrayBuffer();
       await writeBase64File(stagedPath, bufferToBase64(buffer));
       downloadedBytes = buffer.byteLength;
+      onProgress?.(1);
     }
 
     while (totalBytes !== null && downloadedBytes < totalBytes) {
@@ -345,6 +380,8 @@ export class OfflinePackStorage {
           });
         }
         downloadedBytes += buffer.byteLength;
+        const fraction = totalBytes > 0 ? downloadedBytes / totalBytes : 0;
+        onProgress?.(Math.max(0, Math.min(1, fraction)));
         await this.chunkState.upsert(regionId, transactionId, sourcePath, {
           status: 'downloading',
           totalBytes,
@@ -391,5 +428,6 @@ export class OfflinePackStorage {
       downloadedBytes,
       lastError: null,
     });
+    onProgress?.(1);
   }
 }
