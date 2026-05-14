@@ -16,8 +16,14 @@
     "mobile:build": "vite build && npx cap sync",
     "graph:build": "python tools/osm_pipeline/build_from_manifest.py",
     "graph:build:india": "python tools/osm_pipeline/build_from_manifest.py --region-id india",
+    "graph:build:usa": "python tools/osm_pipeline/build_from_manifest.py --region-id usa",
+    "graph:build:skorea": "python tools/osm_pipeline/build_from_manifest.py --region-id skorea",
+    "graph:build:europe": "python tools/osm_pipeline/build_from_manifest.py --region-id europe",
     "graph:validate": "python tools/osm_pipeline/validate_graph_bundle.py",
     "graph:validate:india": "python tools/osm_pipeline/validate_graph_bundle.py --region-id india",
+    "graph:validate:usa": "python tools/osm_pipeline/validate_graph_bundle.py --region-id usa",
+    "graph:validate:skorea": "python tools/osm_pipeline/validate_graph_bundle.py --region-id skorea",
+    "graph:validate:europe": "python tools/osm_pipeline/validate_graph_bundle.py --region-id europe",
     "rust:search:android": "powershell -ExecutionPolicy Bypass -File native/rust-search/scripts/build_android.ps1"
   },
   "dependencies": {
