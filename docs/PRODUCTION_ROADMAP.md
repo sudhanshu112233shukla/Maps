@@ -50,6 +50,7 @@ Deliverables:
 - Add device-tier resource guards and telemetry hooks.
 - Ship per-region pack manifest files (`/data/packs/<region>.manifest.json`) with asset checksums.
 - Enforce transactional update semantics (`download -> verify -> activate -> rollback`) per region.
+- Add delta manifests (`/data/packs/<region>.delta.json`) with `baseVersion`, `patchAssets`, and `deleteAssets`.
 
 Done when:
 - Region updates are resumable, validated, and recover cleanly from interruptions.

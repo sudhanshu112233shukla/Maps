@@ -26,6 +26,16 @@ export async function loadPackManifest(regionId) {
   return manifest;
 }
 
+export async function loadDeltaManifest(regionId) {
+  if (!regionId) return null;
+  const manifestPath = `/data/packs/${regionId}.delta.json`;
+  const manifest = await fetchJson(manifestPath);
+  if (!manifest || !Array.isArray(manifest.patchAssets) || !Array.isArray(manifest.deleteAssets)) {
+    return null;
+  }
+  return manifest;
+}
+
 export function findAssetInManifest(manifest, path) {
   if (!manifest?.assets || !path) {
     return null;

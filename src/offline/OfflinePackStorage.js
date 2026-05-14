@@ -80,6 +80,24 @@ async function readNativeFileAsBuffer(path) {
   return base64ToBuffer(result.data);
 }
 
+async function readNativeFileAsBase64(path) {
+  const result = await Filesystem.readFile({
+    path,
+    directory: Directory.Data,
+  });
+  return result.data;
+}
+
+async function writeBase64File(path, data) {
+  const parentDir = path.slice(0, path.lastIndexOf('/'));
+  await ensureDir(parentDir);
+  await Filesystem.writeFile({
+    path,
+    directory: Directory.Data,
+    data,
+  });
+}
+
 export class OfflinePackStorage {
   constructor() {
     this.native = isNativeRuntime();
@@ -140,6 +158,71 @@ export class OfflinePackStorage {
       stagedAssets.push({
         ...asset,
         stagedPath: nativePath,
+        activePath: Capacitor.convertFileSrc(uri.uri),
+      });
+    }
+
+    return { stagedAssets, stageDir };
+  }
+
+  async stageDeltaAssets(regionId, transactionId, fullManifest, deltaManifest) {
+    if (!this.native) {
+      return this.stageAssets(regionId, transactionId, fullManifest);
+    }
+
+    const stageDir = `${ROOT_DIR}/${regionId}/staged/${transactionId}`;
+    await ensureDir(stageDir);
+
+    const patchByPath = new Map((deltaManifest.patchAssets || []).map((asset) => [asset.path, asset]));
+    const deletedPaths = new Set(deltaManifest.deleteAssets || []);
+    const activeDir = `${ROOT_DIR}/${regionId}/active`;
+    const stagedAssets = [];
+
+    for (const fullAsset of fullManifest.assets || []) {
+      if (deletedPaths.has(fullAsset.path)) {
+        continue;
+      }
+
+      const patchAsset = patchByPath.get(fullAsset.path) || null;
+      const relativePath = trimPublicPrefix(fullAsset.path);
+      const stagedPath = `${stageDir}/${relativePath}`;
+
+      if (patchAsset) {
+        const response = await fetch(patchAsset.path, { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Failed to download patch asset ${patchAsset.path}`);
+        }
+        const buffer = await response.arrayBuffer();
+        if (patchAsset.sha256) {
+          const checksum = await sha256Hex(buffer);
+          if (checksum.toLowerCase() !== String(patchAsset.sha256).toLowerCase()) {
+            throw new Error(`Checksum mismatch for patch ${patchAsset.path}`);
+          }
+        }
+        await writeBase64File(stagedPath, bufferToBase64(buffer));
+      } else {
+        const activePath = `${activeDir}/${relativePath}`;
+        try {
+          const base64Data = await readNativeFileAsBase64(activePath);
+          await writeBase64File(stagedPath, base64Data);
+        } catch {
+          const response = await fetch(fullAsset.path, { cache: 'no-store' });
+          if (!response.ok) {
+            throw new Error(`Failed to fetch fallback asset ${fullAsset.path}`);
+          }
+          const buffer = await response.arrayBuffer();
+          await writeBase64File(stagedPath, bufferToBase64(buffer));
+        }
+      }
+
+      const uri = await Filesystem.getUri({
+        path: stagedPath,
+        directory: Directory.Data,
+      });
+
+      stagedAssets.push({
+        ...fullAsset,
+        stagedPath,
         activePath: Capacitor.convertFileSrc(uri.uri),
       });
     }

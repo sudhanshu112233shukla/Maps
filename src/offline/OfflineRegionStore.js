@@ -79,6 +79,10 @@ export class OfflineRegionStore {
     };
   }
 
+  getRegionStatus(regionId) {
+    return this.statusByRegion[regionId] || null;
+  }
+
   inferRegionForPosition(lng, lat) {
     return inferRegionFromCoordinates(lng, lat);
   }

@@ -1,4 +1,9 @@
-import { findAssetInManifest, loadPackManifest, verifyAssetChecksum } from './PackIntegrity.js';
+import {
+  findAssetInManifest,
+  loadDeltaManifest,
+  loadPackManifest,
+  verifyAssetChecksum,
+} from './PackIntegrity.js';
 import { OfflinePackStorage } from './OfflinePackStorage.js';
 
 async function fetchRequiredAsset(path) {
@@ -21,13 +26,23 @@ export class OfflinePackManager {
     if (!manifest) {
       throw new Error(`Pack manifest not found for region ${region.id}`);
     }
+    const deltaManifest = await loadDeltaManifest(region.id);
+    const installedVersion = this.offlineStore?.getRegionStatus?.(region.id)?.dataVersion || region.dataVersion;
+    const useDelta =
+      Boolean(deltaManifest) &&
+      deltaManifest.baseVersion === installedVersion &&
+      deltaManifest.dataVersion === manifest.dataVersion;
 
     const transactionId = `${region.id}-${Date.now()}`;
 
     await this.#setTransaction(region.id, transactionId, 'download');
-    progressCallback?.(10, 'Downloading pack assets');
-    const staged = await this.packStorage.stageAssets(region.id, transactionId, manifest);
-    await this.#downloadAssets(manifest);
+    progressCallback?.(10, useDelta ? 'Downloading delta assets' : 'Downloading pack assets');
+    const staged = useDelta
+      ? await this.packStorage.stageDeltaAssets(region.id, transactionId, manifest, deltaManifest)
+      : await this.packStorage.stageAssets(region.id, transactionId, manifest);
+    if (!this.packStorage.isNative()) {
+      await this.#downloadAssets(manifest, useDelta ? deltaManifest : null);
+    }
 
     await this.#setTransaction(region.id, transactionId, 'verify');
     progressCallback?.(45, 'Verifying pack checksums');
@@ -64,12 +79,18 @@ export class OfflinePackManager {
     };
   }
 
-  async #downloadAssets(manifest) {
+  async #downloadAssets(manifest, deltaManifest = null) {
+    const patchByPath = new Map((deltaManifest?.patchAssets || []).map((asset) => [asset.path, asset]));
+    const deletedPaths = new Set(deltaManifest?.deleteAssets || []);
     for (const asset of manifest.assets || []) {
+      if (deletedPaths.has(asset.path)) {
+        continue;
+      }
       if (asset.required === false) {
         continue;
       }
-      await fetchRequiredAsset(asset.path);
+      const patchAsset = patchByPath.get(asset.path);
+      await fetchRequiredAsset(patchAsset?.path || asset.path);
     }
   }
 
@@ -98,6 +119,7 @@ export class OfflinePackManager {
       poiPath: poiAsset?.activePath || poiAsset?.path || region.poiPath || null,
       dataVersion: manifest.dataVersion || region.dataVersion || 'unversioned',
       manifestVersion: manifest.schemaVersion || 1,
+      updateType: activatedAssets.length > 0 ? 'delta-or-full' : 'full',
       activatedAt: new Date().toISOString(),
       verifiedAt: new Date().toISOString(),
     };
