@@ -55,6 +55,18 @@ python tools/osm_pipeline/validate_graph_bundle.py --region-id russia
 python tools/osm_pipeline/validate_graph_bundle.py --region-id australia
 ```
 
+## Promote Region to Released
+
+After graph/POI/map assets are present, promote a region from `planned` to `released` and refresh required asset checksums in its pack manifest:
+
+```bash
+python tools/osm_pipeline/promote_region_release.py \
+  --region-id usa \
+  --graph-path /data/graph/usa.json \
+  --poi-path /data/poi/usa.json \
+  --map-path /data/maps/usa.pmtiles
+```
+
 ## Notes
 
 - Graph output keeps only drivable highway classes.

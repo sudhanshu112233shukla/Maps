@@ -70,6 +70,7 @@ npm run selfcheck:delta
 npm run selfcheck:graph-pipeline
 npm run selfcheck:rust-native
 npm run selfcheck:compose-shell
+npm run selfcheck:release-promotion
 npm run graph:validate:india
 npm run build
 ```
