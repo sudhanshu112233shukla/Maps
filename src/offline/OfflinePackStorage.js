@@ -3,7 +3,19 @@ import { Directory, Filesystem } from '@capacitor/filesystem';
 import { ChunkDownloadState } from './ChunkDownloadState.js';
 
 const ROOT_DIR = 'melange-offline-packs';
-const CHUNK_SIZE_BYTES = 1024 * 1024;
+const CHUNK_SIZE_BYTES_DEFAULT = 1024 * 1024;
+const CHUNK_SIZE_BYTES_MIN = 256 * 1024;
+const CHUNK_SIZE_BYTES_MAX = 4 * 1024 * 1024;
+const BACKOFF_MS_BASE = 500;
+const BACKOFF_MS_MAX = 10_000;
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function isNativeRuntime() {
   try {
@@ -368,12 +380,20 @@ export class OfflinePackStorage {
     let downloadedBytes = Number.isFinite(existing?.downloadedBytes) ? existing.downloadedBytes : 0;
     let started = downloadedBytes > 0;
     let retryCount = existing?.retryCount || 0;
+    let chunkSizeBytes = clamp(
+      Number.isFinite(existing?.chunkSizeBytes) ? existing.chunkSizeBytes : CHUNK_SIZE_BYTES_DEFAULT,
+      CHUNK_SIZE_BYTES_MIN,
+      CHUNK_SIZE_BYTES_MAX,
+    );
+    let bytesPerSecondSmoothed = Number.isFinite(existing?.bytesPerSecond) ? existing.bytesPerSecond : null;
 
     await this.chunkState.upsert(regionId, transactionId, sourcePath, {
       status: 'downloading',
       totalBytes,
       downloadedBytes,
       retryCount,
+      chunkSizeBytes,
+      bytesPerSecond: bytesPerSecondSmoothed,
       lastError: null,
     });
 
@@ -400,11 +420,12 @@ export class OfflinePackStorage {
     while (totalBytes !== null && downloadedBytes < totalBytes) {
       const nextEnd =
         totalBytes === null
-          ? downloadedBytes + CHUNK_SIZE_BYTES - 1
-          : Math.min(downloadedBytes + CHUNK_SIZE_BYTES - 1, totalBytes - 1);
+          ? downloadedBytes + chunkSizeBytes - 1
+          : Math.min(downloadedBytes + chunkSizeBytes - 1, totalBytes - 1);
       const rangeHeader = `bytes=${downloadedBytes}-${nextEnd}`;
 
       try {
+        const chunkStart = performance.now();
         const response = await fetch(sourcePath, {
           cache: 'no-store',
           headers: { Range: rangeHeader },
@@ -425,7 +446,22 @@ export class OfflinePackStorage {
           });
         }
         downloadedBytes += buffer.byteLength;
+        const chunkMs = Math.max(1, performance.now() - chunkStart);
+        const bytesPerSecond = (buffer.byteLength * 1000) / chunkMs;
+        bytesPerSecondSmoothed =
+          bytesPerSecondSmoothed === null ? bytesPerSecond : bytesPerSecondSmoothed * 0.85 + bytesPerSecond * 0.15;
+
+        if (chunkMs < 600 && buffer.byteLength >= chunkSizeBytes * 0.9) {
+          chunkSizeBytes = clamp(chunkSizeBytes * 2, CHUNK_SIZE_BYTES_MIN, CHUNK_SIZE_BYTES_MAX);
+        } else if (chunkMs > 2500) {
+          chunkSizeBytes = clamp(Math.floor(chunkSizeBytes / 2), CHUNK_SIZE_BYTES_MIN, CHUNK_SIZE_BYTES_MAX);
+        }
+
         const fraction = totalBytes > 0 ? downloadedBytes / totalBytes : 0;
+        const etaSeconds =
+          totalBytes && bytesPerSecondSmoothed
+            ? Math.max(0, Math.round((totalBytes - downloadedBytes) / bytesPerSecondSmoothed))
+            : null;
         onProgress?.({
           regionId,
           transactionId,
@@ -434,6 +470,9 @@ export class OfflinePackStorage {
           downloadedBytes,
           totalBytes,
           retryCount,
+          chunkSizeBytes,
+          bytesPerSecond: bytesPerSecondSmoothed,
+          etaSeconds,
           status: 'downloading',
         });
         await this.chunkState.upsert(regionId, transactionId, sourcePath, {
@@ -441,6 +480,8 @@ export class OfflinePackStorage {
           totalBytes,
           downloadedBytes,
           retryCount,
+          chunkSizeBytes,
+          bytesPerSecond: bytesPerSecondSmoothed,
           lastError: null,
         });
 
@@ -449,11 +490,19 @@ export class OfflinePackStorage {
         }
       } catch (error) {
         retryCount += 1;
+        chunkSizeBytes = clamp(Math.floor(chunkSizeBytes / 2), CHUNK_SIZE_BYTES_MIN, CHUNK_SIZE_BYTES_MAX);
+        const backoffMs = clamp(
+          BACKOFF_MS_BASE * 2 ** Math.max(0, retryCount - 1) + Math.floor(Math.random() * 250),
+          BACKOFF_MS_BASE,
+          BACKOFF_MS_MAX,
+        );
         await this.chunkState.upsert(regionId, transactionId, sourcePath, {
           status: 'retrying',
           totalBytes,
           downloadedBytes,
           retryCount,
+          chunkSizeBytes,
+          bytesPerSecond: bytesPerSecondSmoothed,
           lastError: error?.message || 'Chunk download failed',
         });
         onProgress?.({
@@ -464,12 +513,16 @@ export class OfflinePackStorage {
           downloadedBytes,
           totalBytes,
           retryCount,
+          chunkSizeBytes,
+          bytesPerSecond: bytesPerSecondSmoothed,
+          etaSeconds: null,
           status: 'retrying',
           lastError: error?.message || 'Chunk download failed',
         });
         if (retryCount >= 5) {
           throw new Error(`Failed to download ${sourcePath} after ${retryCount} retries`);
         }
+        await sleep(backoffMs);
       }
     }
 

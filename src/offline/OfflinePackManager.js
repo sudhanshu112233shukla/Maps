@@ -60,6 +60,8 @@ export class OfflinePackManager {
               transactionRetryCount: Number.isFinite(details?.retryCount) ? details.retryCount : 0,
               transactionChunkStatus: details?.status || null,
               transactionChunkError: details?.lastError || null,
+              transactionEtaSeconds: Number.isFinite(details?.etaSeconds) ? details.etaSeconds : null,
+              transactionBytesPerSecond: Number.isFinite(details?.bytesPerSecond) ? details.bytesPerSecond : null,
             });
           },
         )
@@ -75,6 +77,8 @@ export class OfflinePackManager {
             transactionRetryCount: Number.isFinite(details?.retryCount) ? details.retryCount : 0,
             transactionChunkStatus: details?.status || null,
             transactionChunkError: details?.lastError || null,
+            transactionEtaSeconds: Number.isFinite(details?.etaSeconds) ? details.etaSeconds : null,
+            transactionBytesPerSecond: Number.isFinite(details?.bytesPerSecond) ? details.bytesPerSecond : null,
           });
         });
     if (!this.packStorage.isNative()) {
@@ -116,6 +120,8 @@ export class OfflinePackManager {
       transactionRetryCount: null,
       transactionChunkStatus: null,
       transactionChunkError: null,
+      transactionEtaSeconds: null,
+      transactionBytesPerSecond: null,
     });
     return {
       ...previousActive,
@@ -181,6 +187,8 @@ export class OfflinePackManager {
       transactionRetryCount: null,
       transactionChunkStatus: null,
       transactionChunkError: null,
+      transactionEtaSeconds: null,
+      transactionBytesPerSecond: null,
       transactionUpdatedAt: new Date().toISOString(),
     });
   }

@@ -743,6 +743,16 @@ function setupOfflineManager() {
                   ? `<p class="region-meta">Retries ${region.transactionRetryCount}</p>`
                   : ''
               }
+              ${
+                Number.isFinite(region.transactionEtaSeconds)
+                  ? `<p class="region-meta">ETA ${Math.round(region.transactionEtaSeconds)}s</p>`
+                  : ''
+              }
+              ${
+                Number.isFinite(region.transactionBytesPerSecond)
+                  ? `<p class="region-meta">Speed ${Math.round(region.transactionBytesPerSecond / 1024)} KB/s</p>`
+                  : ''
+              }
               ${region.transactionChunkStatus ? `<p class="region-meta">Chunk ${region.transactionChunkStatus}</p>` : ''}
               ${region.transactionChunkError ? `<p class="region-meta" style="color:#b91c1c;">${region.transactionChunkError}</p>` : ''}
               ${region.lastError ? `<p class="region-meta" style="color:#b91c1c;">${region.lastError}</p>` : ''}

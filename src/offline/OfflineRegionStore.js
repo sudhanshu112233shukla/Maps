@@ -66,6 +66,12 @@ export class OfflineRegionStore {
           : null,
         transactionChunkStatus: status.transactionChunkStatus || null,
         transactionChunkError: status.transactionChunkError || null,
+        transactionEtaSeconds: Number.isFinite(status.transactionEtaSeconds)
+          ? status.transactionEtaSeconds
+          : null,
+        transactionBytesPerSecond: Number.isFinite(status.transactionBytesPerSecond)
+          ? status.transactionBytesPerSecond
+          : null,
         lastError: status.lastError || null,
       };
     });
