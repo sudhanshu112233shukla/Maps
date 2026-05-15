@@ -1,6 +1,7 @@
 {
   "name": "ai-map-system",
   "version": "1.0.0",
+  "type": "module",
   "description": "On-device AI Map — Offline routing for Europe, Americas, India, Japan, South Korea, Canada, Russia",
   "main": "index.html",
   "scripts": {

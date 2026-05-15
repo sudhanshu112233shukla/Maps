@@ -150,6 +150,9 @@ export class OfflinePackStorage {
     let completedAssets = 0;
 
     for (const asset of manifest.assets || []) {
+      if (asset.required === false) {
+        continue;
+      }
       const relativePath = trimPublicPrefix(asset.path);
       const nativePath = `${stageDir}/${relativePath}`;
       await this.#downloadAssetResumable(
@@ -158,14 +161,17 @@ export class OfflinePackStorage {
         asset.path,
         nativePath,
         asset.sha256,
-        (fraction) => {
-          const overall = (completedAssets + Math.max(0, Math.min(1, fraction))) / totalAssets;
+        (details) => {
+          const assetFraction = typeof details === 'number' ? details : details?.fraction;
+          const bounded = Math.max(0, Math.min(1, assetFraction ?? 0));
+          const overall = (completedAssets + bounded) / totalAssets;
           onProgress?.({
+            ...details,
             regionId,
             transactionId,
             assetPath: asset.path,
             fraction: overall,
-            status: 'downloading',
+            status: details?.status || 'downloading',
           });
         },
         controls?.signal || null,
@@ -208,14 +214,13 @@ export class OfflinePackStorage {
     const activeDir = `${ROOT_DIR}/${regionId}/active`;
     const stagedAssets = [];
 
-    const totalAssets = Math.max(1, (fullManifest.assets || []).length);
+    const eligibleAssets = (fullManifest.assets || []).filter(
+      (asset) => asset.required !== false && !deletedPaths.has(asset.path),
+    );
+    const totalAssets = Math.max(1, eligibleAssets.length);
     let completedAssets = 0;
 
-    for (const fullAsset of fullManifest.assets || []) {
-      if (deletedPaths.has(fullAsset.path)) {
-        continue;
-      }
-
+    for (const fullAsset of eligibleAssets) {
       const patchAsset = patchByPath.get(fullAsset.path) || null;
       const relativePath = trimPublicPrefix(fullAsset.path);
       const stagedPath = `${stageDir}/${relativePath}`;
@@ -227,14 +232,17 @@ export class OfflinePackStorage {
           patchAsset.path,
           stagedPath,
           patchAsset.sha256 || fullAsset.sha256,
-          (fraction) => {
-            const overall = (completedAssets + Math.max(0, Math.min(1, fraction))) / totalAssets;
+          (details) => {
+            const assetFraction = typeof details === 'number' ? details : details?.fraction;
+            const bounded = Math.max(0, Math.min(1, assetFraction ?? 0));
+            const overall = (completedAssets + bounded) / totalAssets;
             onProgress?.({
+              ...details,
               regionId,
               transactionId,
               assetPath: fullAsset.path,
               fraction: overall,
-              status: 'downloading',
+              status: details?.status || 'downloading',
             });
           },
           controls?.signal || null,
