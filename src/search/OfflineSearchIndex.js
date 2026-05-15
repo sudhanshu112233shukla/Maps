@@ -29,9 +29,28 @@ const CATEGORY_KEYWORDS = new Map([
   ['restaurant', 'restaurant'],
   ['cafe', 'restaurant'],
   ['food', 'restaurant'],
+  ['rest', 'rest_area'],
+  ['washroom', 'rest_area'],
+  ['toilet', 'rest_area'],
+  ['service', 'rest_area'],
   ['station', 'station'],
   ['junction', 'station'],
   ['railway', 'station'],
+]);
+
+const QUERY_STOP_WORDS = new Set([
+  'find',
+  'show',
+  'near',
+  'nearby',
+  'nearest',
+  'closest',
+  'around',
+  'me',
+  'in',
+  'at',
+  'on',
+  'for',
 ]);
 
 function addToSetMap(map, key, value) {
@@ -55,6 +74,9 @@ function splitCategoryFromQuery(normalizedQuery) {
       category = matchedCategory;
       return;
     }
+    if (QUERY_STOP_WORDS.has(token)) {
+      return;
+    }
     remainingTokens.push(token);
   });
 
@@ -71,6 +93,7 @@ export class OfflineSearchIndex {
     this.tokenToDocumentIds = new Map();
     this.prefixToDocumentIds = new Map();
     this.phoneticToDocumentIds = new Map();
+    this.categoryToDocumentIds = new Map();
   }
 
   build(points = []) {
@@ -78,6 +101,7 @@ export class OfflineSearchIndex {
     this.tokenToDocumentIds.clear();
     this.prefixToDocumentIds.clear();
     this.phoneticToDocumentIds.clear();
+    this.categoryToDocumentIds.clear();
 
     points.forEach((point, index) => {
       const rawTokens = normalizeAndTokenize(
@@ -98,6 +122,7 @@ export class OfflineSearchIndex {
         phoneticKeys,
       };
       this.documents.push(document);
+      addToSetMap(this.categoryToDocumentIds, point.type, index);
 
       allTokens.forEach((token) => {
         addToSetMap(this.tokenToDocumentIds, token, index);
@@ -149,6 +174,11 @@ export class OfflineSearchIndex {
       });
     });
 
+    requestedCategories.forEach((category) => {
+      const categoryMatches = this.categoryToDocumentIds.get(category);
+      categoryMatches?.forEach((id) => candidateIds.add(id));
+    });
+
     if (!candidateIds.size) {
       this.documents.forEach((document) => candidateIds.add(document.id));
     }
@@ -197,8 +227,8 @@ export class OfflineSearchIndex {
     if (requestedCategories.size > 0) {
       if (requestedCategories.has(point.type)) {
         score += 80;
-      } else if (point.type !== 'city') {
-        score -= 10;
+      } else {
+        score -= point.type === 'city' ? 30 : 10;
       }
     }
 

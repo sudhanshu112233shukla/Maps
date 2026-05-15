@@ -21,6 +21,7 @@ export class OfflinePackManager {
     this.offlineStore = options.offlineStore || null;
     this.packStorage = options.packStorage || new OfflinePackStorage();
     this.lastRollbackTokenByRegion = new Map();
+    this.lastTransactionIdByRegion = new Map();
     const defaultConcurrent = Capacitor.isNativePlatform() ? 1 : 2;
     this.downloadQueue =
       options.downloadQueue ||
@@ -70,6 +71,7 @@ export class OfflinePackManager {
       ['download', 'verify', 'activate'].includes(regionStatus.transactionStatus) &&
       regionStatus.transactionDataVersion === manifest.dataVersion;
     const transactionId = canResumeTransaction ? regionStatus.transactionId : `${region.id}-${Date.now()}`;
+    this.lastTransactionIdByRegion.set(region.id, transactionId);
 
     await this.#setTransaction(region.id, transactionId, 'download', manifest.dataVersion);
     progressCallback?.(10, useDelta ? 'Downloading delta assets' : 'Downloading pack assets');
@@ -146,8 +148,11 @@ export class OfflinePackManager {
 
   async rollbackRegion(regionId, previousActive, reason = 'Activation failed') {
     const rollbackToken = this.lastRollbackTokenByRegion.get(regionId) || null;
+    const transactionId = this.lastTransactionIdByRegion.get(regionId) || previousActive?.transactionId || null;
     await this.packStorage.rollbackActivation(rollbackToken);
+    await this.packStorage.clearTransactionState(regionId, transactionId);
     this.lastRollbackTokenByRegion.delete(regionId);
+    this.lastTransactionIdByRegion.delete(regionId);
     await this.offlineStore?.updateTransaction(regionId, {
       transactionStatus: 'rollback',
       transactionError: reason,
@@ -167,6 +172,16 @@ export class OfflinePackManager {
       ...previousActive,
       rollbackAt: new Date().toISOString(),
     };
+  }
+
+  async finalizeRegion(regionId) {
+    const rollbackToken = this.lastRollbackTokenByRegion.get(regionId) || null;
+    const regionStatus = this.offlineStore?.getRegionStatus?.(regionId) || null;
+    const transactionId = this.lastTransactionIdByRegion.get(regionId) || regionStatus?.transactionId || null;
+    await this.packStorage.finalizeActivation(rollbackToken);
+    await this.packStorage.clearTransactionState(regionId, transactionId);
+    this.lastRollbackTokenByRegion.delete(regionId);
+    this.lastTransactionIdByRegion.delete(regionId);
   }
 
   async #downloadAssets(manifest, deltaManifest = null) {

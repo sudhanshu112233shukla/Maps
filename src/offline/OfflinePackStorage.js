@@ -388,6 +388,20 @@ export class OfflinePackStorage {
     await renameDir(backupDir, activeDir).catch(() => null);
   }
 
+  async finalizeActivation(rollbackToken) {
+    if (!this.native || !rollbackToken?.backupDir) {
+      return;
+    }
+    await removeDir(rollbackToken.backupDir);
+  }
+
+  async clearTransactionState(regionId, transactionId) {
+    if (!regionId || !transactionId) {
+      return;
+    }
+    await this.chunkState.clearTransaction(regionId, transactionId);
+  }
+
   async #downloadAssetResumable(
     regionId,
     transactionId,

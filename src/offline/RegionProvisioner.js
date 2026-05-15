@@ -94,6 +94,7 @@ export class RegionProvisioner {
       });
     }
 
+    await this.packManager.finalizeRegion?.(regionId);
     progressCallback?.(100, 'Region ready for offline use');
     return {
       ...patch,
