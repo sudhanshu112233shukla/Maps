@@ -33,6 +33,7 @@
     "graph:validate:australia": "python tools/osm_pipeline/validate_graph_bundle.py --region-id australia",
     "selfcheck:packs": "node tools/selfcheck/pack_manifest_selfcheck.mjs",
     "selfcheck:queue": "node tools/selfcheck/download_queue_selfcheck.mjs",
+    "selfcheck:routing": "node tools/selfcheck/routing_selfcheck.mjs",
     "selfcheck:search": "node tools/selfcheck/search_selfcheck.mjs",
     "rust:search:android": "powershell -ExecutionPolicy Bypass -File native/rust-search/scripts/build_android.ps1"
   },
