@@ -1,6 +1,6 @@
 # Melange Maps
 
-Offline-first navigation project focused on weak-connectivity environments and automotive use cases.
+Offline-first navigation project focused on weak-connectivity environments and automotive use cases.This will be best for the area where we have low internet connectivity.
 
 This repository currently ships a Capacitor + MapLibre runtime used as an integration and testing base while native modules are being introduced.
 
