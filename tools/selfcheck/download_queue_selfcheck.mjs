@@ -44,7 +44,7 @@ async function run() {
   await pPaused;
   assert(order.some((entry) => entry === 'start:paused'), 'paused task did not start after resume');
 
-  // Cancel.
+  // Cancel running work.
   const pCancel = queue.enqueue('cancel', makeTask('cancel', 200), { priority: 50 });
   await sleep(30);
   queue.cancel('cancel');
@@ -55,6 +55,37 @@ async function run() {
     cancelled = true;
   }
   assert(cancelled, 'cancel did not reject');
+
+  // Cancel pending work.
+  queue.pause('cancel-pending');
+  const pCancelPending = queue.enqueue('cancel-pending', makeTask('cancel-pending', 20), { priority: 100 });
+  queue.cancel('cancel-pending');
+  let pendingCancelled = false;
+  try {
+    await pCancelPending;
+  } catch (error) {
+    pendingCancelled = error?.name === 'AbortError';
+  }
+  assert(pendingCancelled, 'pending cancel did not reject with AbortError');
+
+  // Cancel must reject even if a task ignores the cancellation signal and resolves.
+  const pIgnoreCancel = queue.enqueue(
+    'ignore-cancel',
+    async () => {
+      await sleep(20);
+      return 'ignored';
+    },
+    { priority: 50 },
+  );
+  await sleep(1);
+  queue.cancel('ignore-cancel');
+  let ignoredCancelled = false;
+  try {
+    await pIgnoreCancel;
+  } catch (error) {
+    ignoredCancelled = error?.name === 'AbortError';
+  }
+  assert(ignoredCancelled, 'ignored cancellation resolved instead of rejecting');
 
   // Concurrency never exceeds maxConcurrent in snapshots.
   const maxSeen = Math.max(...events.map((snapshot) => snapshot.runningCount));
@@ -71,4 +102,3 @@ run()
     process.stderr.write(`[fail] queue selfcheck: ${error?.stack || error}\n`);
     process.exitCode = 1;
   });
-

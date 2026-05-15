@@ -17,6 +17,15 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function throwIfAborted(signal) {
+  if (!signal?.aborted) {
+    return;
+  }
+  const error = new Error('Download cancelled');
+  error.name = 'AbortError';
+  throw error;
+}
+
 function isNativeRuntime() {
   try {
     return Capacitor.isNativePlatform();
@@ -422,7 +431,8 @@ export class OfflinePackStorage {
     });
 
     if (totalBytes === null) {
-      const response = await fetch(sourcePath, { cache: 'no-store' });
+      throwIfAborted(signal);
+      const response = await fetch(sourcePath, { cache: 'no-store', signal: signal || undefined });
       if (!response.ok) {
         throw new Error(`Failed to download ${sourcePath}: HTTP ${response.status}`);
       }
@@ -442,11 +452,14 @@ export class OfflinePackStorage {
     }
 
     while (totalBytes !== null && downloadedBytes < totalBytes) {
+      throwIfAborted(signal);
       if (typeof document !== 'undefined' && document.hidden) {
         await sleep(250);
+        throwIfAborted(signal);
       }
       if (typeof shouldPause === 'function') {
         while (shouldPause()) {
+          throwIfAborted(signal);
           await this.chunkState.upsert(regionId, transactionId, sourcePath, {
             status: 'paused',
             totalBytes,
@@ -473,6 +486,7 @@ export class OfflinePackStorage {
         }
       }
 
+      throwIfAborted(signal);
       const nextEnd =
         totalBytes === null
           ? downloadedBytes + chunkSizeBytes - 1
@@ -545,6 +559,7 @@ export class OfflinePackStorage {
           break;
         }
       } catch (error) {
+        throwIfAborted(signal);
         retryCount += 1;
         chunkSizeBytes = clamp(Math.floor(chunkSizeBytes / 2), CHUNK_SIZE_BYTES_MIN, CHUNK_SIZE_BYTES_MAX);
         const backoffMs = clamp(
@@ -579,6 +594,7 @@ export class OfflinePackStorage {
           throw new Error(`Failed to download ${sourcePath} after ${retryCount} retries`);
         }
         await sleep(backoffMs);
+        throwIfAborted(signal);
       }
     }
 

@@ -2,6 +2,12 @@ function stableNow() {
   return Date.now();
 }
 
+function createCancellationError(key) {
+  const error = new Error(`Download cancelled: ${key}`);
+  error.name = 'AbortError';
+  return error;
+}
+
 export class DownloadQueue {
   constructor(options = {}) {
     this.maxConcurrent = Number.isFinite(options.maxConcurrent) ? options.maxConcurrent : 2;
@@ -51,9 +57,13 @@ export class DownloadQueue {
     const handle = this.byKey.get(key);
     if (!handle) return;
 
+    this.pausedKeys.delete(key);
     if (handle.state === 'pending') {
       this.queue = this.queue.filter((item) => item.key !== key);
       this.byKey.delete(key);
+      handle.cancelRequested = true;
+      handle.state = 'cancelled';
+      handle.reject(createCancellationError(key));
     } else if (handle.state === 'running') {
       handle.cancelRequested = true;
       try {
@@ -135,6 +145,9 @@ export class DownloadQueue {
       Promise.resolve()
         .then(() => handle.taskFactory({ signal, isCancelled: () => handle.cancelRequested }))
         .then((result) => {
+          if (handle.cancelRequested) {
+            throw createCancellationError(handle.key);
+          }
           handle.state = 'completed';
           handle.resolve(result);
         })
@@ -151,4 +164,3 @@ export class DownloadQueue {
     }
   }
 }
-

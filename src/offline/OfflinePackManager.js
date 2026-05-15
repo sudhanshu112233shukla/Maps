@@ -160,6 +160,8 @@ export class OfflinePackManager {
       transactionChunkError: null,
       transactionEtaSeconds: null,
       transactionBytesPerSecond: null,
+      transactionPaused: false,
+      transactionCancelled: false,
     });
     return {
       ...previousActive,
@@ -227,6 +229,8 @@ export class OfflinePackManager {
       transactionChunkError: null,
       transactionEtaSeconds: null,
       transactionBytesPerSecond: null,
+      transactionPaused: false,
+      transactionCancelled: false,
       transactionUpdatedAt: new Date().toISOString(),
     });
   }
