@@ -19,6 +19,18 @@ export class RegionProvisioner {
     this.packManager = options.packManager || new OfflinePackManager({ offlineStore: this.offlineStore });
   }
 
+  pauseRegion(regionId) {
+    this.packManager?.pauseRegion?.(regionId);
+  }
+
+  resumeRegion(regionId) {
+    this.packManager?.resumeRegion?.(regionId);
+  }
+
+  cancelRegion(regionId) {
+    this.packManager?.cancelRegion?.(regionId);
+  }
+
   async provisionRegion(regionId, progressCallback = null) {
     const region = getRegionById(regionId);
     if (!region) {

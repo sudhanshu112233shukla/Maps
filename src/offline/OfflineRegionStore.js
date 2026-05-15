@@ -72,6 +72,8 @@ export class OfflineRegionStore {
         transactionBytesPerSecond: Number.isFinite(status.transactionBytesPerSecond)
           ? status.transactionBytesPerSecond
           : null,
+        transactionPaused: Boolean(status.transactionPaused),
+        transactionCancelled: Boolean(status.transactionCancelled),
         lastError: status.lastError || null,
       };
     });

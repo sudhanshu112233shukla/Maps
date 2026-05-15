@@ -129,7 +129,7 @@ export class OfflinePackStorage {
     return this.native;
   }
 
-  async stageAssets(regionId, transactionId, manifest, onProgress = null) {
+  async stageAssets(regionId, transactionId, manifest, onProgress = null, controls = null) {
     if (!this.native) {
       return {
         stagedAssets: (manifest.assets || []).map((asset) => ({
@@ -168,6 +168,8 @@ export class OfflinePackStorage {
             status: 'downloading',
           });
         },
+        controls?.signal || null,
+        controls?.shouldPause || null,
       );
 
       const uri = await Filesystem.getUri({
@@ -193,7 +195,7 @@ export class OfflinePackStorage {
     return { stagedAssets, stageDir };
   }
 
-  async stageDeltaAssets(regionId, transactionId, fullManifest, deltaManifest, onProgress = null) {
+  async stageDeltaAssets(regionId, transactionId, fullManifest, deltaManifest, onProgress = null, controls = null) {
     if (!this.native) {
       return this.stageAssets(regionId, transactionId, fullManifest);
     }
@@ -227,14 +229,16 @@ export class OfflinePackStorage {
           patchAsset.sha256 || fullAsset.sha256,
           (fraction) => {
             const overall = (completedAssets + Math.max(0, Math.min(1, fraction))) / totalAssets;
-          onProgress?.({
-            regionId,
-            transactionId,
-            assetPath: fullAsset.path,
-            fraction: overall,
-            status: 'downloading',
-          });
+            onProgress?.({
+              regionId,
+              transactionId,
+              assetPath: fullAsset.path,
+              fraction: overall,
+              status: 'downloading',
+            });
           },
+          controls?.signal || null,
+          controls?.shouldPause || null,
         );
       } else {
         const activePath = `${activeDir}/${relativePath}`;
@@ -374,6 +378,8 @@ export class OfflinePackStorage {
     stagedPath,
     expectedSha256,
     onProgress = null,
+    signal = null,
+    shouldPause = null,
   ) {
     const existing = await this.chunkState.get(regionId, transactionId, sourcePath);
     const totalBytes = (await getContentLength(sourcePath)) || existing?.totalBytes || null;
@@ -418,6 +424,34 @@ export class OfflinePackStorage {
     }
 
     while (totalBytes !== null && downloadedBytes < totalBytes) {
+      if (typeof shouldPause === 'function') {
+        while (shouldPause()) {
+          await this.chunkState.upsert(regionId, transactionId, sourcePath, {
+            status: 'paused',
+            totalBytes,
+            downloadedBytes,
+            retryCount,
+            chunkSizeBytes,
+            bytesPerSecond: bytesPerSecondSmoothed,
+            lastError: null,
+          });
+          onProgress?.({
+            regionId,
+            transactionId,
+            assetPath: sourcePath,
+            fraction: totalBytes > 0 ? downloadedBytes / totalBytes : 0,
+            downloadedBytes,
+            totalBytes,
+            retryCount,
+            chunkSizeBytes,
+            bytesPerSecond: bytesPerSecondSmoothed,
+            etaSeconds: null,
+            status: 'paused',
+          });
+          await sleep(350);
+        }
+      }
+
       const nextEnd =
         totalBytes === null
           ? downloadedBytes + chunkSizeBytes - 1
@@ -429,6 +463,7 @@ export class OfflinePackStorage {
         const response = await fetch(sourcePath, {
           cache: 'no-store',
           headers: { Range: rangeHeader },
+          signal: signal || undefined,
         });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);

@@ -5,6 +5,7 @@ import {
   verifyAssetChecksum,
 } from './PackIntegrity.js';
 import { OfflinePackStorage } from './OfflinePackStorage.js';
+import { DownloadQueue } from './DownloadQueue.js';
 
 async function fetchRequiredAsset(path) {
   const response = await fetch(path, { cache: 'no-store' });
@@ -19,9 +20,35 @@ export class OfflinePackManager {
     this.offlineStore = options.offlineStore || null;
     this.packStorage = options.packStorage || new OfflinePackStorage();
     this.lastRollbackTokenByRegion = new Map();
+    this.downloadQueue = options.downloadQueue || new DownloadQueue({ maxConcurrent: 2 });
   }
 
-  async updateRegion(region, progressCallback = null) {
+  async updateRegion(region, progressCallback = null, options = {}) {
+    const priority = Number.isFinite(options.priority) ? options.priority : 0;
+    const queueKey = `region:${region.id}`;
+    return this.downloadQueue.enqueue(
+      queueKey,
+      ({ signal, isCancelled }) => this.#updateRegionInternal(region, progressCallback, { signal, isCancelled }),
+      { priority },
+    );
+  }
+
+  pauseRegion(regionId) {
+    this.downloadQueue.pause(`region:${regionId}`);
+    this.offlineStore?.updateTransaction?.(regionId, { transactionPaused: true }).catch?.(() => null);
+  }
+
+  resumeRegion(regionId) {
+    this.downloadQueue.resume(`region:${regionId}`);
+    this.offlineStore?.updateTransaction?.(regionId, { transactionPaused: false }).catch?.(() => null);
+  }
+
+  cancelRegion(regionId) {
+    this.downloadQueue.cancel(`region:${regionId}`);
+    this.offlineStore?.updateTransaction?.(regionId, { transactionCancelled: true }).catch?.(() => null);
+  }
+
+  async #updateRegionInternal(region, progressCallback, controls) {
     const manifest = await loadPackManifest(region.id);
     if (!manifest) {
       throw new Error(`Pack manifest not found for region ${region.id}`);
@@ -64,6 +91,10 @@ export class OfflinePackManager {
               transactionBytesPerSecond: Number.isFinite(details?.bytesPerSecond) ? details.bytesPerSecond : null,
             });
           },
+          {
+            signal: controls?.signal || null,
+            shouldPause: () => this.downloadQueue.pausedKeys?.has?.(`region:${region.id}`),
+          },
         )
       : await this.packStorage.stageAssets(region.id, transactionId, manifest, async (details) => {
           const bounded = Math.max(0, Math.min(1, details?.fraction ?? 0));
@@ -80,6 +111,9 @@ export class OfflinePackManager {
             transactionEtaSeconds: Number.isFinite(details?.etaSeconds) ? details.etaSeconds : null,
             transactionBytesPerSecond: Number.isFinite(details?.bytesPerSecond) ? details.bytesPerSecond : null,
           });
+        }, {
+          signal: controls?.signal || null,
+          shouldPause: () => this.downloadQueue.pausedKeys?.has?.(`region:${region.id}`),
         });
     if (!this.packStorage.isNative()) {
       await this.#downloadAssets(manifest, useDelta ? deltaManifest : null);
