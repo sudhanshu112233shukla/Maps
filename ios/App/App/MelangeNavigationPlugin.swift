@@ -27,6 +27,8 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
     private var speechModelName = "OpenAI/whisper-tiny-decoder"
     private var personalKey = ""
     private var locale = "en-US"
+    private var speechRuntimeClass: String?
+    private var nativeSpeechReady = false
 
     #if canImport(ZeticMLange)
     private var llmModel: ZeticMLangeLLMModel?
@@ -113,7 +115,25 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func transcribeNavigationCommand(_ call: CAPPluginCall) {
-        call.reject("Speech model tensor I/O integration is not implemented for \(speechModelName) yet")
+        guard let audioBase64 = call.getString("audioBase64")?.trimmingCharacters(in: .whitespacesAndNewlines), !audioBase64.isEmpty else {
+            call.reject("audioBase64 is required")
+            return
+        }
+
+        inferenceQueue.async {
+            if let text = self.runSpeechModel(audioBase64: audioBase64), !text.isEmpty {
+                call.resolve([
+                    "text": text,
+                    "runtime": "melange-speech"
+                ])
+                return
+            }
+            call.resolve([
+                "text": "",
+                "runtime": "native-fallback",
+                "error": "Speech model tensor I/O integration is not implemented for \(self.speechModelName) yet"
+            ])
+        }
     }
 
     private func buildPrepareResponse(error: String?) -> [String: Any] {
@@ -126,7 +146,9 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
             "supportsPredictiveCaching": nativeModelReady,
             "threadingModel": "ui+navigation+ai+index+background",
             "llmModelName": llmModelName,
-            "speechModelName": speechModelName
+            "speechModelName": speechModelName,
+            "speechRuntimeDetected": nativeSpeechReady,
+            "speechRuntimeClass": speechRuntimeClass as Any
         ]
         if let error {
             response["error"] = error
@@ -158,6 +180,16 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
         #else
         nativeModelReady = false
         #endif
+        detectSpeechRuntime()
+    }
+
+    private func detectSpeechRuntime() {
+        let candidates = [
+            "ZeticMLangeSpeechModel",
+            "ai.zetic.mlange.speech.ZeticMLangeSpeechModel"
+        ]
+        speechRuntimeClass = candidates.first(where: { NSClassFromString($0) != nil })
+        nativeSpeechReady = false
     }
 
     private func runIntentModel(query: String) throws -> [String: Any]? {
@@ -200,6 +232,11 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
         #else
         return nil
         #endif
+    }
+
+    private func runSpeechModel(audioBase64: String) -> String? {
+        guard nativeSpeechReady else { return nil }
+        return nil
     }
 
     private func mergeIntent(base: [String: Any], nativeResult: [String: Any], loweredQuery: String) -> [String: Any] {

@@ -6,6 +6,12 @@
     {
       "path": "/data/maps/europe.pmtiles",
       "required": false
+    },
+    {
+      "path": "/data/poi/europe.json",
+      "required": true,
+      "sha256": "01f41af9bb7bff2cd442b8cd4dfd31553af41641a369137c960ad1d9870c8c95",
+      "sizeBytes": 943
     }
   ]
 }

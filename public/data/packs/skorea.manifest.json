@@ -6,6 +6,12 @@
     {
       "path": "/data/maps/skorea.pmtiles",
       "required": false
+    },
+    {
+      "path": "/data/poi/skorea.json",
+      "required": true,
+      "sha256": "cf57e25432cf1697186882f4ae931f731bf1a8be069c44e760abfd89a1b21cd0",
+      "sizeBytes": 983
     }
   ]
 }

@@ -43,7 +43,9 @@ public class MelangeNavigationPlugin extends Plugin {
     private String personalKey = "";
     private String locale = "en-US";
     private Object llmModel = null;
+    private Object speechModel = null;
     private String llmRuntimeClass = null;
+    private String speechRuntimeClass = null;
 
     @Override
     protected void handleOnDestroy() {
@@ -142,9 +144,34 @@ public class MelangeNavigationPlugin extends Plugin {
 
     @PluginMethod
     public void transcribeNavigationCommand(PluginCall call) {
-        call.reject(
-          "Speech model integration requires melange tensor I/O wiring for model: " + speechModelName
-        );
+        String audioBase64 = call.getString("audioBase64", "").trim();
+        if (audioBase64.isEmpty()) {
+            call.reject("audioBase64 is required");
+            return;
+        }
+
+        inferenceExecutor.execute(() -> {
+            try {
+                String text = runSpeechModel(audioBase64);
+                JSObject result = new JSObject();
+                if (text != null && !text.isEmpty()) {
+                    result.put("text", text);
+                    result.put("runtime", "melange-speech");
+                    call.resolve(result);
+                    return;
+                }
+                result.put("text", "");
+                result.put("runtime", "native-fallback");
+                result.put("error", "Speech model integration requires melange tensor I/O wiring for model: " + speechModelName);
+                call.resolve(result);
+            } catch (Exception error) {
+                JSObject result = new JSObject();
+                result.put("text", "");
+                result.put("runtime", "native-fallback");
+                result.put("error", error.getMessage());
+                call.resolve(result);
+            }
+        });
     }
 
     private JSObject runIntentModel(String query) {
@@ -201,18 +228,44 @@ public class MelangeNavigationPlugin extends Plugin {
         }
     }
 
+    private String runSpeechModel(String audioBase64) {
+        if (speechModel == null) return null;
+        try {
+            Object response;
+            try {
+                response = invokeMethod(
+                  speechModel,
+                  "transcribeBase64",
+                  new Class<?>[] { String.class },
+                  new Object[] { audioBase64 }
+                );
+            } catch (Exception firstError) {
+                response = invokeMethod(
+                  speechModel,
+                  "run",
+                  new Class<?>[] { String.class },
+                  new Object[] { audioBase64 }
+                );
+            }
+            return response == null ? null : response.toString().trim();
+        } catch (Exception error) {
+            return null;
+        }
+    }
+
     private JSObject buildPrepareResult() {
         JSObject result = new JSObject();
         result.put("prepared", prepared);
         result.put("runtime", nativeModelReady ? "melange-llm" : "native-bridge");
         result.put("supportsNativeMelange", nativeModelReady);
-        result.put("supportsVoiceCommands", false);
+        result.put("supportsVoiceCommands", speechModel != null);
         result.put("supportsSemanticSearch", nativeModelReady);
         result.put("supportsPredictiveCaching", nativeModelReady);
         result.put("threadingModel", "ui+navigation+ai+index+background");
         result.put("llmModelName", llmModelName);
         result.put("speechModelName", speechModelName);
         result.put("llmRuntimeClass", llmRuntimeClass == null ? JSONObject.NULL : llmRuntimeClass);
+        result.put("speechRuntimeClass", speechRuntimeClass == null ? JSONObject.NULL : speechRuntimeClass);
         return result;
     }
 
@@ -241,6 +294,7 @@ public class MelangeNavigationPlugin extends Plugin {
                 llmModel = constructor.newInstance(getContext(), personalKey, llmModelName);
                 llmRuntimeClass = className;
                 nativeModelReady = true;
+                initializeSpeechModel();
                 return;
             } catch (Exception error) {
                 lastError = error;
@@ -249,17 +303,50 @@ public class MelangeNavigationPlugin extends Plugin {
 
         nativeModelReady = false;
         if (lastError != null) throw lastError;
+        initializeSpeechModel();
+    }
+
+    private void initializeSpeechModel() throws Exception {
+        speechModel = null;
+        speechRuntimeClass = null;
+        if (personalKey == null || personalKey.trim().isEmpty()) {
+            return;
+        }
+
+        String[] classCandidates = new String[] {
+          "ai.zetic.mlange.speech.ZeticMLangeSpeechModel",
+          "ai.zetic.mlange.ZeticMLangeSpeechModel",
+          "ai.zetic.mlange.models.ZeticMLangeSpeechModel"
+        };
+        for (String className : classCandidates) {
+            try {
+                Class<?> modelClass = Class.forName(className);
+                Constructor<?> constructor = modelClass.getConstructor(
+                  Context.class,
+                  String.class,
+                  String.class
+                );
+                speechModel = constructor.newInstance(getContext(), personalKey, speechModelName);
+                speechRuntimeClass = className;
+                return;
+            } catch (Exception ignored) {
+                // try next candidate
+            }
+        }
     }
 
     private void releaseModel() {
-        if (llmModel == null) return;
-        try {
-            invokeMethod(llmModel, "deinit", new Class<?>[] {}, new Object[] {});
-        } catch (Exception ignored) {
-            // ignore
+        if (llmModel != null) {
+            try {
+                invokeMethod(llmModel, "deinit", new Class<?>[] {}, new Object[] {});
+            } catch (Exception ignored) {
+                // ignore
+            }
         }
         llmModel = null;
         llmRuntimeClass = null;
+        speechModel = null;
+        speechRuntimeClass = null;
         nativeModelReady = false;
     }
 

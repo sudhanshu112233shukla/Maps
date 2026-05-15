@@ -6,6 +6,12 @@
     {
       "path": "/data/maps/australia.pmtiles",
       "required": false
+    },
+    {
+      "path": "/data/poi/australia.json",
+      "required": true,
+      "sha256": "b399a018eca862f7a1a156de85986ee22903d0aef8031142b5e45edef8b59f9e",
+      "sizeBytes": 984
     }
   ]
 }

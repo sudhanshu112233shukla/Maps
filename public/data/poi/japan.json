@@ -1,0 +1,55 @@
+[
+  {
+    "name": "Tokyo, Japan",
+    "type": "city",
+    "lng": 139.6917,
+    "lat": 35.6895,
+    "keywords": [
+      "city"
+    ],
+    "region": "japan"
+  },
+  {
+    "name": "Osaka, Japan",
+    "type": "city",
+    "lng": 135.5023,
+    "lat": 34.6937,
+    "keywords": [
+      "city"
+    ],
+    "region": "japan"
+  },
+  {
+    "name": "ENEOS Shinjuku Service Station",
+    "type": "fuel",
+    "lng": 139.7006,
+    "lat": 35.6901,
+    "keywords": [
+      "fuel",
+      "petrol"
+    ],
+    "region": "japan"
+  },
+  {
+    "name": "Nissan EV Quick Charger Yokohama",
+    "type": "charging",
+    "lng": 139.638,
+    "lat": 35.4437,
+    "keywords": [
+      "ev",
+      "charger"
+    ],
+    "region": "japan"
+  },
+  {
+    "name": "St. Luke's International Hospital",
+    "type": "hospital",
+    "lng": 139.7753,
+    "lat": 35.6676,
+    "keywords": [
+      "hospital",
+      "emergency"
+    ],
+    "region": "japan"
+  }
+]

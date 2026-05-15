@@ -1,0 +1,55 @@
+[
+  {
+    "name": "London, United Kingdom",
+    "type": "city",
+    "lng": -0.1276,
+    "lat": 51.5072,
+    "keywords": [
+      "city"
+    ],
+    "region": "uk"
+  },
+  {
+    "name": "Manchester, United Kingdom",
+    "type": "city",
+    "lng": -2.2426,
+    "lat": 53.4808,
+    "keywords": [
+      "city"
+    ],
+    "region": "uk"
+  },
+  {
+    "name": "BP Hammersmith Service Station",
+    "type": "fuel",
+    "lng": -0.2275,
+    "lat": 51.4935,
+    "keywords": [
+      "fuel",
+      "diesel"
+    ],
+    "region": "uk"
+  },
+  {
+    "name": "Instavolt Charging Milton Keynes",
+    "type": "charging",
+    "lng": -0.7594,
+    "lat": 52.0406,
+    "keywords": [
+      "ev",
+      "charger"
+    ],
+    "region": "uk"
+  },
+  {
+    "name": "St Thomas' Hospital London",
+    "type": "hospital",
+    "lng": -0.1184,
+    "lat": 51.498,
+    "keywords": [
+      "hospital",
+      "emergency"
+    ],
+    "region": "uk"
+  }
+]

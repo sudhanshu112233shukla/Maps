@@ -23,6 +23,7 @@
     "graph:build:uk": "python tools/osm_pipeline/build_from_manifest.py --region-id uk",
     "graph:build:russia": "python tools/osm_pipeline/build_from_manifest.py --region-id russia",
     "graph:build:australia": "python tools/osm_pipeline/build_from_manifest.py --region-id australia",
+    "graph:seed-poi": "python tools/osm_pipeline/generate_seed_poi.py",
     "pack:sync-manifests": "python tools/osm_pipeline/sync_pack_manifests.py",
     "release:readiness": "python tools/osm_pipeline/build_release_readiness.py",
     "region:promote": "python tools/osm_pipeline/promote_region_release.py",

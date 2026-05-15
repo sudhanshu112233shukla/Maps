@@ -1,0 +1,55 @@
+[
+  {
+    "name": "Moscow, Russia",
+    "type": "city",
+    "lng": 37.6173,
+    "lat": 55.7558,
+    "keywords": [
+      "city"
+    ],
+    "region": "russia"
+  },
+  {
+    "name": "Saint Petersburg, Russia",
+    "type": "city",
+    "lng": 30.3351,
+    "lat": 59.9343,
+    "keywords": [
+      "city"
+    ],
+    "region": "russia"
+  },
+  {
+    "name": "Lukoil M4 Highway Fuel Stop",
+    "type": "fuel",
+    "lng": 39.2043,
+    "lat": 51.672,
+    "keywords": [
+      "fuel",
+      "diesel"
+    ],
+    "region": "russia"
+  },
+  {
+    "name": "Rosseti EV Charger Moscow Ring",
+    "type": "charging",
+    "lng": 37.4961,
+    "lat": 55.6502,
+    "keywords": [
+      "ev",
+      "charger"
+    ],
+    "region": "russia"
+  },
+  {
+    "name": "Botkin Hospital Moscow",
+    "type": "hospital",
+    "lng": 37.5488,
+    "lat": 55.7731,
+    "keywords": [
+      "hospital",
+      "emergency"
+    ],
+    "region": "russia"
+  }
+]

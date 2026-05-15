@@ -1,0 +1,55 @@
+[
+  {
+    "name": "Sydney, Australia",
+    "type": "city",
+    "lng": 151.2093,
+    "lat": -33.8688,
+    "keywords": [
+      "city"
+    ],
+    "region": "australia"
+  },
+  {
+    "name": "Melbourne, Australia",
+    "type": "city",
+    "lng": 144.9631,
+    "lat": -37.8136,
+    "keywords": [
+      "city"
+    ],
+    "region": "australia"
+  },
+  {
+    "name": "Ampol Outback Highway Fuel",
+    "type": "fuel",
+    "lng": 138.6007,
+    "lat": -34.9285,
+    "keywords": [
+      "fuel",
+      "diesel"
+    ],
+    "region": "australia"
+  },
+  {
+    "name": "Chargefox EV Hub Sydney",
+    "type": "charging",
+    "lng": 151.206,
+    "lat": -33.8757,
+    "keywords": [
+      "ev",
+      "charger"
+    ],
+    "region": "australia"
+  },
+  {
+    "name": "Royal Melbourne Hospital",
+    "type": "hospital",
+    "lng": 144.9557,
+    "lat": -37.7983,
+    "keywords": [
+      "hospital",
+      "emergency"
+    ],
+    "region": "australia"
+  }
+]

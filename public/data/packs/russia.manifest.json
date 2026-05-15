@@ -6,6 +6,12 @@
     {
       "path": "/data/maps/russia.pmtiles",
       "required": false
+    },
+    {
+      "path": "/data/poi/russia.json",
+      "required": true,
+      "sha256": "49eb38dfdbe428e02badfea25f87734b69911ef7843824b255127898892d58cf",
+      "sizeBytes": 966
     }
   ]
 }

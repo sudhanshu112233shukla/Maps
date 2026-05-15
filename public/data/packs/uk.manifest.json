@@ -6,6 +6,12 @@
     {
       "path": "/data/maps/uk.pmtiles",
       "required": false
+    },
+    {
+      "path": "/data/poi/uk.json",
+      "required": true,
+      "sha256": "f5a77a8c95ace127c08ee49f13fca66be948944ec76c446bac29273b540d4095",
+      "sizeBytes": 965
     }
   ]
 }

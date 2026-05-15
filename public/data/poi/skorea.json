@@ -1,0 +1,55 @@
+[
+  {
+    "name": "Seoul, South Korea",
+    "type": "city",
+    "lng": 126.978,
+    "lat": 37.5665,
+    "keywords": [
+      "city"
+    ],
+    "region": "skorea"
+  },
+  {
+    "name": "Busan, South Korea",
+    "type": "city",
+    "lng": 129.0756,
+    "lat": 35.1796,
+    "keywords": [
+      "city"
+    ],
+    "region": "skorea"
+  },
+  {
+    "name": "GS Caltex Seoul Station Fuel",
+    "type": "fuel",
+    "lng": 126.9707,
+    "lat": 37.5547,
+    "keywords": [
+      "fuel",
+      "diesel"
+    ],
+    "region": "skorea"
+  },
+  {
+    "name": "Hyundai EV Charging Hub Gangnam",
+    "type": "charging",
+    "lng": 127.0473,
+    "lat": 37.5172,
+    "keywords": [
+      "ev",
+      "charger"
+    ],
+    "region": "skorea"
+  },
+  {
+    "name": "Seoul National University Hospital",
+    "type": "hospital",
+    "lng": 126.9988,
+    "lat": 37.5796,
+    "keywords": [
+      "hospital",
+      "emergency"
+    ],
+    "region": "skorea"
+  }
+]

@@ -1,0 +1,55 @@
+[
+  {
+    "name": "Berlin, Europe",
+    "type": "city",
+    "lng": 13.405,
+    "lat": 52.52,
+    "keywords": [
+      "city"
+    ],
+    "region": "europe"
+  },
+  {
+    "name": "Paris, Europe",
+    "type": "city",
+    "lng": 2.3522,
+    "lat": 48.8566,
+    "keywords": [
+      "city"
+    ],
+    "region": "europe"
+  },
+  {
+    "name": "TotalEnergies A1 Fuel Plaza",
+    "type": "fuel",
+    "lng": 6.1432,
+    "lat": 49.6116,
+    "keywords": [
+      "fuel",
+      "diesel"
+    ],
+    "region": "europe"
+  },
+  {
+    "name": "Ionity Fast Charge Hub",
+    "type": "charging",
+    "lng": 8.6821,
+    "lat": 50.1109,
+    "keywords": [
+      "ev",
+      "charger"
+    ],
+    "region": "europe"
+  },
+  {
+    "name": "Charite Hospital Berlin",
+    "type": "hospital",
+    "lng": 13.3777,
+    "lat": 52.5265,
+    "keywords": [
+      "hospital",
+      "emergency"
+    ],
+    "region": "europe"
+  }
+]

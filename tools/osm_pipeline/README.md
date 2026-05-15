@@ -36,6 +36,15 @@ python tools/osm_pipeline/build_from_manifest.py --region-id russia
 python tools/osm_pipeline/build_from_manifest.py --region-id australia
 ```
 
+## Generate Seed POI Datasets
+
+```bash
+python tools/osm_pipeline/generate_seed_poi.py
+```
+
+This generates baseline POI files for non-India regions to unblock manifest/index wiring.
+These are seed datasets and should be replaced by production POI extracts before final release.
+
 ## Rebuild From Existing PBF
 
 ```bash

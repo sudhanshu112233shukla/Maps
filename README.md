@@ -20,13 +20,14 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 - Rust search bridge path with JS fallback/parity checks.
 - Delta manifest validation in update flow (invalid delta auto-falls back to full update path).
 - Compose-native Android shell scaffold under `native/android-compose/app`.
+- Automated multi-region manifest/delta sync and release-readiness reporting pipeline.
 
 ## What Is Still In Progress
 
 - Real Melange model execution inside native plugins.
-- Production OSM-to-routing graph pipeline (current graph assets are staged samples).
-- Native Android app shell (`Kotlin + Compose + MapLibre Native`).
-- Incremental region update pipeline and pack integrity checks.
+- Full Melange speech tensor I/O execution path on device.
+- Production non-India graph generation and release promotion.
+- Full MapLibre Native runtime integration inside Compose shell.
 
 ## Repository Layout
 
@@ -53,7 +54,7 @@ npm run cap:sync
 ## Offline Pack Status
 
 - `india`: `released` (downloadable)
-- `usa`, `japan`, `uk`, `skorea`, `russia`, `australia`: `planned` (pack generation pending)
+- `usa`, `japan`, `uk`, `skorea`, `russia`, `australia`: `planned` (seed POI ready, graph generation pending)
 - Release readiness report: `docs/REGION_RELEASE_READINESS.md`
 
 ## Region Release Automation
@@ -61,6 +62,7 @@ npm run cap:sync
 ```bash
 npm run pack:sync-manifests
 npm run release:readiness
+npm run graph:seed-poi
 
 # promote only when readiness says "yes"
 npm run region:promote -- --region-id usa --graph-path /data/graph/usa.json --poi-path /data/poi/usa.json --map-path /data/maps/usa.pmtiles

@@ -71,7 +71,12 @@ async function validateReleasedRegion(region) {
 
 async function validatePlannedRegion(region) {
   const manifestPath = publicPathToFile(`/data/packs/${region.id}.manifest.json`);
-  assert(!(await exists(manifestPath)), `Planned region has a manifest but is not released: ${region.id}`);
+  if (!(await exists(manifestPath))) {
+    return;
+  }
+  const manifest = await loadJson(manifestPath);
+  assert(manifest.regionId === region.id, `Planned manifest regionId mismatch for ${region.id}`);
+  assert(Array.isArray(manifest.assets), `Planned manifest assets invalid for ${region.id}`);
 }
 
 async function run() {

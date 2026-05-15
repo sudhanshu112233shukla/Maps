@@ -1,0 +1,56 @@
+[
+  {
+    "name": "New York, USA",
+    "type": "city",
+    "lng": -74.006,
+    "lat": 40.7128,
+    "keywords": [
+      "city"
+    ],
+    "region": "usa"
+  },
+  {
+    "name": "Los Angeles, USA",
+    "type": "city",
+    "lng": -118.2437,
+    "lat": 34.0522,
+    "keywords": [
+      "city"
+    ],
+    "region": "usa"
+  },
+  {
+    "name": "Love's Travel Stop Oklahoma",
+    "type": "fuel",
+    "lng": -97.5164,
+    "lat": 35.4676,
+    "keywords": [
+      "fuel",
+      "diesel",
+      "truck"
+    ],
+    "region": "usa"
+  },
+  {
+    "name": "Tesla Supercharger Barstow",
+    "type": "charging",
+    "lng": -117.0173,
+    "lat": 34.8958,
+    "keywords": [
+      "ev",
+      "charger"
+    ],
+    "region": "usa"
+  },
+  {
+    "name": "Mayo Clinic Rochester",
+    "type": "hospital",
+    "lng": -92.4668,
+    "lat": 44.0225,
+    "keywords": [
+      "hospital",
+      "emergency"
+    ],
+    "region": "usa"
+  }
+]

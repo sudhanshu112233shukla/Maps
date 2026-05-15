@@ -16,15 +16,12 @@
       "regionId": "usa",
       "releaseReady": false,
       "hasGraph": false,
-      "hasPoi": false,
+      "hasPoi": true,
       "hasMap": false,
-      "hasManifest": false,
-      "hasDelta": false,
+      "hasManifest": true,
+      "hasDelta": true,
       "missing": [
         "graph",
-        "poi",
-        "manifest",
-        "delta",
         "map(optional)"
       ]
     },
@@ -32,15 +29,12 @@
       "regionId": "japan",
       "releaseReady": false,
       "hasGraph": false,
-      "hasPoi": false,
+      "hasPoi": true,
       "hasMap": false,
-      "hasManifest": false,
-      "hasDelta": false,
+      "hasManifest": true,
+      "hasDelta": true,
       "missing": [
         "graph",
-        "poi",
-        "manifest",
-        "delta",
         "map(optional)"
       ]
     },
@@ -48,15 +42,12 @@
       "regionId": "skorea",
       "releaseReady": false,
       "hasGraph": false,
-      "hasPoi": false,
+      "hasPoi": true,
       "hasMap": false,
-      "hasManifest": false,
-      "hasDelta": false,
+      "hasManifest": true,
+      "hasDelta": true,
       "missing": [
         "graph",
-        "poi",
-        "manifest",
-        "delta",
         "map(optional)"
       ]
     },
@@ -64,15 +55,12 @@
       "regionId": "uk",
       "releaseReady": false,
       "hasGraph": false,
-      "hasPoi": false,
+      "hasPoi": true,
       "hasMap": false,
-      "hasManifest": false,
-      "hasDelta": false,
+      "hasManifest": true,
+      "hasDelta": true,
       "missing": [
         "graph",
-        "poi",
-        "manifest",
-        "delta",
         "map(optional)"
       ]
     },
@@ -80,15 +68,12 @@
       "regionId": "europe",
       "releaseReady": false,
       "hasGraph": false,
-      "hasPoi": false,
+      "hasPoi": true,
       "hasMap": false,
-      "hasManifest": false,
-      "hasDelta": false,
+      "hasManifest": true,
+      "hasDelta": true,
       "missing": [
         "graph",
-        "poi",
-        "manifest",
-        "delta",
         "map(optional)"
       ]
     },
@@ -96,15 +81,12 @@
       "regionId": "russia",
       "releaseReady": false,
       "hasGraph": false,
-      "hasPoi": false,
+      "hasPoi": true,
       "hasMap": false,
-      "hasManifest": false,
-      "hasDelta": false,
+      "hasManifest": true,
+      "hasDelta": true,
       "missing": [
         "graph",
-        "poi",
-        "manifest",
-        "delta",
         "map(optional)"
       ]
     },
@@ -112,15 +94,12 @@
       "regionId": "australia",
       "releaseReady": false,
       "hasGraph": false,
-      "hasPoi": false,
+      "hasPoi": true,
       "hasMap": false,
-      "hasManifest": false,
-      "hasDelta": false,
+      "hasManifest": true,
+      "hasDelta": true,
       "missing": [
         "graph",
-        "poi",
-        "manifest",
-        "delta",
         "map(optional)"
       ]
     }

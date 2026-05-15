@@ -6,6 +6,12 @@
     {
       "path": "/data/maps/usa.pmtiles",
       "required": false
+    },
+    {
+      "path": "/data/poi/usa.json",
+      "required": true,
+      "sha256": "de75387c1e95998ffec0894ee303f9b3dcab6a747159dad2883da88a51e1d8dc",
+      "sizeBytes": 960
     }
   ]
 }
