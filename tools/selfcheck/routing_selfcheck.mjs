@@ -7,6 +7,28 @@ function assert(condition, message) {
   }
 }
 
+function withFixedHour(hour, callback) {
+  const RealDate = Date;
+  class FixedDate extends RealDate {
+    constructor(...args) {
+      if (args.length === 0) {
+        super('2026-01-15T00:00:00.000Z');
+      } else {
+        super(...args);
+      }
+    }
+    getHours() {
+      return hour;
+    }
+  }
+  globalThis.Date = FixedDate;
+  try {
+    return callback();
+  } finally {
+    globalThis.Date = RealDate;
+  }
+}
+
 async function validateAutomotiveModes() {
   const router = new AStarRouter();
   await router.loadGraph({
@@ -30,9 +52,20 @@ async function validateAutomotiveModes() {
     },
   });
 
-  assert(router.route('start', 'end', 'fastest')?.path.join('>') === 'start>toll>end', 'fastest route regression');
-  assert(!router.route('start', 'end', 'no-toll')?.path.includes('toll'), 'no-toll route used a toll edge');
-  assert(router.route('start', 'end', 'safest')?.path.join('>') === 'start>safe>end', 'safest route regression');
+  withFixedHour(12, () => {
+    assert(
+      router.route('start', 'end', 'fastest')?.path.join('>') === 'start>toll>end',
+      'fastest route regression',
+    );
+    assert(
+      !router.route('start', 'end', 'no-toll')?.path.includes('toll'),
+      'no-toll route used a toll edge',
+    );
+    assert(
+      router.route('start', 'end', 'safest')?.path.join('>') === 'start>safe>end',
+      'safest route regression',
+    );
+  });
 }
 
 async function validateGeneratedIndiaGraph() {

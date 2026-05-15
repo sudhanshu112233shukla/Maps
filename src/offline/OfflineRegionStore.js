@@ -7,6 +7,7 @@ import {
 
 const STORAGE_KEY = 'melange-offline-region-status-v1';
 const DEFAULT_TILES = ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'];
+const IN_PROGRESS_TRANSACTION_STATES = new Set(['download', 'verify', 'activate']);
 
 function buildPackSource(packPath) {
   if (!packPath || !packPath.endsWith('.pmtiles')) return null;
@@ -26,6 +27,10 @@ export class OfflineRegionStore {
 
   async hydrateRegions() {
     await this.#load();
+    const recovered = this.#recoverInterruptedTransactions();
+    if (recovered > 0) {
+      await this.#save();
+    }
     return this.getRegions();
   }
 
@@ -118,10 +123,10 @@ export class OfflineRegionStore {
       progress,
       downloaded,
       lastError: patch.lastError || null,
-        downloadedAt:
-          downloaded && !current.downloadedAt
-            ? new Date().toISOString()
-            : current.downloadedAt || null,
+      downloadedAt:
+        downloaded && !current.downloadedAt
+          ? new Date().toISOString()
+          : current.downloadedAt || null,
     };
 
     await this.#save();
@@ -173,6 +178,29 @@ export class OfflineRegionStore {
     return this.getRegions();
   }
 
+  async clearTransaction(regionId) {
+    const current = this.statusByRegion[regionId] || {};
+    this.statusByRegion[regionId] = {
+      ...current,
+      transactionStatus: null,
+      transactionError: null,
+      transactionDataVersion: null,
+      transactionUpdatedAt: new Date().toISOString(),
+      transactionAssetPath: null,
+      transactionDownloadedBytes: null,
+      transactionTotalBytes: null,
+      transactionRetryCount: null,
+      transactionChunkStatus: null,
+      transactionChunkError: null,
+      transactionEtaSeconds: null,
+      transactionBytesPerSecond: null,
+      transactionPaused: false,
+      transactionCancelled: false,
+    };
+    await this.#save();
+    return this.getRegions();
+  }
+
   async #load() {
     try {
       const { value } = await Preferences.get({ key: STORAGE_KEY });
@@ -191,5 +219,24 @@ export class OfflineRegionStore {
     } catch {
       return;
     }
+  }
+
+  #recoverInterruptedTransactions() {
+    let recoveredCount = 0;
+    for (const [regionId, status] of Object.entries(this.statusByRegion)) {
+      if (!status || !IN_PROGRESS_TRANSACTION_STATES.has(status.transactionStatus)) {
+        continue;
+      }
+      this.statusByRegion[regionId] = {
+        ...status,
+        transactionStatus: 'interrupted',
+        transactionError: status.transactionError || 'App restarted during offline pack update',
+        transactionPaused: false,
+        transactionCancelled: false,
+        transactionUpdatedAt: new Date().toISOString(),
+      };
+      recoveredCount += 1;
+    }
+    return recoveredCount;
   }
 }

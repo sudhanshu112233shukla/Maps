@@ -8,8 +8,12 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 
 - Offline boot with staged graph and POI data.
 - Deterministic region provisioning with asset verification.
+- Atomic offline pack activation with rollback and post-activation cleanup.
+- Resumable chunk downloads with adaptive chunk sizing, retry backoff, pause/resume/cancel.
+- Boot-time recovery of interrupted pack transactions (`download`/`verify`/`activate` -> `interrupted`).
 - Local routing with automobile-focused cost modes (`fastest`, `safest`, `eco`, `no-toll`).
 - Local search with token, prefix, phonetic, and fuzzy ranking.
+- Region release gating so only shipped pack regions are downloadable.
 - Native Android/iOS Melange inference path (with deterministic fallback when runtime init fails).
 - Rust search bridge path with JS fallback/parity checks.
 
@@ -42,6 +46,24 @@ npm run build
 npm run cap:sync
 ```
 
+## Offline Pack Status
+
+- `india`: `released` (downloadable)
+- `usa`, `japan`, `uk`, `skorea`, `russia`, `australia`: `planned` (pack generation pending)
+
+## Validation Commands
+
+Run these before pushing production changes:
+
+```bash
+npm run selfcheck:packs
+npm run selfcheck:queue
+npm run selfcheck:search
+npm run selfcheck:routing
+npm run graph:validate:india
+npm run build
+```
+
 ## Design Rules Used In This Codebase
 
 - Core navigation logic must remain deterministic and usable without cloud.
@@ -52,6 +74,6 @@ npm run cap:sync
 ## Near-Term Milestones
 
 1. Wire Melange runtime calls in Android/iOS plugin implementations.
-2. Replace staged graph with regional graph generated from OSM pipeline.
+2. Replace remaining staged regional assets with generated graph/POI/pack outputs.
 3. Move search core to Rust module and expose native bindings.
 4. Bring up Compose-native shell and run parity tests against current runtime.

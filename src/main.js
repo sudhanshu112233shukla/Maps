@@ -784,6 +784,14 @@ function setupOfflineManager() {
                      </div>`
                   : ''
               }
+              ${
+                !region.downloaded && region.transactionStatus === 'interrupted'
+                  ? `<div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+                       <button class="download-btn" onclick="retryDownload('${region.id}')">Retry</button>
+                       <button class="download-btn" onclick="clearDownloadState('${region.id}')">Clean up</button>
+                     </div>`
+                  : ''
+              }
             </div>
           </div>
         `,
@@ -849,6 +857,17 @@ function setupOfflineManager() {
   window.cancelDownload = async (regionId) => {
     regionProvisioner.cancelRegion(regionId);
     state.offlineRegions = await offlineStore.hydrateRegions();
+    renderRegions();
+  };
+
+  window.retryDownload = async (regionId) => {
+    state.offlineRegions = await offlineStore.clearTransaction(regionId);
+    renderRegions();
+    await window.startDownload(regionId);
+  };
+
+  window.clearDownloadState = async (regionId) => {
+    state.offlineRegions = await offlineStore.clearTransaction(regionId);
     renderRegions();
   };
 }
