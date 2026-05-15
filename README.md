@@ -18,6 +18,8 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 - Native Android/iOS Melange inference path (with deterministic fallback when runtime init fails).
 - Native Melange plugin contract selfcheck for Android/iOS method and capability surfaces.
 - Rust search bridge path with JS fallback/parity checks.
+- Delta manifest validation in update flow (invalid delta auto-falls back to full update path).
+- Compose-native Android shell scaffold under `native/android-compose/app`.
 
 ## What Is Still In Progress
 
@@ -64,6 +66,8 @@ npm run selfcheck:search
 npm run selfcheck:routing
 npm run selfcheck:storage
 npm run selfcheck:melange-contract
+npm run selfcheck:delta
+npm run selfcheck:graph-pipeline
 npm run graph:validate:india
 npm run build
 ```
@@ -80,4 +84,4 @@ npm run build
 1. Expand Melange runtime coverage to speech and semantic ranking models with real tensor I/O on both platforms.
 2. Replace remaining staged regional assets with generated graph/POI/pack outputs and promote them to `released`.
 3. Make Rust search the default path in Android/iOS release bundles and keep JS as fallback.
-4. Bring up Compose-native shell and run parity tests against current runtime.
+4. Embed MapLibre Native and production navigation flows in `native/android-compose/app`.

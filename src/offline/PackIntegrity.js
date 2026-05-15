@@ -36,6 +36,32 @@ export async function loadDeltaManifest(regionId) {
   return manifest;
 }
 
+export function validateDeltaManifest(deltaManifest, fullManifest) {
+  if (!deltaManifest || !fullManifest) {
+    return { valid: false, reason: 'missing-manifest' };
+  }
+  if (!Array.isArray(fullManifest.assets)) {
+    return { valid: false, reason: 'invalid-full-assets' };
+  }
+  if (!Array.isArray(deltaManifest.patchAssets) || !Array.isArray(deltaManifest.deleteAssets)) {
+    return { valid: false, reason: 'invalid-delta-shape' };
+  }
+
+  const fullPaths = new Set(fullManifest.assets.map((asset) => asset.path).filter(Boolean));
+  for (const patchAsset of deltaManifest.patchAssets) {
+    if (!patchAsset?.path || !fullPaths.has(patchAsset.path)) {
+      return { valid: false, reason: `unknown-patch-asset:${patchAsset?.path || 'null'}` };
+    }
+  }
+  for (const deletedPath of deltaManifest.deleteAssets) {
+    if (!deletedPath || !fullPaths.has(deletedPath)) {
+      return { valid: false, reason: `unknown-delete-asset:${deletedPath || 'null'}` };
+    }
+  }
+
+  return { valid: true, reason: null };
+}
+
 export function findAssetInManifest(manifest, path) {
   if (!manifest?.assets || !path) {
     return null;

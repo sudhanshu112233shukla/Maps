@@ -2,6 +2,7 @@ import {
   findAssetInManifest,
   loadDeltaManifest,
   loadPackManifest,
+  validateDeltaManifest,
   verifyAssetChecksum,
 } from './PackIntegrity.js';
 import { Capacitor } from '@capacitor/core';
@@ -59,10 +60,11 @@ export class OfflinePackManager {
       throw new Error(`Pack manifest not found for region ${region.id}`);
     }
     const deltaManifest = await loadDeltaManifest(region.id);
+    const deltaValidation = validateDeltaManifest(deltaManifest, manifest);
     const regionStatus = this.offlineStore?.getRegionStatus?.(region.id) || null;
     const installedVersion = regionStatus?.dataVersion || region.dataVersion;
     const useDelta =
-      Boolean(deltaManifest) &&
+      deltaValidation.valid &&
       deltaManifest.baseVersion === installedVersion &&
       deltaManifest.dataVersion === manifest.dataVersion;
 
@@ -74,6 +76,12 @@ export class OfflinePackManager {
     this.lastTransactionIdByRegion.set(region.id, transactionId);
 
     await this.#setTransaction(region.id, transactionId, 'download', manifest.dataVersion);
+    if (deltaManifest && !deltaValidation.valid) {
+      await this.offlineStore?.updateTransaction(region.id, {
+        transactionChunkStatus: 'delta-invalid',
+        transactionChunkError: `Delta manifest ignored: ${deltaValidation.reason}`,
+      });
+    }
     progressCallback?.(10, useDelta ? 'Downloading delta assets' : 'Downloading pack assets');
     const staged = useDelta
       ? await this.packStorage.stageDeltaAssets(

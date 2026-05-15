@@ -32,6 +32,8 @@
     "graph:validate:russia": "python tools/osm_pipeline/validate_graph_bundle.py --region-id russia",
     "graph:validate:australia": "python tools/osm_pipeline/validate_graph_bundle.py --region-id australia",
     "selfcheck:melange-contract": "node tools/selfcheck/melange_contract_selfcheck.mjs",
+    "selfcheck:delta": "node tools/selfcheck/delta_manifest_selfcheck.mjs",
+    "selfcheck:graph-pipeline": "node tools/selfcheck/graph_pipeline_selfcheck.mjs",
     "selfcheck:packs": "node tools/selfcheck/pack_manifest_selfcheck.mjs",
     "selfcheck:queue": "node tools/selfcheck/download_queue_selfcheck.mjs",
     "selfcheck:routing": "node tools/selfcheck/routing_selfcheck.mjs",
