@@ -23,6 +23,10 @@ async function run() {
 
   assertContains(androidPlugin, 'native-fallback', 'Android fallback runtime marker');
   assertContains(iosPlugin, 'native-fallback', 'iOS fallback runtime marker');
+  assertContains(androidPlugin, 'transcribeNavigationCommand', 'Android transcribe method');
+  assertContains(iosPlugin, 'transcribeNavigationCommand', 'iOS transcribe method');
+  assertContains(androidPlugin, 'Speech model integration requires melange tensor I/O wiring', 'Android speech fallback-safe message');
+  assertContains(iosPlugin, 'Speech model tensor I/O integration is not implemented', 'iOS speech fallback-safe message');
 
   assertContains(androidPlugin, 'supportsNativeMelange', 'Android capability response');
   assertContains(iosPlugin, 'supportsNativeMelange', 'iOS capability response');

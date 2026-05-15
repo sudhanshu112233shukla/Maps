@@ -68,6 +68,8 @@ npm run selfcheck:storage
 npm run selfcheck:melange-contract
 npm run selfcheck:delta
 npm run selfcheck:graph-pipeline
+npm run selfcheck:rust-native
+npm run selfcheck:compose-shell
 npm run graph:validate:india
 npm run build
 ```
