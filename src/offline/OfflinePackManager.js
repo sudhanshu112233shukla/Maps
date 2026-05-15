@@ -4,6 +4,7 @@ import {
   loadPackManifest,
   verifyAssetChecksum,
 } from './PackIntegrity.js';
+import { Capacitor } from '@capacitor/core';
 import { OfflinePackStorage } from './OfflinePackStorage.js';
 import { DownloadQueue } from './DownloadQueue.js';
 
@@ -20,7 +21,10 @@ export class OfflinePackManager {
     this.offlineStore = options.offlineStore || null;
     this.packStorage = options.packStorage || new OfflinePackStorage();
     this.lastRollbackTokenByRegion = new Map();
-    this.downloadQueue = options.downloadQueue || new DownloadQueue({ maxConcurrent: 2 });
+    const defaultConcurrent = Capacitor.isNativePlatform() ? 1 : 2;
+    this.downloadQueue =
+      options.downloadQueue ||
+      new DownloadQueue({ maxConcurrent: Number.isFinite(options.maxConcurrent) ? options.maxConcurrent : defaultConcurrent });
   }
 
   async updateRegion(region, progressCallback = null, options = {}) {

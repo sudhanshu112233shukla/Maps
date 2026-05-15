@@ -393,6 +393,16 @@ export class OfflinePackStorage {
     );
     let bytesPerSecondSmoothed = Number.isFinite(existing?.bytesPerSecond) ? existing.bytesPerSecond : null;
 
+    const effectiveType = navigator?.connection?.effectiveType || '';
+    const maxChunkByNetwork =
+      effectiveType.includes('2g')
+        ? 512 * 1024
+        : effectiveType.includes('3g')
+          ? 1024 * 1024
+          : CHUNK_SIZE_BYTES_MAX;
+
+    chunkSizeBytes = clamp(chunkSizeBytes, CHUNK_SIZE_BYTES_MIN, maxChunkByNetwork);
+
     await this.chunkState.upsert(regionId, transactionId, sourcePath, {
       status: 'downloading',
       totalBytes,
@@ -424,6 +434,9 @@ export class OfflinePackStorage {
     }
 
     while (totalBytes !== null && downloadedBytes < totalBytes) {
+      if (typeof document !== 'undefined' && document.hidden) {
+        await sleep(250);
+      }
       if (typeof shouldPause === 'function') {
         while (shouldPause()) {
           await this.chunkState.upsert(regionId, transactionId, sourcePath, {
@@ -487,7 +500,7 @@ export class OfflinePackStorage {
           bytesPerSecondSmoothed === null ? bytesPerSecond : bytesPerSecondSmoothed * 0.85 + bytesPerSecond * 0.15;
 
         if (chunkMs < 600 && buffer.byteLength >= chunkSizeBytes * 0.9) {
-          chunkSizeBytes = clamp(chunkSizeBytes * 2, CHUNK_SIZE_BYTES_MIN, CHUNK_SIZE_BYTES_MAX);
+          chunkSizeBytes = clamp(chunkSizeBytes * 2, CHUNK_SIZE_BYTES_MIN, maxChunkByNetwork);
         } else if (chunkMs > 2500) {
           chunkSizeBytes = clamp(Math.floor(chunkSizeBytes / 2), CHUNK_SIZE_BYTES_MIN, CHUNK_SIZE_BYTES_MAX);
         }

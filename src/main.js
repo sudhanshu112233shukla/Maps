@@ -767,6 +767,20 @@ function setupOfflineManager() {
                        <div class="progress-bar" id="bar-${region.id}"></div>
                      </div>`
               }
+              ${
+                !region.downloaded &&
+                region.transactionStatus &&
+                ['download', 'verify', 'activate'].includes(region.transactionStatus)
+                  ? `<div style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+                       ${
+                         region.transactionPaused
+                           ? `<button class="download-btn" onclick="resumeDownload('${region.id}')">Resume</button>`
+                           : `<button class="download-btn" onclick="pauseDownload('${region.id}')">Pause</button>`
+                       }
+                       <button class="download-btn" onclick="cancelDownload('${region.id}')">Cancel</button>
+                     </div>`
+                  : ''
+              }
             </div>
           </div>
         `,
@@ -815,7 +829,25 @@ function setupOfflineManager() {
       );
       renderRegions();
     }
-    };
+  };
+
+  window.pauseDownload = async (regionId) => {
+    regionProvisioner.pauseRegion(regionId);
+    state.offlineRegions = await offlineStore.hydrateRegions();
+    renderRegions();
+  };
+
+  window.resumeDownload = async (regionId) => {
+    regionProvisioner.resumeRegion(regionId);
+    state.offlineRegions = await offlineStore.hydrateRegions();
+    renderRegions();
+  };
+
+  window.cancelDownload = async (regionId) => {
+    regionProvisioner.cancelRegion(regionId);
+    state.offlineRegions = await offlineStore.hydrateRegions();
+    renderRegions();
+  };
 }
 
 function setupFABs() {
