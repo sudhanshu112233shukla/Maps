@@ -1,0 +1,11 @@
+{
+  "regionId": "usa",
+  "dataVersion": "2026.05",
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "path": "/data/maps/usa.pmtiles",
+      "required": false
+    }
+  ]
+}

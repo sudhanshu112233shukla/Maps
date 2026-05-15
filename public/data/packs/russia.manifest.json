@@ -1,0 +1,11 @@
+{
+  "regionId": "russia",
+  "dataVersion": "2026.05",
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "path": "/data/maps/russia.pmtiles",
+      "required": false
+    }
+  ]
+}

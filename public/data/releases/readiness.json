@@ -1,0 +1,128 @@
+{
+  "regions": [
+    {
+      "regionId": "india",
+      "releaseReady": true,
+      "hasGraph": true,
+      "hasPoi": true,
+      "hasMap": false,
+      "hasManifest": true,
+      "hasDelta": true,
+      "missing": [
+        "map(optional)"
+      ]
+    },
+    {
+      "regionId": "usa",
+      "releaseReady": false,
+      "hasGraph": false,
+      "hasPoi": false,
+      "hasMap": false,
+      "hasManifest": false,
+      "hasDelta": false,
+      "missing": [
+        "graph",
+        "poi",
+        "manifest",
+        "delta",
+        "map(optional)"
+      ]
+    },
+    {
+      "regionId": "japan",
+      "releaseReady": false,
+      "hasGraph": false,
+      "hasPoi": false,
+      "hasMap": false,
+      "hasManifest": false,
+      "hasDelta": false,
+      "missing": [
+        "graph",
+        "poi",
+        "manifest",
+        "delta",
+        "map(optional)"
+      ]
+    },
+    {
+      "regionId": "skorea",
+      "releaseReady": false,
+      "hasGraph": false,
+      "hasPoi": false,
+      "hasMap": false,
+      "hasManifest": false,
+      "hasDelta": false,
+      "missing": [
+        "graph",
+        "poi",
+        "manifest",
+        "delta",
+        "map(optional)"
+      ]
+    },
+    {
+      "regionId": "uk",
+      "releaseReady": false,
+      "hasGraph": false,
+      "hasPoi": false,
+      "hasMap": false,
+      "hasManifest": false,
+      "hasDelta": false,
+      "missing": [
+        "graph",
+        "poi",
+        "manifest",
+        "delta",
+        "map(optional)"
+      ]
+    },
+    {
+      "regionId": "europe",
+      "releaseReady": false,
+      "hasGraph": false,
+      "hasPoi": false,
+      "hasMap": false,
+      "hasManifest": false,
+      "hasDelta": false,
+      "missing": [
+        "graph",
+        "poi",
+        "manifest",
+        "delta",
+        "map(optional)"
+      ]
+    },
+    {
+      "regionId": "russia",
+      "releaseReady": false,
+      "hasGraph": false,
+      "hasPoi": false,
+      "hasMap": false,
+      "hasManifest": false,
+      "hasDelta": false,
+      "missing": [
+        "graph",
+        "poi",
+        "manifest",
+        "delta",
+        "map(optional)"
+      ]
+    },
+    {
+      "regionId": "australia",
+      "releaseReady": false,
+      "hasGraph": false,
+      "hasPoi": false,
+      "hasMap": false,
+      "hasManifest": false,
+      "hasDelta": false,
+      "missing": [
+        "graph",
+        "poi",
+        "manifest",
+        "delta",
+        "map(optional)"
+      ]
+    }
+  ]
+}

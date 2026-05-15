@@ -88,6 +88,15 @@ def main() -> None:
       ensure_exists(repo_root / "public" / relative.lstrip("/"), f"asset {relative}")
 
     update_manifest(repo_root, args.region_id, args.graph_path, args.poi_path, args.map_path)
+    readiness_path = repo_root / "public" / "data" / "releases" / "readiness.json"
+    if readiness_path.exists():
+        readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+        regions = readiness.get("regions", [])
+        region_row = next((row for row in regions if row.get("regionId") == args.region_id), None)
+        if region_row and not region_row.get("releaseReady", False):
+            raise SystemExit(
+                f"Region '{args.region_id}' is not release-ready per readiness report; missing: {region_row.get('missing', [])}"
+            )
     promote_offline_region(repo_root, args.region_id)
     print(f"[ok] promoted region '{args.region_id}' to released and refreshed manifest checksums")
 

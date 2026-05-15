@@ -54,6 +54,17 @@ npm run cap:sync
 
 - `india`: `released` (downloadable)
 - `usa`, `japan`, `uk`, `skorea`, `russia`, `australia`: `planned` (pack generation pending)
+- Release readiness report: `docs/REGION_RELEASE_READINESS.md`
+
+## Region Release Automation
+
+```bash
+npm run pack:sync-manifests
+npm run release:readiness
+
+# promote only when readiness says "yes"
+npm run region:promote -- --region-id usa --graph-path /data/graph/usa.json --poi-path /data/poi/usa.json --map-path /data/maps/usa.pmtiles
+```
 
 ## Validation Commands
 
@@ -71,6 +82,7 @@ npm run selfcheck:graph-pipeline
 npm run selfcheck:rust-native
 npm run selfcheck:compose-shell
 npm run selfcheck:release-promotion
+npm run selfcheck:release-readiness
 npm run graph:validate:india
 npm run build
 ```
