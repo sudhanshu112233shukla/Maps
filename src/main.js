@@ -762,10 +762,13 @@ function setupOfflineManager() {
                 region.downloaded
                   ? `<button class="download-btn downloaded">Ready</button>
                      <div class="region-meta">${region.verifiedAt ? `Verified ${new Date(region.verifiedAt).toLocaleDateString()}` : ''}</div>`
-                  : `<button class="download-btn" onclick="startDownload('${region.id}')">Download</button>
+                  : region.releaseStatus === 'released'
+                    ? `<button class="download-btn" onclick="startDownload('${region.id}')">Download</button>
                      <div class="progress-bar-container" id="progress-${region.id}">
                        <div class="progress-bar" id="bar-${region.id}"></div>
                      </div>`
+                    : `<button class="download-btn" disabled style="opacity:0.55; cursor:not-allowed;">Planned</button>
+                       <div class="region-meta">Pack generation pending</div>`
               }
               ${
                 !region.downloaded &&

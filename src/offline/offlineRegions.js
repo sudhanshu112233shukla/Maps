@@ -10,6 +10,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/india.json',
     poiPath: '/data/poi/india.json',
     automotiveFocus: 'NH corridors, fuel stops, hospitals, service plazas',
+    releaseStatus: 'released',
   },
   {
     id: 'usa',
@@ -22,6 +23,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/usa.json',
     poiPath: '/data/poi/usa.json',
     automotiveFocus: 'Interstates, truck stops, charging hubs, motels',
+    releaseStatus: 'planned',
   },
   {
     id: 'japan',
@@ -34,6 +36,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/japan.json',
     poiPath: '/data/poi/japan.json',
     automotiveFocus: 'Expressways, urban parking, charging, rest areas',
+    releaseStatus: 'planned',
   },
   {
     id: 'uk',
@@ -46,6 +49,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/uk.json',
     poiPath: '/data/poi/uk.json',
     automotiveFocus: 'Motorways, service stations, parking, low-emission zones',
+    releaseStatus: 'planned',
   },
   {
     id: 'skorea',
@@ -58,6 +62,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/skorea.json',
     poiPath: '/data/poi/skorea.json',
     automotiveFocus: 'Expressways, tunnels, parking, EV charging',
+    releaseStatus: 'planned',
   },
   {
     id: 'russia',
@@ -70,6 +75,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/russia.json',
     poiPath: '/data/poi/russia.json',
     automotiveFocus: 'Long-haul routing, fuel resilience, weather-critical corridors',
+    releaseStatus: 'planned',
   },
   {
     id: 'australia',
@@ -82,6 +88,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/australia.json',
     poiPath: '/data/poi/australia.json',
     automotiveFocus: 'Long-distance highways, remote fuel, emergency stops',
+    releaseStatus: 'planned',
   },
 ];
 
@@ -93,6 +100,10 @@ export function getRegionById(regionId) {
 
 export function getRegionViewport(regionId) {
   return getRegionById(regionId)?.viewport || DEFAULT_VIEWPORT;
+}
+
+export function isRegionReleased(regionId) {
+  return getRegionById(regionId)?.releaseStatus === 'released';
 }
 
 export function inferRegionFromCoordinates(lng, lat) {

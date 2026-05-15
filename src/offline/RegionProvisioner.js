@@ -1,4 +1,4 @@
-import { getRegionById } from './offlineRegions.js';
+import { getRegionById, isRegionReleased } from './offlineRegions.js';
 import {
   findAssetInManifest,
   loadPackManifest,
@@ -35,6 +35,9 @@ export class RegionProvisioner {
     const region = getRegionById(regionId);
     if (!region) {
       throw new Error(`Unknown region: ${regionId}`);
+    }
+    if (!isRegionReleased(regionId)) {
+      throw new Error(`Offline pack is not released yet for ${region.name}`);
     }
 
     const previousActive = {
