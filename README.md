@@ -11,10 +11,12 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 - Atomic offline pack activation with rollback and post-activation cleanup.
 - Resumable chunk downloads with adaptive chunk sizing, retry backoff, pause/resume/cancel.
 - Boot-time recovery of interrupted pack transactions (`download`/`verify`/`activate` -> `interrupted`).
+- Storage budget preflight before provisioning (required asset size estimate vs available device storage).
 - Local routing with automobile-focused cost modes (`fastest`, `safest`, `eco`, `no-toll`).
 - Local search with token, prefix, phonetic, and fuzzy ranking.
 - Region release gating so only shipped pack regions are downloadable.
 - Native Android/iOS Melange inference path (with deterministic fallback when runtime init fails).
+- Native Melange plugin contract selfcheck for Android/iOS method and capability surfaces.
 - Rust search bridge path with JS fallback/parity checks.
 
 ## What Is Still In Progress
@@ -60,6 +62,8 @@ npm run selfcheck:packs
 npm run selfcheck:queue
 npm run selfcheck:search
 npm run selfcheck:routing
+npm run selfcheck:storage
+npm run selfcheck:melange-contract
 npm run graph:validate:india
 npm run build
 ```
@@ -73,7 +77,7 @@ npm run build
 
 ## Near-Term Milestones
 
-1. Wire Melange runtime calls in Android/iOS plugin implementations.
-2. Replace remaining staged regional assets with generated graph/POI/pack outputs.
-3. Move search core to Rust module and expose native bindings.
+1. Expand Melange runtime coverage to speech and semantic ranking models with real tensor I/O on both platforms.
+2. Replace remaining staged regional assets with generated graph/POI/pack outputs and promote them to `released`.
+3. Make Rust search the default path in Android/iOS release bundles and keep JS as fallback.
 4. Bring up Compose-native shell and run parity tests against current runtime.

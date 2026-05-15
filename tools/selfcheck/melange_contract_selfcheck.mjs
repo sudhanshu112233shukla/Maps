@@ -1,0 +1,38 @@
+import { readFile } from 'node:fs/promises';
+
+function assertContains(source, pattern, label) {
+  if (!source.includes(pattern)) {
+    throw new Error(`Missing ${label}`);
+  }
+}
+
+async function run() {
+  const androidPlugin = await readFile(
+    './android/app/src/main/java/com/aimapsystem/app/MelangeNavigationPlugin.java',
+    'utf8',
+  );
+  const iosPlugin = await readFile(
+    './ios/App/App/MelangeNavigationPlugin.swift',
+    'utf8',
+  );
+
+  for (const method of ['prepare', 'parseRouteIntent', 'chatNavigation', 'transcribeNavigationCommand']) {
+    assertContains(androidPlugin, `public void ${method}(`, `Android ${method} method`);
+    assertContains(iosPlugin, `func ${method}(`, `iOS ${method} method`);
+  }
+
+  assertContains(androidPlugin, 'native-fallback', 'Android fallback runtime marker');
+  assertContains(iosPlugin, 'native-fallback', 'iOS fallback runtime marker');
+
+  assertContains(androidPlugin, 'supportsNativeMelange', 'Android capability response');
+  assertContains(iosPlugin, 'supportsNativeMelange', 'iOS capability response');
+}
+
+run()
+  .then(() => {
+    process.stdout.write('[ok] melange contract selfcheck: android/ios plugin contracts present\n');
+  })
+  .catch((error) => {
+    process.stderr.write(`[fail] melange contract selfcheck: ${error?.stack || error}\n`);
+    process.exitCode = 1;
+  });

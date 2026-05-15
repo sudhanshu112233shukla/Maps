@@ -55,3 +55,16 @@ export async function verifyAssetChecksum(path, sha256) {
   const hash = await sha256Hex(buffer);
   return hash.toLowerCase() === String(sha256).toLowerCase();
 }
+
+export async function fetchAssetContentLength(path) {
+  if (!path) {
+    return null;
+  }
+  const response = await fetch(path, { method: 'HEAD', cache: 'no-store' }).catch(() => null);
+  if (!response?.ok) {
+    return null;
+  }
+  const value = response.headers.get('content-length');
+  const parsed = value ? Number.parseInt(value, 10) : NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}

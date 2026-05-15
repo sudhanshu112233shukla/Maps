@@ -1,10 +1,16 @@
 import { getRegionById, isRegionReleased } from './offlineRegions.js';
 import {
+  fetchAssetContentLength,
   findAssetInManifest,
   loadPackManifest,
   verifyAssetChecksum,
 } from './PackIntegrity.js';
 import { OfflinePackManager } from './OfflinePackManager.js';
+import {
+  canFitStorage,
+  estimateRequiredBytesFromAssets,
+  formatBytes,
+} from './StorageBudget.js';
 
 async function assertOk(response, path) {
   if (!response.ok) {
@@ -47,6 +53,8 @@ export class RegionProvisioner {
       dataVersion: region.dataVersion || 'unversioned',
     };
     let patch = previousActive;
+    const manifest = await loadPackManifest(regionId);
+    await this.#enforceStorageBudget(region, manifest);
 
     try {
       patch = await this.packManager.updateRegion(region, progressCallback);
@@ -55,7 +63,6 @@ export class RegionProvisioner {
       throw error;
     }
 
-    const manifest = await loadPackManifest(regionId);
     const steps = [
       {
         key: 'pack',
@@ -177,5 +184,37 @@ export class RegionProvisioner {
         throw new Error(`Checksum mismatch for ${poiPath}`);
       }
     }
+  }
+
+  async #enforceStorageBudget(region, manifest) {
+    const requiredAssets = (manifest?.assets || []).filter((asset) => asset?.required !== false);
+    if (!requiredAssets.length || !navigator?.storage?.estimate) {
+      return;
+    }
+
+    const measuredAssets = await Promise.all(
+      requiredAssets.map(async (asset) => ({
+        ...asset,
+        sizeBytes: await fetchAssetContentLength(asset.path),
+      })),
+    );
+    const requiredBytes = estimateRequiredBytesFromAssets(measuredAssets);
+    if (requiredBytes <= 0) {
+      return;
+    }
+
+    const storageEstimate = await navigator.storage.estimate().catch(() => null);
+    const availableBytes =
+      Number.isFinite(storageEstimate?.quota) && Number.isFinite(storageEstimate?.usage)
+        ? Math.max(0, storageEstimate.quota - storageEstimate.usage)
+        : null;
+    const { fits, thresholdBytes } = canFitStorage(requiredBytes, availableBytes);
+    if (fits) {
+      return;
+    }
+
+    throw new Error(
+      `Insufficient storage for ${region.name}: need ~${formatBytes(thresholdBytes)}, available ${formatBytes(availableBytes)}`,
+    );
   }
 }

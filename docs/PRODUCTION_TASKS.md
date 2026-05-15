@@ -15,17 +15,17 @@ This ledger tracks the remaining work required to move Melange Maps from the cur
 | P1 | PMTiles/MBTiles region pack delivery with incremental delta manifests for every released region | Pack manifest selfcheck |
 | P1 | Automotive runtime hardening: memory budgets, cold-start tracking, thermal/network guards | Device performance profile |
 
-## Current Batch Completed
+## Recently Completed
 
-- Finalize successful pack activations by deleting rollback backups after post-activation verification.
-- Clear resumable chunk metadata after successful activation or rollback.
-- Add local search regression coverage for Hindi/Hinglish and automotive queries.
-- Improve category ranking so queries like `petrol near mumbai` and `nearest ev charger` rank actionable POIs before cities.
+- Pack manifest selfcheck with release gating (`released` regions must have valid manifests and required assets).
+- Boot-time recovery for interrupted region transactions with `Retry` and `Clean up` UI actions.
+- Routing regression selfcheck for fastest/no-toll/safest behavior and generated graph routability checks.
+- Storage budget preflight guard before provisioning required assets.
+- Native Melange plugin contract selfcheck for Android/iOS method and capability shape.
 
 ## Next Batch
 
-1. Add a pack manifest selfcheck that verifies every released region has a manifest and every required asset exists with a valid checksum.
-2. Add download state recovery on app boot so interrupted transactions show a clear `Resume`, `Retry`, or `Clean up` state.
-3. Add storage quota estimation before staging large packs.
-4. Add route graph regression selfchecks for fastest/safest/eco/no-toll path selection.
-5. Add native Melange smoke-test contracts for Android/iOS fallback-safe execution.
+1. Add generated region packs (USA/Japan/UK/South Korea/Russia/Australia) and promote them from `planned` to `released` with manifest checksums.
+2. Add Rust search default-activation selfcheck that asserts native path is preferred when native libraries are present.
+3. Add native Melange speech-path smoke checks once model tensor I/O wiring lands.
+4. Add device-tier performance profile outputs (memory, startup, thermal/network guard events) and thresholds.
