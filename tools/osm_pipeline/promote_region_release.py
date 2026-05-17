@@ -66,7 +66,7 @@ def promote_offline_region(repo_root: Path, region_id: str) -> None:
     source = regions_path.read_text(encoding="utf-8")
 
     pattern = re.compile(
-        rf"(id:\s*'{re.escape(region_id)}'[\s\S]*?releaseStatus:\s*')planned(')",
+        rf"(id:\s*'{re.escape(region_id)}'[\s\S]*?releaseStatus:\s*')(?:planned|in-progress)(')",
         re.MULTILINE,
     )
     updated, count = pattern.subn(r"\1released\2", source, count=1)

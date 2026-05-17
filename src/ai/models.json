@@ -1,0 +1,59 @@
+{
+  "$schema": "./models.schema.json",
+  "version": 1,
+  "generated": "2026-05-16",
+  "notes": "Single source of truth for on-device AI models. Consumed by JS (AIAssistant), Android (MelangeNavigationPlugin), and future iOS Swift plugin. Update this file to add or rotate models.",
+  "llm": {
+    "primary": {
+      "id": "google/gemma-3-4b-it",
+      "label": "Gemma 3 4B Instruct",
+      "params": "4B",
+      "minRamMb": 6144,
+      "runtime": "ZeticMLangeLLMModel",
+      "quantization": "auto",
+      "supported": true
+    },
+    "fallback": {
+      "id": "LiquidAI/LFM2.5-1.2B-Instruct",
+      "label": "LFM 2.5 1.2B",
+      "params": "1.2B",
+      "minRamMb": 3072,
+      "runtime": "ZeticMLangeLLMModel",
+      "quantization": "auto",
+      "supported": true
+    }
+  },
+  "speech": {
+    "asr": {
+      "id": "ZETIC-ai/whisper-base-decoder",
+      "encoder": "ZETIC-ai/whisper-base-encoder",
+      "label": "Whisper Base",
+      "params": "74M",
+      "minRamMb": 2048,
+      "runtime": "ZeticMLangeModel",
+      "sampleRateHz": 16000,
+      "supported": true
+    },
+    "tts": {
+      "id": "neuphonic/pocket-tts",
+      "label": "Pocket TTS",
+      "params": "small",
+      "minRamMb": 512,
+      "runtime": "ZeticMLangeModel",
+      "sampleRateHz": 24000,
+      "supported": true,
+      "fallbackToPlatformTts": true
+    }
+  },
+  "deviceClasses": {
+    "lowEnd": { "maxRamMb": 4096, "llm": "fallback", "tts": "platform" },
+    "midRange": { "maxRamMb": 8192, "llm": "primary", "tts": "tts" },
+    "highEnd": { "maxRamMb": 16384, "llm": "primary", "tts": "tts" }
+  },
+  "limits": {
+    "maxGeneratedTokens": 320,
+    "maxContextTurns": 6,
+    "inferenceTimeoutMs": 4500,
+    "voiceCommandLatencyTargetMs": 2500
+  }
+}

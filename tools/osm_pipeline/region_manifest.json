@@ -10,11 +10,35 @@
     },
     {
       "id": "usa",
-      "enabled": false,
+      "enabled": true,
       "pbf_url": "https://download.geofabrik.de/north-america/us-latest.osm.pbf",
       "pbf_file": "us-latest.osm.pbf",
       "output_graph": "public/data/graph/usa.json",
       "max_nodes": 600000
+    },
+    {
+      "id": "uk",
+      "enabled": true,
+      "pbf_url": "https://download.geofabrik.de/europe/great-britain-latest.osm.pbf",
+      "pbf_file": "great-britain-latest.osm.pbf",
+      "output_graph": "public/data/graph/uk.json",
+      "max_nodes": 350000
+    },
+    {
+      "id": "europe",
+      "enabled": true,
+      "pbf_url": "https://download.geofabrik.de/europe-latest.osm.pbf",
+      "pbf_file": "europe-latest.osm.pbf",
+      "output_graph": "public/data/graph/europe.json",
+      "max_nodes": 900000
+    },
+    {
+      "id": "skorea",
+      "enabled": true,
+      "pbf_url": "https://download.geofabrik.de/asia/south-korea-latest.osm.pbf",
+      "pbf_file": "south-korea-latest.osm.pbf",
+      "output_graph": "public/data/graph/skorea.json",
+      "max_nodes": 280000
     },
     {
       "id": "japan",
@@ -23,30 +47,6 @@
       "pbf_file": "japan-latest.osm.pbf",
       "output_graph": "public/data/graph/japan.json",
       "max_nodes": 400000
-    },
-    {
-      "id": "skorea",
-      "enabled": false,
-      "pbf_url": "https://download.geofabrik.de/asia/south-korea-latest.osm.pbf",
-      "pbf_file": "south-korea-latest.osm.pbf",
-      "output_graph": "public/data/graph/skorea.json",
-      "max_nodes": 280000
-    },
-    {
-      "id": "uk",
-      "enabled": false,
-      "pbf_url": "https://download.geofabrik.de/europe/great-britain-latest.osm.pbf",
-      "pbf_file": "great-britain-latest.osm.pbf",
-      "output_graph": "public/data/graph/uk.json",
-      "max_nodes": 350000
-    },
-    {
-      "id": "europe",
-      "enabled": false,
-      "pbf_url": "https://download.geofabrik.de/europe-latest.osm.pbf",
-      "pbf_file": "europe-latest.osm.pbf",
-      "output_graph": "public/data/graph/europe.json",
-      "max_nodes": 900000
     },
     {
       "id": "russia",

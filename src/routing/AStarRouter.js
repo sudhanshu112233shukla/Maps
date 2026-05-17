@@ -269,7 +269,7 @@ export class AStarRouter {
 
     if (mode === 'eco') {
       score += edge.dist * 0.0015;
-      score += Math.abs(speedForRoadType(edge.type) - 65) * 4;
+      score += Math.abs(speedForRoadType(edge.type) - 65) * 0.04 * edge.dist;
     }
 
     if (mode === 'safest') {

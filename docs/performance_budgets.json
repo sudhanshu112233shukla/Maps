@@ -1,0 +1,48 @@
+{
+  "$schema": "./performance_budgets.schema.json",
+  "version": 1,
+  "description": "Machine-readable mirror of PERFORMANCE_BUDGETS.md. CI compares device-run telemetry against these thresholds. Update both files together.",
+  "deviceClasses": {
+    "lowEnd": {
+      "label": "Android 4GB / SDM 660-class",
+      "ramMb": 4096,
+      "cores": 8
+    },
+    "midRange": {
+      "label": "Android 6-8GB / SD 7-series",
+      "ramMb": 8192,
+      "cores": 8
+    },
+    "highEnd": {
+      "label": "Android 12GB+ / SD 8 Elite",
+      "ramMb": 12288,
+      "cores": 8
+    }
+  },
+  "budgets": {
+    "coldStartMs": { "lowEnd": 3500, "midRange": 2500, "highEnd": 1800 },
+    "warmStartMs": { "lowEnd": 1800, "midRange": 1200, "highEnd": 800 },
+    "panZoomFps": { "lowEnd": 45, "midRange": 55, "highEnd": 58 },
+    "searchP50Ms": { "lowEnd": 60, "midRange": 30, "highEnd": 15 },
+    "searchP95Ms": { "lowEnd": 150, "midRange": 100, "highEnd": 50 },
+    "rerouteCityMs": { "lowEnd": 400, "midRange": 250, "highEnd": 150 },
+    "rerouteIntercityMs": { "lowEnd": 1800, "midRange": 1200, "highEnd": 700 },
+    "foregroundRamMb": { "lowEnd": 350, "midRange": 550, "highEnd": 900 },
+    "navigationBatteryMaPerHour": { "lowEnd": 380, "midRange": 320, "highEnd": 280 },
+    "aiInference": {
+      "intentParseMs": { "lowEnd": 4500, "midRange": 2500, "highEnd": 1500 },
+      "voiceCommandEndToEndMs": { "lowEnd": 4000, "midRange": 2500, "highEnd": 1500 },
+      "fallbackRatePercent": { "lowEnd": 25, "midRange": 10, "highEnd": 5 }
+    },
+    "offlinePack": {
+      "downloadResumeRecoveryMs": 3000,
+      "verifyMbPerSec": { "lowEnd": 40, "midRange": 80, "highEnd": 140 },
+      "activateAtomicMs": 500
+    }
+  },
+  "ciGates": {
+    "blockReleaseOnRegression": true,
+    "regressionTolerancePercent": 10,
+    "requiredDeviceClasses": ["lowEnd", "midRange"]
+  }
+}

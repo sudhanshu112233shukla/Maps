@@ -1,8 +1,36 @@
 apply plugin: 'com.android.application'
 
+def readZeticPat() {
+    def fromEnv = System.getenv("ZETIC_PAT")
+    if (fromEnv != null && !fromEnv.trim().isEmpty()) return fromEnv.trim()
+
+    def fromProp = project.findProperty("ZETIC_PAT")
+    if (fromProp != null && !fromProp.toString().trim().isEmpty()) return fromProp.toString().trim()
+
+    def envFile = rootProject.file("../.env.local")
+    if (envFile.exists()) {
+        for (String line : envFile.readLines("UTF-8")) {
+            def trimmed = line.trim()
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) continue
+            def eq = trimmed.indexOf("=")
+            if (eq <= 0) continue
+            def key = trimmed.substring(0, eq).trim()
+            def value = trimmed.substring(eq + 1).trim()
+            if (value.startsWith("\"") && value.endsWith("\"") && value.length() >= 2) {
+                value = value.substring(1, value.length() - 1)
+            }
+            if (key == "ZETIC_PAT" && !value.isEmpty()) return value
+        }
+    }
+    return ""
+}
+
 android {
     namespace "com.aimapsystem.app"
     compileSdk rootProject.ext.compileSdkVersion
+    buildFeatures {
+        buildConfig = true
+    }
     packagingOptions {
         jniLibs {
             useLegacyPackaging true
@@ -15,6 +43,10 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField "String", "ZETIC_PAT", "\"${readZeticPat()}\""
+        buildConfigField "String", "ZETIC_LLM_MODEL", "\"google/gemma-3-4b-it\""
+        buildConfigField "String", "ZETIC_LLM_FALLBACK_MODEL", "\"LiquidAI/LFM2.5-1.2B-Instruct\""
+        buildConfigField "String", "ZETIC_SPEECH_MODEL", "\"ZETIC-ai/whisper-base-decoder\""
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61

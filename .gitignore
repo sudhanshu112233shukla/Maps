@@ -28,4 +28,16 @@ data/osm/
 
 # Native build outputs
 native/rust-search/target/
+native/android-compose/.gradle/
 ios/App/App/Frameworks/libmelange_rust_search.a
+
+# Secrets and local environment (Zetic PAT lives here; never commit)
+.env
+.env.*
+!.env.example
+!.env.*.example
+android/local.properties
+android/keystore.properties
+android/app/*.keystore
+android/app/*.jks
+ios/App/App/SecretConfig.plist

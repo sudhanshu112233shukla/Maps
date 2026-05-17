@@ -17,6 +17,8 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 - Region release gating so only shipped pack regions are downloadable.
 - Native Android/iOS Melange inference path (with deterministic fallback when runtime init fails).
 - Native Melange plugin contract selfcheck for Android/iOS method and capability surfaces.
+- Centralized AI model registry in `src/ai/models.json`.
+- Machine-readable performance budgets in `docs/performance_budgets.json`.
 - Rust search bridge path with JS fallback/parity checks.
 - Delta manifest validation in update flow (invalid delta auto-falls back to full update path).
 - Compose-native Android shell scaffold under `native/android-compose/app`.
@@ -54,7 +56,8 @@ npm run cap:sync
 ## Offline Pack Status
 
 - `india`: `released` (downloadable)
-- `usa`, `japan`, `uk`, `skorea`, `russia`, `australia`: `planned` (seed POI ready, graph generation pending)
+- `usa`, `uk`, `europe`, `skorea`: `in-progress`
+- `japan`, `russia`, `australia`: `planned`
 - Release readiness report: `docs/REGION_RELEASE_READINESS.md`
 
 ## Region Release Automation
@@ -83,8 +86,11 @@ npm run selfcheck:delta
 npm run selfcheck:graph-pipeline
 npm run selfcheck:rust-native
 npm run selfcheck:compose-shell
+npm run selfcheck:models
+npm run selfcheck:perf-budgets
 npm run selfcheck:release-promotion
 npm run selfcheck:release-readiness
+npm run selfcheck:release-state
 npm run graph:validate:india
 npm run build
 ```

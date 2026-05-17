@@ -1,7 +1,9 @@
 import { MelangeNavigation } from './MelangeNavigation.js';
+import MODELS from './models.json';
 
-const MELANGE_LLM_MODEL = 'Qwen/Qwen3-4B';
-const MELANGE_SPEECH_MODEL = 'OpenAI/whisper-tiny-decoder';
+const MELANGE_LLM_MODEL = MODELS.llm.primary.id;
+const MELANGE_LLM_FALLBACK_MODEL = MODELS.llm.fallback.id;
+const MELANGE_SPEECH_MODEL = MODELS.speech.asr.id;
 
 const KNOWN_MODES = new Set(['fastest', 'safest', 'eco', 'no-toll']);
 const POI_ALIASES = {
@@ -127,6 +129,7 @@ class NativeMelangeProvider {
     const metadata = await MelangeNavigation.prepare({
       tokenKey: this.options.tokenKey || '',
       llmModelName: this.options.llmModelName || MELANGE_LLM_MODEL,
+      llmFallbackModelName: this.options.llmFallbackModelName || MELANGE_LLM_FALLBACK_MODEL,
       llmVersion: this.options.llmVersion || 1,
       speechModelName: this.options.speechModelName || MELANGE_SPEECH_MODEL,
       speechVersion: this.options.speechVersion || 1,
