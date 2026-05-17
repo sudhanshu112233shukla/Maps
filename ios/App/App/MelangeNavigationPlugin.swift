@@ -13,7 +13,9 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "prepare", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "parseRouteIntent", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "chatNavigation", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "transcribeNavigationCommand", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "transcribeNavigationCommand", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "rankPoiCandidates", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "predictOfflineCache", returnType: CAPPluginReturnPromise)
     ]
 
     private let inferenceQueue = DispatchQueue(label: "com.aimapsystem.melange.inference", qos: .userInitiated)
@@ -24,9 +26,16 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
     private var prepared = false
     private var nativeModelReady = false
     private var llmModelName = "google/gemma-3-4b-it"
-    private var speechModelName = "OpenAI/whisper-tiny-decoder"
+    private var llmFallbackModelName = "LiquidAI/LFM2.5-1.2B-Instruct"
+    private var speechModelName = "ZETIC-ai/whisper-base-decoder"
+    private var speechEncoderModelName = "ZETIC-ai/whisper-base-encoder"
+    private var ttsModelName = "neuphonic/pocket-tts"
     private var personalKey = ""
     private var locale = "en-US"
+    private var deviceClass = "midRange"
+    private var maxGeneratedTokens = 320
+    private var inferenceTimeoutMs = 4500
+    private var voiceCommandLatencyTargetMs = 2500
     private var speechRuntimeClass: String?
     private var nativeSpeechReady = false
 
@@ -41,11 +50,32 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
         if let modelName = call.getString("llmModelName")?.trimmingCharacters(in: .whitespacesAndNewlines), !modelName.isEmpty {
             llmModelName = modelName
         }
+        if let fallbackModel = call.getString("llmFallbackModelName")?.trimmingCharacters(in: .whitespacesAndNewlines), !fallbackModel.isEmpty {
+            llmFallbackModelName = fallbackModel
+        }
         if let modelName = call.getString("speechModelName")?.trimmingCharacters(in: .whitespacesAndNewlines), !modelName.isEmpty {
             speechModelName = modelName
         }
+        if let modelName = call.getString("speechEncoderModelName")?.trimmingCharacters(in: .whitespacesAndNewlines), !modelName.isEmpty {
+            speechEncoderModelName = modelName
+        }
+        if let modelName = call.getString("ttsModelName")?.trimmingCharacters(in: .whitespacesAndNewlines), !modelName.isEmpty {
+            ttsModelName = modelName
+        }
         if let requestedLocale = call.getString("locale"), !requestedLocale.isEmpty {
             locale = requestedLocale
+        }
+        if let requestedDeviceClass = call.getString("deviceClass"), !requestedDeviceClass.isEmpty {
+            deviceClass = requestedDeviceClass
+        }
+        if let requestedTokens = call.getInt("maxGeneratedTokens"), requestedTokens > 0 {
+            maxGeneratedTokens = requestedTokens
+        }
+        if let requestedTimeout = call.getInt("inferenceTimeoutMs"), requestedTimeout > 0 {
+            inferenceTimeoutMs = requestedTimeout
+        }
+        if let requestedLatency = call.getInt("voiceCommandLatencyTargetMs"), requestedLatency > 0 {
+            voiceCommandLatencyTargetMs = requestedLatency
         }
 
         inferenceQueue.async {
@@ -136,6 +166,54 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    @objc func rankPoiCandidates(_ call: CAPPluginCall) {
+        guard let query = call.getString("query")?.trimmingCharacters(in: .whitespacesAndNewlines), !query.isEmpty else {
+            call.reject("Query is required")
+            return
+        }
+
+        let candidatesJson = call.getString("candidatesJson") ?? "[]"
+        let limit = max(call.getInt("limit") ?? 5, 1)
+
+        inferenceQueue.async {
+            do {
+                let data = Data(candidatesJson.utf8)
+                let parsed = try JSONSerialization.jsonObject(with: data) as? [[String: Any]] ?? []
+                call.resolve([
+                    "items": self.rankCandidates(query: query, candidates: parsed, limit: limit),
+                    "runtime": self.nativeModelReady ? "melange-ranking" : "native-ranking-fallback"
+                ])
+            } catch {
+                call.resolve([
+                    "items": [],
+                    "runtime": "native-ranking-fallback",
+                    "error": error.localizedDescription
+                ])
+            }
+        }
+    }
+
+    @objc func predictOfflineCache(_ call: CAPPluginCall) {
+        let contextJson = call.getString("contextJson") ?? "{}"
+        inferenceQueue.async {
+            do {
+                let data = Data(contextJson.utf8)
+                let parsed = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+                var payload = self.buildCachePlan(context: parsed)
+                payload["runtime"] = self.nativeModelReady ? "melange-cache" : "native-cache-fallback"
+                call.resolve(payload)
+            } catch {
+                call.resolve([
+                    "assetHints": [],
+                    "poiCategories": [],
+                    "warmRouteModes": [],
+                    "runtime": "native-cache-fallback",
+                    "error": error.localizedDescription
+                ])
+            }
+        }
+    }
+
     private func buildPrepareResponse(error: String?) -> [String: Any] {
         var response: [String: Any] = [
             "prepared": prepared,
@@ -146,7 +224,14 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
             "supportsPredictiveCaching": nativeModelReady,
             "threadingModel": "ui+navigation+ai+index+background",
             "llmModelName": llmModelName,
+            "llmFallbackModelName": llmFallbackModelName,
             "speechModelName": speechModelName,
+            "speechEncoderModelName": speechEncoderModelName,
+            "ttsModelName": ttsModelName,
+            "deviceClass": deviceClass,
+            "maxGeneratedTokens": maxGeneratedTokens,
+            "inferenceTimeoutMs": inferenceTimeoutMs,
+            "voiceCommandLatencyTargetMs": voiceCommandLatencyTargetMs,
             "speechRuntimeDetected": nativeSpeechReady,
             "speechRuntimeClass": speechRuntimeClass as Any
         ]
@@ -237,6 +322,86 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
     private func runSpeechModel(audioBase64: String) -> String? {
         guard nativeSpeechReady else { return nil }
         return nil
+    }
+
+    private func rankCandidates(query: String, candidates: [[String: Any]], limit: Int) -> [[String: Any]] {
+        let queryTokens = tokenize(query)
+
+        return candidates
+            .enumerated()
+            .map { index, candidate in
+                let aliases = candidate["aliases"] as? [String] ?? []
+                let haystack = [
+                    candidate["name"] as? String ?? "",
+                    candidate["category"] as? String ?? "",
+                    candidate["description"] as? String ?? "",
+                    aliases.joined(separator: " ")
+                ].joined(separator: " ")
+                let candidateTokens = tokenize(haystack)
+                let overlap = queryTokens.filter { candidateTokens.contains($0) }.count
+                let distancePenalty = min((candidate["distanceMeters"] as? Double ?? 0) / 5000, 10)
+                let category = (candidate["category"] as? String ?? "").lowercased()
+                let categoryBoost = queryTokens.contains(where: { category.contains($0) }) ? 2.0 : 0
+                let score = Double(overlap * 3) + categoryBoost - distancePenalty
+
+                var enriched = candidate
+                enriched["_score"] = score
+                enriched["_index"] = index
+                return enriched
+            }
+            .sorted {
+                let leftScore = $0["_score"] as? Double ?? 0
+                let rightScore = $1["_score"] as? Double ?? 0
+                if leftScore != rightScore {
+                    return leftScore > rightScore
+                }
+                return ($0["_index"] as? Int ?? 0) < ($1["_index"] as? Int ?? 0)
+            }
+            .prefix(max(limit, 1))
+            .map {
+                var candidate = $0
+                candidate.removeValue(forKey: "_score")
+                candidate.removeValue(forKey: "_index")
+                return candidate
+            }
+    }
+
+    private func buildCachePlan(context: [String: Any]) -> [String: Any] {
+        let route = context["route"] as? [String: Any] ?? [:]
+        let regionId = (context["regionId"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let onHighway = context["onHighway"] as? Bool ?? false
+        let vehicleProfile = (context["vehicleProfile"] as? String ?? "automobile").lowercased()
+        let poi = ((context["poi"] as? String) ?? (route["poi"] as? String) ?? "").lowercased()
+        let routeMode = ((route["mode"] as? String) ?? "").lowercased()
+
+        var assetHints = ["graph", "poi"]
+        if let regionId, !regionId.isEmpty {
+            assetHints.append("map:\(regionId)")
+        }
+
+        var poiCategories: [String] = []
+        if !poi.isEmpty {
+            poiCategories.append(poi)
+        }
+        if onHighway {
+            poiCategories.append(contentsOf: ["fuel", "rest_area", "charging"])
+        }
+        if vehicleProfile == "automobile" {
+            poiCategories.append("hospital")
+        }
+
+        var warmRouteModes: [String] = []
+        if !routeMode.isEmpty {
+            warmRouteModes.append(routeMode)
+        }
+
+        return [
+            "regionId": regionId as Any,
+            "radiusKm": onHighway ? 40 : 20,
+            "assetHints": Array(Set(assetHints)).sorted(),
+            "poiCategories": Array(Set(poiCategories)).sorted(),
+            "warmRouteModes": Array(Set(warmRouteModes)).sorted()
+        ]
     }
 
     private func mergeIntent(base: [String: Any], nativeResult: [String: Any], loweredQuery: String) -> [String: Any] {
@@ -355,6 +520,14 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private func containsAny(_ value: String, candidates: [String]) -> Bool {
         candidates.contains { value.contains($0) }
+    }
+
+    private func tokenize(_ value: String) -> [String] {
+        value
+            .lowercased()
+            .replacingOccurrences(of: #"[^a-z0-9\u{0900}-\u{097F}]+"#, with: " ", options: .regularExpression)
+            .split(separator: " ")
+            .map(String.init)
     }
 
     private func extractJson(_ source: String) -> String? {

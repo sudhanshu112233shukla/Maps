@@ -1,9 +1,10 @@
 import { MelangeNavigation } from './MelangeNavigation.js';
-import MODELS from './models.json';
-
-const MELANGE_LLM_MODEL = MODELS.llm.primary.id;
-const MELANGE_LLM_FALLBACK_MODEL = MODELS.llm.fallback.id;
-const MELANGE_SPEECH_MODEL = MODELS.speech.asr.id;
+import {
+  MODELS,
+  buildMelangeRuntimeConfig,
+  buildPredictiveCachePlan,
+  semanticRankCandidates,
+} from './MelangeModelRegistry.js';
 
 const KNOWN_MODES = new Set(['fastest', 'safest', 'eco', 'no-toll']);
 const POI_ALIASES = {
@@ -65,6 +66,17 @@ class RuleBasedNavigationProvider {
     return 'Offline automotive assistant';
   }
 
+  getStatus() {
+    return {
+      prepared: true,
+      runtime: 'rules',
+      supportsNativeMelange: false,
+      supportsVoiceCommands: false,
+      supportsSemanticSearch: true,
+      supportsPredictiveCaching: true,
+    };
+  }
+
   async parseRoutingQuery(query) {
     const lowered = query.toLowerCase();
     const mode = containsAny(lowered, ['no toll', 'avoid toll', 'without toll', 'bina toll'])
@@ -110,17 +122,42 @@ class RuleBasedNavigationProvider {
     }
     return 'Ask for a destination, a nearby stop, or a driving preference like safest, eco, or no-toll.';
   }
+
+  async rankPoiCandidates(query, candidates = [], limit = 5) {
+    return {
+      items: semanticRankCandidates(query, candidates, limit),
+      runtime: 'rules',
+    };
+  }
+
+  async predictOfflineCache(context = {}) {
+    return {
+      ...buildPredictiveCachePlan(context),
+      runtime: 'rules',
+    };
+  }
 }
 
 class NativeMelangeProvider {
   constructor(options = {}) {
     this.options = options;
+    this.runtimeConfig = buildMelangeRuntimeConfig(options);
     this.kind = 'melange';
     this.metadata = {
       prepared: false,
       runtime: 'native-bridge',
       supportsNativeMelange: false,
       supportsVoiceCommands: false,
+      supportsSemanticSearch: false,
+      supportsPredictiveCaching: false,
+      deviceClass: this.runtimeConfig.deviceClass,
+      models: {
+        llm: this.runtimeConfig.llmModelName,
+        llmFallback: this.runtimeConfig.llmFallbackModelName,
+        speech: this.runtimeConfig.speechModelName,
+        speechEncoder: this.runtimeConfig.speechEncoderModelName,
+        tts: this.runtimeConfig.ttsModelName || null,
+      },
     };
   }
 
@@ -128,12 +165,18 @@ class NativeMelangeProvider {
     progressCallback?.(10, 'Preparing Melange runtime');
     const metadata = await MelangeNavigation.prepare({
       tokenKey: this.options.tokenKey || '',
-      llmModelName: this.options.llmModelName || MELANGE_LLM_MODEL,
-      llmFallbackModelName: this.options.llmFallbackModelName || MELANGE_LLM_FALLBACK_MODEL,
-      llmVersion: this.options.llmVersion || 1,
-      speechModelName: this.options.speechModelName || MELANGE_SPEECH_MODEL,
+      llmModelName: this.runtimeConfig.llmModelName,
+      llmFallbackModelName: this.runtimeConfig.llmFallbackModelName,
+      llmVersion: this.options.llmVersion || MODELS.version || 1,
+      speechModelName: this.runtimeConfig.speechModelName,
+      speechEncoderModelName: this.runtimeConfig.speechEncoderModelName,
+      ttsModelName: this.runtimeConfig.ttsModelName,
       speechVersion: this.options.speechVersion || 1,
-      locale: this.options.locale || 'en-US',
+      locale: this.runtimeConfig.locale,
+      deviceClass: this.runtimeConfig.deviceClass,
+      maxGeneratedTokens: this.runtimeConfig.maxGeneratedTokens,
+      inferenceTimeoutMs: this.runtimeConfig.inferenceTimeoutMs,
+      voiceCommandLatencyTargetMs: this.runtimeConfig.voiceCommandLatencyTargetMs,
       domain: 'automobile',
     });
     this.metadata = {
@@ -174,11 +217,39 @@ class NativeMelangeProvider {
     return result?.text || result?.message || '';
   }
 
-  async transcribeNavigationCommand() {
+  async transcribeNavigationCommand(audioBase64 = '') {
     const result = await MelangeNavigation.transcribeNavigationCommand({
-      locale: this.options.locale || 'en-US',
+      locale: this.runtimeConfig.locale,
+      audioBase64,
     });
     return result?.text || '';
+  }
+
+  async rankPoiCandidates(query, candidates = [], limit = 5) {
+    const result = await MelangeNavigation.rankPoiCandidates({
+      query,
+      candidatesJson: JSON.stringify(candidates),
+      limit,
+      locale: this.runtimeConfig.locale,
+    });
+    const items = Array.isArray(result?.items)
+      ? result.items
+      : semanticRankCandidates(query, candidates, limit);
+    return {
+      items,
+      runtime: result?.runtime || 'native-fallback',
+    };
+  }
+
+  async predictOfflineCache(context = {}) {
+    const result = await MelangeNavigation.predictOfflineCache({
+      contextJson: JSON.stringify(context),
+      locale: this.runtimeConfig.locale,
+    });
+    return {
+      ...buildPredictiveCachePlan(context),
+      ...(result || {}),
+    };
   }
 }
 
@@ -216,6 +287,10 @@ export class AIAssistant {
       return this.provider.supportsVoiceCommands();
     }
     return typeof this.provider?.transcribeNavigationCommand === 'function';
+  }
+
+  getRuntimeConfig() {
+    return buildMelangeRuntimeConfig(this.options);
   }
 
   async load() {
@@ -287,7 +362,32 @@ export class AIAssistant {
       throw new Error('Voice transcription is unavailable on the current provider');
     }
 
-    return this.provider.transcribeNavigationCommand();
+    return this.provider.transcribeNavigationCommand(...arguments);
+  }
+
+  async rankPoiCandidates(query, candidates = [], limit = 5) {
+    if (typeof this.provider?.rankPoiCandidates !== 'function') {
+      return semanticRankCandidates(query, candidates, limit);
+    }
+
+    try {
+      const result = await this.provider.rankPoiCandidates(query, candidates, limit);
+      return Array.isArray(result?.items) ? result.items : result;
+    } catch {
+      return semanticRankCandidates(query, candidates, limit);
+    }
+  }
+
+  async predictOfflineCache(context = {}) {
+    if (typeof this.provider?.predictOfflineCache !== 'function') {
+      return buildPredictiveCachePlan(context);
+    }
+
+    try {
+      return await this.provider.predictOfflineCache(context);
+    } catch {
+      return buildPredictiveCachePlan(context);
+    }
   }
 
   #emitProgress(percent, message) {

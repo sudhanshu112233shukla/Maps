@@ -76,9 +76,17 @@ python tools/osm_pipeline/promote_region_release.py \
   --map-path /data/maps/usa.pmtiles
 ```
 
+## Refresh Release Metadata
+
+After syncing manifests or generating assets, rebuild the readiness and catalog views consumed by runtime guards:
+
+```bash
+npm run release:refresh
+```
+
 ## Notes
 
 - Graph output keeps only drivable highway classes.
 - Direction and toll attributes are preserved.
 - Speeds are inferred from `maxspeed` when available, otherwise highway defaults are used.
-- By default, only `india` is enabled in the manifest; enable other regions explicitly before `graph:build`.
+- The runtime release guard reads `public/data/releases/catalog.json`; rebuild it whenever region assets change.

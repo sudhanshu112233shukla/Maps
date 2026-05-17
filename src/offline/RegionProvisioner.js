@@ -1,4 +1,5 @@
 import { getRegionById, isRegionReleased } from './offlineRegions.js';
+import { getCatalogRegion } from './ReleaseCatalog.js';
 import {
   fetchAssetContentLength,
   findAssetInManifest,
@@ -44,6 +45,12 @@ export class RegionProvisioner {
     }
     if (!isRegionReleased(regionId)) {
       throw new Error(`Offline pack is not released yet for ${region.name}`);
+    }
+
+    const catalogRegion = await getCatalogRegion(regionId).catch(() => null);
+    if (catalogRegion && !catalogRegion.releaseReady) {
+      const missing = Array.isArray(catalogRegion.missing) ? catalogRegion.missing.join(', ') : 'required assets';
+      throw new Error(`Offline pack assets are incomplete for ${region.name}: missing ${missing}`);
     }
 
     const previousActive = {

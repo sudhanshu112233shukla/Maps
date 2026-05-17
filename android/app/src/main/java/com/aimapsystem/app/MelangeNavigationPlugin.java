@@ -23,7 +23,6 @@ import org.json.JSONObject;
 @CapacitorPlugin(name = "MelangeNavigation")
 public class MelangeNavigationPlugin extends Plugin {
 
-    private static final int MAX_GENERATED_TOKENS = 320;
     private static final String SYSTEM_PROMPT = "You are an offline automotive navigation assistant. "
             + "Always return strict JSON without markdown.";
     private static final String INTENT_PROMPT_TEMPLATE
@@ -41,8 +40,14 @@ public class MelangeNavigationPlugin extends Plugin {
     private String llmModelName = BuildConfig.ZETIC_LLM_MODEL;
     private String llmFallbackModelName = BuildConfig.ZETIC_LLM_FALLBACK_MODEL;
     private String speechModelName = BuildConfig.ZETIC_SPEECH_MODEL;
+    private String speechEncoderModelName = "ZETIC-ai/whisper-base-encoder";
+    private String ttsModelName = "neuphonic/pocket-tts";
     private String personalKey = BuildConfig.ZETIC_PAT;
     private String locale = "en-US";
+    private String deviceClass = "midRange";
+    private int maxGeneratedTokens = 320;
+    private int inferenceTimeoutMs = 4500;
+    private int voiceCommandLatencyTargetMs = 2500;
     private Object llmModel = null;
     private Object speechModel = null;
     private String llmRuntimeClass = null;
@@ -64,7 +69,16 @@ public class MelangeNavigationPlugin extends Plugin {
         llmModelName = valueOrDefault(call.getString("llmModelName"), llmModelName);
         llmFallbackModelName = valueOrDefault(call.getString("llmFallbackModelName"), llmFallbackModelName);
         speechModelName = valueOrDefault(call.getString("speechModelName"), speechModelName);
+        speechEncoderModelName = valueOrDefault(call.getString("speechEncoderModelName"), speechEncoderModelName);
+        ttsModelName = valueOrDefault(call.getString("ttsModelName"), ttsModelName);
         locale = valueOrDefault(call.getString("locale"), locale);
+        deviceClass = valueOrDefault(call.getString("deviceClass"), deviceClass);
+        maxGeneratedTokens = positiveOrDefault(call.getInt("maxGeneratedTokens"), maxGeneratedTokens);
+        inferenceTimeoutMs = positiveOrDefault(call.getInt("inferenceTimeoutMs"), inferenceTimeoutMs);
+        voiceCommandLatencyTargetMs = positiveOrDefault(
+                call.getInt("voiceCommandLatencyTargetMs"),
+                voiceCommandLatencyTargetMs
+        );
 
         inferenceExecutor.execute(() -> {
             try {
@@ -179,6 +193,56 @@ public class MelangeNavigationPlugin extends Plugin {
         });
     }
 
+    @PluginMethod
+    public void rankPoiCandidates(PluginCall call) {
+        String query = call.getString("query", "").trim();
+        String candidatesJson = call.getString("candidatesJson", "[]");
+        int limit = positiveOrDefault(call.getInt("limit"), 5);
+
+        if (query.isEmpty()) {
+            call.reject("Query is required");
+            return;
+        }
+
+        inferenceExecutor.execute(() -> {
+            try {
+                JSONArray candidates = new JSONArray(candidatesJson);
+                JSObject result = new JSObject();
+                result.put("items", rankCandidates(query, candidates, limit));
+                result.put("runtime", nativeModelReady ? "melange-ranking" : "native-ranking-fallback");
+                call.resolve(result);
+            } catch (Exception error) {
+                JSObject result = new JSObject();
+                result.put("items", new JSArray());
+                result.put("runtime", "native-ranking-fallback");
+                result.put("error", error.getMessage());
+                call.resolve(result);
+            }
+        });
+    }
+
+    @PluginMethod
+    public void predictOfflineCache(PluginCall call) {
+        String contextJson = call.getString("contextJson", "{}");
+
+        inferenceExecutor.execute(() -> {
+            try {
+                JSONObject context = new JSONObject(contextJson);
+                JSObject result = buildCachePlan(context);
+                result.put("runtime", nativeModelReady ? "melange-cache" : "native-cache-fallback");
+                call.resolve(result);
+            } catch (Exception error) {
+                JSObject result = new JSObject();
+                result.put("runtime", "native-cache-fallback");
+                result.put("assetHints", new JSArray());
+                result.put("poiCategories", new JSArray());
+                result.put("warmRouteModes", new JSArray());
+                result.put("error", error.getMessage());
+                call.resolve(result);
+            }
+        });
+    }
+
     private JSObject runIntentModel(String query) {
         if (!nativeModelReady) {
             return null;
@@ -231,7 +295,7 @@ public class MelangeNavigationPlugin extends Plugin {
             invokeMethod(llmModel, "run", new Class<?>[]{String.class}, new Object[]{prompt});
 
             StringBuilder builder = new StringBuilder();
-            for (int i = 0; i < MAX_GENERATED_TOKENS; i++) {
+            for (int i = 0; i < maxGeneratedTokens; i++) {
                 Object tokenResult = invokeMethod(llmModel, "waitForNextToken", new Class<?>[]{}, new Object[]{});
                 if (tokenResult == null) {
                     break;
@@ -290,7 +354,14 @@ public class MelangeNavigationPlugin extends Plugin {
         result.put("supportsPredictiveCaching", nativeModelReady);
         result.put("threadingModel", "ui+navigation+ai+index+background");
         result.put("llmModelName", llmModelName);
+        result.put("llmFallbackModelName", llmFallbackModelName);
         result.put("speechModelName", speechModelName);
+        result.put("speechEncoderModelName", speechEncoderModelName);
+        result.put("ttsModelName", ttsModelName);
+        result.put("deviceClass", deviceClass);
+        result.put("maxGeneratedTokens", maxGeneratedTokens);
+        result.put("inferenceTimeoutMs", inferenceTimeoutMs);
+        result.put("voiceCommandLatencyTargetMs", voiceCommandLatencyTargetMs);
         result.put("llmRuntimeClass", llmRuntimeClass == null ? JSONObject.NULL : llmRuntimeClass);
         result.put("speechRuntimeClass", speechRuntimeClass == null ? JSONObject.NULL : speechRuntimeClass);
         return result;
@@ -360,6 +431,118 @@ public class MelangeNavigationPlugin extends Plugin {
         // intentionally unset so callers correctly fall back to the JS path.
         speechModel = null;
         speechRuntimeClass = null;
+    }
+
+    private JSArray rankCandidates(String query, JSONArray candidates, int limit) {
+        List<JSONObject> scored = new ArrayList<>();
+        List<String> queryTokens = tokenize(query);
+
+        for (int i = 0; i < candidates.length(); i++) {
+            JSONObject candidate = candidates.optJSONObject(i);
+            if (candidate == null) {
+                continue;
+            }
+
+            StringBuilder haystack = new StringBuilder();
+            haystack.append(candidate.optString("name", "")).append(' ');
+            haystack.append(candidate.optString("category", "")).append(' ');
+            haystack.append(candidate.optString("description", "")).append(' ');
+
+            JSONArray aliases = candidate.optJSONArray("aliases");
+            if (aliases != null) {
+                for (int aliasIndex = 0; aliasIndex < aliases.length(); aliasIndex++) {
+                    haystack.append(aliases.optString(aliasIndex, "")).append(' ');
+                }
+            }
+
+            List<String> candidateTokens = tokenize(haystack.toString());
+            int overlap = 0;
+            for (String token : queryTokens) {
+                if (candidateTokens.contains(token)) {
+                    overlap += 1;
+                }
+            }
+
+            double distancePenalty = 0;
+            if (candidate.has("distanceMeters")) {
+                distancePenalty = Math.min(candidate.optDouble("distanceMeters", 0) / 5000.0, 10);
+            }
+            double categoryBoost = 0;
+            String category = candidate.optString("category", "").toLowerCase(Locale.US);
+            for (String token : queryTokens) {
+                if (category.contains(token)) {
+                    categoryBoost = 2;
+                    break;
+                }
+            }
+
+            double score = overlap * 3 + categoryBoost - distancePenalty;
+            candidate.remove("_score");
+            try {
+                candidate.put("_score", score);
+            } catch (Exception ignored) {
+                // ignore
+            }
+            scored.add(candidate);
+        }
+
+        scored.sort((left, right) -> Double.compare(
+                right.optDouble("_score", 0),
+                left.optDouble("_score", 0)
+        ));
+
+        JSArray result = new JSArray();
+        int boundedLimit = Math.max(1, limit);
+        for (int i = 0; i < scored.size() && i < boundedLimit; i++) {
+            JSONObject candidate = scored.get(i);
+            candidate.remove("_score");
+            result.put(candidate);
+        }
+        return result;
+    }
+
+    private JSObject buildCachePlan(JSONObject context) {
+        JSObject result = new JSObject();
+        String regionId = context.optString("regionId", null);
+        String vehicleProfile = context.optString("vehicleProfile", "automobile");
+        JSONObject route = context.optJSONObject("route");
+        boolean onHighway = context.optBoolean("onHighway", false);
+        String poi = context.optString("poi", route == null ? "" : route.optString("poi", ""));
+        String routeMode = route == null ? "" : route.optString("mode", "");
+
+        JSArray assetHints = new JSArray();
+        assetHints.put("graph");
+        assetHints.put("poi");
+        if (regionId != null && !regionId.trim().isEmpty()) {
+            assetHints.put("map:" + regionId.trim());
+            result.put("regionId", regionId.trim());
+        } else {
+            result.put("regionId", JSONObject.NULL);
+        }
+
+        JSArray poiCategories = new JSArray();
+        if (!poi.trim().isEmpty()) {
+            poiCategories.put(poi.trim().toLowerCase(Locale.US));
+        }
+        if (onHighway) {
+            poiCategories.put("fuel");
+            poiCategories.put("rest_area");
+            poiCategories.put("charging");
+        }
+        if ("automobile".equalsIgnoreCase(vehicleProfile)) {
+            poiCategories.put("hospital");
+        }
+
+        JSArray warmRouteModes = new JSArray();
+        if (!routeMode.trim().isEmpty()) {
+            warmRouteModes.put(routeMode.trim().toLowerCase(Locale.US));
+        }
+
+        result.put("radiusKm", onHighway ? 40 : 20);
+        result.put("assetHints", dedupeArray(assetHints));
+        result.put("poiCategories", dedupeArray(poiCategories));
+        result.put("warmRouteModes", dedupeArray(warmRouteModes));
+        return result;
     }
 
     private Constructor<?> resolveContextKeyNameConstructor(Class<?> modelClass) {
@@ -546,6 +729,33 @@ public class MelangeNavigationPlugin extends Plugin {
 
     private String valueOrDefault(String value, String fallback) {
         return value == null || value.trim().isEmpty() ? fallback : value.trim();
+    }
+
+    private int positiveOrDefault(Integer value, int fallback) {
+        return value != null && value > 0 ? value : fallback;
+    }
+
+    private List<String> tokenize(String value) {
+        List<String> tokens = new ArrayList<>();
+        for (String raw : value.toLowerCase(Locale.US).replaceAll("[^a-z0-9\\u0900-\\u097f]+", " ").split("\\s+")) {
+            if (!raw.isEmpty()) {
+                tokens.add(raw);
+            }
+        }
+        return tokens;
+    }
+
+    private JSArray dedupeArray(JSArray source) {
+        JSArray deduped = new JSArray();
+        List<String> seen = new ArrayList<>();
+        for (int i = 0; i < source.length(); i++) {
+            String value = source.optString(i, "").trim();
+            if (!value.isEmpty() && !seen.contains(value)) {
+                seen.add(value);
+                deduped.put(value);
+            }
+        }
+        return deduped;
     }
 
     private Object invokeMethod(

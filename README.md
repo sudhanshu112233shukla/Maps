@@ -16,8 +16,11 @@ This repository currently ships a Capacitor + MapLibre runtime used as an integr
 - Local search with token, prefix, phonetic, and fuzzy ranking.
 - Region release gating so only shipped pack regions are downloadable.
 - Native Android/iOS Melange inference path (with deterministic fallback when runtime init fails).
+- Melange runtime profile selection by device class, with centralized LLM/ASR/TTS model registry.
+- Native semantic POI reranking and predictive cache planning contract across Android/iOS plugins.
 - Native Melange plugin contract selfcheck for Android/iOS method and capability surfaces.
 - Centralized AI model registry in `src/ai/models.json`.
+- Release catalog generation in `public/data/releases/catalog.json` for graph/POI/map readiness auditing.
 - Machine-readable performance budgets in `docs/performance_budgets.json`.
 - Rust search bridge path with JS fallback/parity checks.
 - Delta manifest validation in update flow (invalid delta auto-falls back to full update path).
@@ -65,6 +68,8 @@ npm run cap:sync
 ```bash
 npm run pack:sync-manifests
 npm run release:readiness
+npm run release:catalog
+npm run release:refresh
 npm run graph:seed-poi
 
 # promote only when readiness says "yes"
@@ -82,6 +87,7 @@ npm run selfcheck:search
 npm run selfcheck:routing
 npm run selfcheck:storage
 npm run selfcheck:melange-contract
+npm run selfcheck:melange-runtime
 npm run selfcheck:delta
 npm run selfcheck:graph-pipeline
 npm run selfcheck:rust-native
@@ -91,6 +97,7 @@ npm run selfcheck:perf-budgets
 npm run selfcheck:release-promotion
 npm run selfcheck:release-readiness
 npm run selfcheck:release-state
+npm run selfcheck:region-catalog
 npm run graph:validate:india
 npm run build
 ```
@@ -104,7 +111,7 @@ npm run build
 
 ## Near-Term Milestones
 
-1. Expand Melange runtime coverage to speech and semantic ranking models with real tensor I/O on both platforms.
+1. Wire real Melange speech tensor preprocessing and decoder execution on both platforms.
 2. Replace remaining staged regional assets with generated graph/POI/pack outputs and promote them to `released`.
 3. Make Rust search the default path in Android/iOS release bundles and keep JS as fallback.
 4. Embed MapLibre Native and production navigation flows in `native/android-compose/app`.

@@ -26,7 +26,20 @@
       ]
     },
     {
-      "regionId": "japan",
+      "regionId": "uk",
+      "releaseReady": false,
+      "hasGraph": false,
+      "hasPoi": true,
+      "hasMap": false,
+      "hasManifest": true,
+      "hasDelta": true,
+      "missing": [
+        "graph",
+        "map(optional)"
+      ]
+    },
+    {
+      "regionId": "europe",
       "releaseReady": false,
       "hasGraph": false,
       "hasPoi": true,
@@ -52,20 +65,7 @@
       ]
     },
     {
-      "regionId": "uk",
-      "releaseReady": false,
-      "hasGraph": false,
-      "hasPoi": true,
-      "hasMap": false,
-      "hasManifest": true,
-      "hasDelta": true,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ]
-    },
-    {
-      "regionId": "europe",
+      "regionId": "japan",
       "releaseReady": false,
       "hasGraph": false,
       "hasPoi": true,

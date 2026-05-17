@@ -16,7 +16,7 @@ async function run() {
     'utf8',
   );
 
-  for (const method of ['prepare', 'parseRouteIntent', 'chatNavigation', 'transcribeNavigationCommand']) {
+  for (const method of ['prepare', 'parseRouteIntent', 'chatNavigation', 'transcribeNavigationCommand', 'rankPoiCandidates', 'predictOfflineCache']) {
     assertContains(androidPlugin, `public void ${method}(`, `Android ${method} method`);
     assertContains(iosPlugin, `func ${method}(`, `iOS ${method} method`);
   }
@@ -30,6 +30,10 @@ async function run() {
 
   assertContains(androidPlugin, 'supportsNativeMelange', 'Android capability response');
   assertContains(iosPlugin, 'supportsNativeMelange', 'iOS capability response');
+  assertContains(androidPlugin, 'speechEncoderModelName', 'Android speech encoder config');
+  assertContains(iosPlugin, 'speechEncoderModelName', 'iOS speech encoder config');
+  assertContains(androidPlugin, 'deviceClass', 'Android device class config');
+  assertContains(iosPlugin, 'deviceClass', 'iOS device class config');
 }
 
 run()
