@@ -8,14 +8,14 @@ import {
 
 const KNOWN_MODES = new Set(['fastest', 'safest', 'eco', 'no-toll']);
 const POI_ALIASES = {
-  hospital: ['hospital', 'clinic', 'doctor', 'emergency', 'aspatal', 'hospitale'],
-  fuel: ['fuel', 'gas', 'gas station', 'petrol', 'petrol pump', 'diesel', 'indhan'],
-  charging: ['charging', 'charger', 'ev', 'ev charger', 'battery charge', 'charging point'],
-  restaurant: ['restaurant', 'food', 'eat', 'cafe', 'coffee', 'khana', 'chai'],
-  hotel: ['hotel', 'stay', 'motel', 'lodge', 'rukna'],
-  pharmacy: ['pharmacy', 'medicine', 'chemist', 'dawai'],
-  atm: ['atm', 'cash', 'bank'],
-  rest_area: ['rest area', 'toilet', 'washroom', 'service area', 'rest stop'],
+  hospital: ['hospital', 'clinic', 'doctor', 'emergency', 'aspatal', 'hospitale', 'अस्पताल', 'इमरजेंसी'],
+  fuel: ['fuel', 'gas', 'gas station', 'petrol', 'petrol pump', 'diesel', 'indhan', 'पेट्रोल', 'ईंधन'],
+  charging: ['charging', 'charger', 'ev', 'ev charger', 'battery charge', 'charging point', 'चार्जर', 'चार्जिंग'],
+  restaurant: ['restaurant', 'food', 'eat', 'cafe', 'coffee', 'khana', 'chai', 'रेस्टोरेंट', 'खाना'],
+  hotel: ['hotel', 'stay', 'motel', 'lodge', 'rukna', 'होटल'],
+  pharmacy: ['pharmacy', 'medicine', 'chemist', 'dawai', 'दवाई', 'दवा'],
+  atm: ['atm', 'cash', 'bank', 'एटीएम', 'बैंक'],
+  rest_area: ['rest area', 'toilet', 'washroom', 'service area', 'rest stop', 'शौचालय'],
 };
 
 function normalizeRoutingResult(result = {}, locale = 'en-US') {
@@ -40,7 +40,9 @@ function normalizeRoutingResult(result = {}, locale = 'en-US') {
 
 function detectPoiFromQuery(query) {
   const lowered = query.toLowerCase();
-  for (const [poi, aliases] of Object.entries(POI_ALIASES)) {
+  const order = ['charging', 'hospital', 'fuel', 'restaurant', 'hotel', 'pharmacy', 'atm', 'rest_area'];
+  for (const poi of order) {
+    const aliases = POI_ALIASES[poi];
     if (aliases.some((alias) => lowered.includes(alias))) {
       return poi;
     }
@@ -79,11 +81,13 @@ class RuleBasedNavigationProvider {
 
   async parseRoutingQuery(query) {
     const lowered = query.toLowerCase();
-    const mode = containsAny(lowered, ['no toll', 'avoid toll', 'without toll', 'bina toll'])
+    
+    // Check mode
+    const mode = containsAny(lowered, ['no-toll', 'no toll mode', 'bina toll mode', 'टोल मुक्त'])
       ? 'no-toll'
-      : containsAny(lowered, ['eco', 'fuel efficient', 'kam fuel', 'save fuel'])
+      : containsAny(lowered, ['eco', 'fuel efficient', 'kam fuel', 'save fuel', 'बचत', 'कम ईंधन'])
         ? 'eco'
-        : containsAny(lowered, ['safe', 'safer', 'surakshit', 'night safe'])
+        : containsAny(lowered, ['safe', 'safer', 'surakshit', 'night safe', 'सुरक्षित'])
           ? 'safest'
           : 'fastest';
 
@@ -92,10 +96,18 @@ class RuleBasedNavigationProvider {
     );
 
     const avoid = [];
-    if (containsAny(lowered, ['avoid toll', 'no toll', 'bina toll'])) avoid.push('tolls');
-    if (containsAny(lowered, ['avoid highway', 'no highway'])) avoid.push('highways');
-    if (containsAny(lowered, ['avoid traffic', 'no traffic', 'jam avoid'])) avoid.push('traffic');
-    if (containsAny(lowered, ['avoid night', 'night avoid'])) avoid.push('night-driving');
+    if (containsAny(lowered, ['toll', 'tolls', 'टोल']) && containsAny(lowered, ['avoid', 'no', 'without', 'bina', 'avoiding', 'bacho', 'bachiye', 'मुक्त', 'बचें', 'karke', 'बिना'])) {
+      avoid.push('tolls');
+    }
+    if (containsAny(lowered, ['highway', 'highways', 'हाईवे']) && containsAny(lowered, ['avoid', 'no', 'without', 'bina', 'avoiding', 'bacho', 'bachiye', 'बचें', 'बचिए', 'बिना'])) {
+      avoid.push('highways');
+    }
+    if (containsAny(lowered, ['traffic', 'jam', 'ट्रैफिक']) && containsAny(lowered, ['avoid', 'no', 'without', 'bina', 'avoiding', 'bacho', 'bachiye', 'बचें', 'बिना'])) {
+      avoid.push('traffic');
+    }
+    if (containsAny(lowered, ['night', 'raat', 'रात']) && containsAny(lowered, ['avoid', 'no', 'without', 'bina', 'avoiding', 'bacho', 'bachiye', 'बचें', 'बिना'])) {
+      avoid.push('night-driving');
+    }
 
     return normalizeRoutingResult(
       {
@@ -251,6 +263,20 @@ class NativeMelangeProvider {
       ...(result || {}),
     };
   }
+
+  async getTelemetry() {
+    try {
+      return await MelangeNavigation.getTelemetry();
+    } catch (error) {
+      return {
+        error: error.message,
+        sdkVersion: '3.14.0',
+        batteryLevel: 100,
+        thermalStatus: 'unknown',
+        npuAccelerated: false,
+      };
+    }
+  }
 }
 
 export class AIAssistant {
@@ -388,6 +414,18 @@ export class AIAssistant {
     } catch {
       return buildPredictiveCachePlan(context);
     }
+  }
+
+  async getTelemetry() {
+    if (typeof this.provider?.getTelemetry === 'function') {
+      return this.provider.getTelemetry();
+    }
+    return {
+      sdkVersion: '3.14.0',
+      batteryLevel: 100,
+      thermalStatus: 'unknown',
+      npuAccelerated: false,
+    };
   }
 
   #emitProgress(percent, message) {
