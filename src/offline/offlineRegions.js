@@ -80,7 +80,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/japan.json',
     poiPath: '/data/poi/japan.json',
     automotiveFocus: 'Expressways, urban parking, charging, rest areas',
-    releaseStatus: 'planned',
+    releaseStatus: 'released',
     releasePriority: 5,
   },
   {
@@ -94,7 +94,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/russia.json',
     poiPath: '/data/poi/russia.json',
     automotiveFocus: 'Long-haul routing, fuel resilience, weather-critical corridors',
-    releaseStatus: 'planned',
+    releaseStatus: 'released',
     releasePriority: 6,
   },
   {
@@ -108,7 +108,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/australia.json',
     poiPath: '/data/poi/australia.json',
     automotiveFocus: 'Long-distance highways, remote fuel, emergency stops',
-    releaseStatus: 'planned',
+    releaseStatus: 'released',
     releasePriority: 7,
   },
 ];

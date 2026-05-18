@@ -8,15 +8,16 @@
       "required": false
     },
     {
+      "path": "/data/graph/usa.json",
+      "required": true,
+      "sha256": "1aefe61ff6d7399489bbaeb2b6e95b3f8e81b864b6a1ed04f65eaeb0f8a29b82",
+      "sizeBytes": 38372446
+    },
+    {
       "path": "/data/poi/usa.json",
       "required": true,
       "sha256": "de75387c1e95998ffec0894ee303f9b3dcab6a747159dad2883da88a51e1d8dc",
       "sizeBytes": 960
-    },
-    {
-      "path": "/data/graph/usa.json",
-      "required": true,
-      "sha256": "09ea915a18b1b8757588402464b6cfd17c68523cb7a2162f49e8f9ce746cdc1d"
     }
   ]
 }

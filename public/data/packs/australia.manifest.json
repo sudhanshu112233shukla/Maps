@@ -8,6 +8,12 @@
       "required": false
     },
     {
+      "path": "/data/graph/australia.json",
+      "required": true,
+      "sha256": "be249c3e409eef7f1d2f6f35138fba7a1063f2ec399bdda45b46537dcc87b371",
+      "sizeBytes": 38588805
+    },
+    {
       "path": "/data/poi/australia.json",
       "required": true,
       "sha256": "b399a018eca862f7a1a156de85986ee22903d0aef8031142b5e45edef8b59f9e",

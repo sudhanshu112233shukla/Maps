@@ -42,7 +42,7 @@
     },
     {
       "id": "japan",
-      "enabled": false,
+      "enabled": true,
       "pbf_url": "https://download.geofabrik.de/asia/japan-latest.osm.pbf",
       "pbf_file": "japan-latest.osm.pbf",
       "output_graph": "public/data/graph/japan.json",
@@ -50,7 +50,7 @@
     },
     {
       "id": "russia",
-      "enabled": false,
+      "enabled": true,
       "pbf_url": "https://download.geofabrik.de/russia-latest.osm.pbf",
       "pbf_file": "russia-latest.osm.pbf",
       "output_graph": "public/data/graph/russia.json",
@@ -58,7 +58,7 @@
     },
     {
       "id": "australia",
-      "enabled": false,
+      "enabled": true,
       "pbf_url": "https://download.geofabrik.de/australia-oceania/australia-latest.osm.pbf",
       "pbf_file": "australia-latest.osm.pbf",
       "output_graph": "public/data/graph/australia.json",

@@ -52,42 +52,33 @@
     },
     {
       "regionId": "japan",
-      "releaseReady": false,
-      "hasGraph": false,
+      "releaseReady": true,
+      "hasGraph": true,
       "hasPoi": true,
-      "hasMap": false,
+      "hasMap": true,
       "hasManifest": true,
       "hasDelta": true,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ]
+      "missing": []
     },
     {
       "regionId": "russia",
-      "releaseReady": false,
-      "hasGraph": false,
+      "releaseReady": true,
+      "hasGraph": true,
       "hasPoi": true,
-      "hasMap": false,
+      "hasMap": true,
       "hasManifest": true,
       "hasDelta": true,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ]
+      "missing": []
     },
     {
       "regionId": "australia",
-      "releaseReady": false,
-      "hasGraph": false,
+      "releaseReady": true,
+      "hasGraph": true,
       "hasPoi": true,
-      "hasMap": false,
+      "hasMap": true,
       "hasManifest": true,
       "hasDelta": true,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ]
+      "missing": []
     }
   ]
 }

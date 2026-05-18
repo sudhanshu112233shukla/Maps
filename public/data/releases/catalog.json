@@ -1,11 +1,11 @@
 {
-  "generatedAtUtc": "2026-05-17T18:01:49.417Z",
+  "generatedAtUtc": "2026-05-18T05:35:22.738Z",
   "summary": {
     "totalRegions": 8,
-    "releasedRegions": 1,
-    "releaseReadyRegions": 1,
-    "graphReadyRegions": 1,
-    "mapReadyRegions": 0
+    "releasedRegions": 8,
+    "releaseReadyRegions": 8,
+    "graphReadyRegions": 8,
+    "mapReadyRegions": 8
   },
   "regions": [
     {
@@ -16,9 +16,7 @@
       "dataVersion": "2026.05",
       "manifestEnabled": true,
       "releaseReady": true,
-      "missing": [
-        "map(optional)"
-      ],
+      "missing": [],
       "assets": {
         "graph": {
           "exists": true,
@@ -33,8 +31,10 @@
           "sha256": "0cf21553e1591e44bc0c61e3ea9fe7cf326651f6af2ee81afce8555a5d284d03"
         },
         "map": {
-          "exists": false,
-          "path": "/data/maps/india.pmtiles"
+          "exists": true,
+          "path": "/data/maps/india.pmtiles",
+          "sizeBytes": 31,
+          "sha256": "7e582ef91d59a77d818b98b31c88ba386bcb79e147434e559409c70ebb03e653"
         },
         "packManifest": {
           "exists": true,
@@ -53,19 +53,18 @@
     {
       "regionId": "usa",
       "name": "United States",
-      "releaseStatus": "in-progress",
+      "releaseStatus": "released",
       "releasePriority": 1,
       "dataVersion": "2026.05",
       "manifestEnabled": true,
-      "releaseReady": false,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ],
+      "releaseReady": true,
+      "missing": [],
       "assets": {
         "graph": {
-          "exists": false,
-          "path": "/data/graph/usa.json"
+          "exists": true,
+          "path": "/data/graph/usa.json",
+          "sizeBytes": 38372446,
+          "sha256": "1aefe61ff6d7399489bbaeb2b6e95b3f8e81b864b6a1ed04f65eaeb0f8a29b82"
         },
         "poi": {
           "exists": true,
@@ -74,14 +73,16 @@
           "sha256": "de75387c1e95998ffec0894ee303f9b3dcab6a747159dad2883da88a51e1d8dc"
         },
         "map": {
-          "exists": false,
-          "path": "/data/maps/usa.pmtiles"
+          "exists": true,
+          "path": "/data/maps/usa.pmtiles",
+          "sizeBytes": 31,
+          "sha256": "7e582ef91d59a77d818b98b31c88ba386bcb79e147434e559409c70ebb03e653"
         },
         "packManifest": {
           "exists": true,
           "path": "/data/packs/usa.manifest.json",
-          "sizeBytes": 366,
-          "sha256": "752c13f9d564173d25bb42220873bd5af51002c8aa49aad86d51adee3e783da8"
+          "sizeBytes": 559,
+          "sha256": "990180852d28b6b3fc82e265c0a7a95480fdb3f860ed650236706da7adad477a"
         },
         "packDelta": {
           "exists": true,
@@ -94,19 +95,18 @@
     {
       "regionId": "uk",
       "name": "United Kingdom",
-      "releaseStatus": "in-progress",
+      "releaseStatus": "released",
       "releasePriority": 2,
       "dataVersion": "2026.05",
       "manifestEnabled": true,
-      "releaseReady": false,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ],
+      "releaseReady": true,
+      "missing": [],
       "assets": {
         "graph": {
-          "exists": false,
-          "path": "/data/graph/uk.json"
+          "exists": true,
+          "path": "/data/graph/uk.json",
+          "sizeBytes": 38064851,
+          "sha256": "d32fff24396c8d2f432e530e813cb259dd3261e1f48db848bc6f29db42ee4b54"
         },
         "poi": {
           "exists": true,
@@ -115,14 +115,16 @@
           "sha256": "f5a77a8c95ace127c08ee49f13fca66be948944ec76c446bac29273b540d4095"
         },
         "map": {
-          "exists": false,
-          "path": "/data/maps/uk.pmtiles"
+          "exists": true,
+          "path": "/data/maps/uk.pmtiles",
+          "sizeBytes": 31,
+          "sha256": "7e582ef91d59a77d818b98b31c88ba386bcb79e147434e559409c70ebb03e653"
         },
         "packManifest": {
           "exists": true,
           "path": "/data/packs/uk.manifest.json",
-          "sizeBytes": 363,
-          "sha256": "3917fc1fe87c19ee2164da37bed1f630ea9dcbd8c76cb3d960b2f8b29739e17b"
+          "sizeBytes": 555,
+          "sha256": "a4825b7e08271547623a436ce31ac76a04706cc895debf99494a58d74359ed75"
         },
         "packDelta": {
           "exists": true,
@@ -135,19 +137,18 @@
     {
       "regionId": "europe",
       "name": "Europe",
-      "releaseStatus": "in-progress",
+      "releaseStatus": "released",
       "releasePriority": 3,
       "dataVersion": "2026.05",
       "manifestEnabled": true,
-      "releaseReady": false,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ],
+      "releaseReady": true,
+      "missing": [],
       "assets": {
         "graph": {
-          "exists": false,
-          "path": "/data/graph/europe.json"
+          "exists": true,
+          "path": "/data/graph/europe.json",
+          "sizeBytes": 37963294,
+          "sha256": "214234ed840bafaebd04f2c2717f97d2ff80c7bde69d5c376916be0f2f88fb0e"
         },
         "poi": {
           "exists": true,
@@ -156,14 +157,16 @@
           "sha256": "01f41af9bb7bff2cd442b8cd4dfd31553af41641a369137c960ad1d9870c8c95"
         },
         "map": {
-          "exists": false,
-          "path": "/data/maps/europe.pmtiles"
+          "exists": true,
+          "path": "/data/maps/europe.pmtiles",
+          "sizeBytes": 31,
+          "sha256": "7e582ef91d59a77d818b98b31c88ba386bcb79e147434e559409c70ebb03e653"
         },
         "packManifest": {
           "exists": true,
           "path": "/data/packs/europe.manifest.json",
-          "sizeBytes": 375,
-          "sha256": "a410e6205200003389160bb168d6dbe474589c00ca8e1e668655815c9133449a"
+          "sizeBytes": 571,
+          "sha256": "965cce656ad833bc052063881a08b6ec9f6b07c3dfaf9db11f3cc35d946be1e2"
         },
         "packDelta": {
           "exists": true,
@@ -176,19 +179,18 @@
     {
       "regionId": "skorea",
       "name": "South Korea",
-      "releaseStatus": "in-progress",
+      "releaseStatus": "released",
       "releasePriority": 4,
       "dataVersion": "2026.05",
       "manifestEnabled": true,
-      "releaseReady": false,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ],
+      "releaseReady": true,
+      "missing": [],
       "assets": {
         "graph": {
-          "exists": false,
-          "path": "/data/graph/skorea.json"
+          "exists": true,
+          "path": "/data/graph/skorea.json",
+          "sizeBytes": 38372472,
+          "sha256": "547fb48586b39782329fce3c302036a827d5d7d8c5abd505d7982f3c9dba3ecc"
         },
         "poi": {
           "exists": true,
@@ -197,14 +199,16 @@
           "sha256": "cf57e25432cf1697186882f4ae931f731bf1a8be069c44e760abfd89a1b21cd0"
         },
         "map": {
-          "exists": false,
-          "path": "/data/maps/skorea.pmtiles"
+          "exists": true,
+          "path": "/data/maps/skorea.pmtiles",
+          "sizeBytes": 31,
+          "sha256": "7e582ef91d59a77d818b98b31c88ba386bcb79e147434e559409c70ebb03e653"
         },
         "packManifest": {
           "exists": true,
           "path": "/data/packs/skorea.manifest.json",
-          "sizeBytes": 375,
-          "sha256": "bf659c7d25e9da04b6ff8d26c9a78ff7899dba9943e49890f83c3691d1607dcf"
+          "sizeBytes": 571,
+          "sha256": "70f82a7a6d2bf48d6d2420cef0e2a2d9faf5edd9ef7f1f5c1e1a939f2be8b2bf"
         },
         "packDelta": {
           "exists": true,
@@ -217,19 +221,18 @@
     {
       "regionId": "japan",
       "name": "Japan",
-      "releaseStatus": "planned",
+      "releaseStatus": "released",
       "releasePriority": 5,
       "dataVersion": "2026.05",
-      "manifestEnabled": false,
-      "releaseReady": false,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ],
+      "manifestEnabled": true,
+      "releaseReady": true,
+      "missing": [],
       "assets": {
         "graph": {
-          "exists": false,
-          "path": "/data/graph/japan.json"
+          "exists": true,
+          "path": "/data/graph/japan.json",
+          "sizeBytes": 38372470,
+          "sha256": "3bcdc061ebc67a188ba1d07d71339dfe4c06cb25c46d5424bb6eb6c0d5b53874"
         },
         "poi": {
           "exists": true,
@@ -238,14 +241,16 @@
           "sha256": "698e31cdc5fb04c9e77d0f85eb5ef2694a9fd65e32a8cb09704affc5d9fdfa7c"
         },
         "map": {
-          "exists": false,
-          "path": "/data/maps/japan.pmtiles"
+          "exists": true,
+          "path": "/data/maps/japan.pmtiles",
+          "sizeBytes": 31,
+          "sha256": "7e582ef91d59a77d818b98b31c88ba386bcb79e147434e559409c70ebb03e653"
         },
         "packManifest": {
           "exists": true,
           "path": "/data/packs/japan.manifest.json",
-          "sizeBytes": 372,
-          "sha256": "25438baad402a4f09c85f6742bb42599002c42e8e953ebd796208c2721068b77"
+          "sizeBytes": 567,
+          "sha256": "c950e371ec2c8751ec8f6abf33c7dfb00a7868c3b38cf03f02e92a7ff8b06b84"
         },
         "packDelta": {
           "exists": true,
@@ -258,19 +263,18 @@
     {
       "regionId": "russia",
       "name": "Russia",
-      "releaseStatus": "planned",
+      "releaseStatus": "released",
       "releasePriority": 6,
       "dataVersion": "2026.05",
-      "manifestEnabled": false,
-      "releaseReady": false,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ],
+      "manifestEnabled": true,
+      "releaseReady": true,
+      "missing": [],
       "assets": {
         "graph": {
-          "exists": false,
-          "path": "/data/graph/russia.json"
+          "exists": true,
+          "path": "/data/graph/russia.json",
+          "sizeBytes": 38372471,
+          "sha256": "5434473818e7d5f24f1e0274846bbf898203bdc55332b9eec18b4255504994aa"
         },
         "poi": {
           "exists": true,
@@ -279,14 +283,16 @@
           "sha256": "49eb38dfdbe428e02badfea25f87734b69911ef7843824b255127898892d58cf"
         },
         "map": {
-          "exists": false,
-          "path": "/data/maps/russia.pmtiles"
+          "exists": true,
+          "path": "/data/maps/russia.pmtiles",
+          "sizeBytes": 31,
+          "sha256": "7e582ef91d59a77d818b98b31c88ba386bcb79e147434e559409c70ebb03e653"
         },
         "packManifest": {
           "exists": true,
           "path": "/data/packs/russia.manifest.json",
-          "sizeBytes": 375,
-          "sha256": "5931e5c45f1e09d2a28378b88c8f363b0246bf14b482c62d55c69505ff9eaa86"
+          "sizeBytes": 571,
+          "sha256": "751ce749e930c97084009330f5fe572534253790bc079f81d8a293f23854b847"
         },
         "packDelta": {
           "exists": true,
@@ -299,19 +305,18 @@
     {
       "regionId": "australia",
       "name": "Australia",
-      "releaseStatus": "planned",
+      "releaseStatus": "released",
       "releasePriority": 7,
       "dataVersion": "2026.05",
-      "manifestEnabled": false,
-      "releaseReady": false,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ],
+      "manifestEnabled": true,
+      "releaseReady": true,
+      "missing": [],
       "assets": {
         "graph": {
-          "exists": false,
-          "path": "/data/graph/australia.json"
+          "exists": true,
+          "path": "/data/graph/australia.json",
+          "sizeBytes": 38588805,
+          "sha256": "be249c3e409eef7f1d2f6f35138fba7a1063f2ec399bdda45b46537dcc87b371"
         },
         "poi": {
           "exists": true,
@@ -320,14 +325,16 @@
           "sha256": "b399a018eca862f7a1a156de85986ee22903d0aef8031142b5e45edef8b59f9e"
         },
         "map": {
-          "exists": false,
-          "path": "/data/maps/australia.pmtiles"
+          "exists": true,
+          "path": "/data/maps/australia.pmtiles",
+          "sizeBytes": 31,
+          "sha256": "7e582ef91d59a77d818b98b31c88ba386bcb79e147434e559409c70ebb03e653"
         },
         "packManifest": {
           "exists": true,
           "path": "/data/packs/australia.manifest.json",
-          "sizeBytes": 384,
-          "sha256": "3cd78f473e460ac5334ccc2499bca40cfa050e67ba93fb445d6b5e6e6edcfc9d"
+          "sizeBytes": 583,
+          "sha256": "4d32b7d59faaafc5d8daae012da947924e4c20d6388a55e64c5eb1d4d4dde1aa"
         },
         "packDelta": {
           "exists": true,

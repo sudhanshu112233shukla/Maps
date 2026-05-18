@@ -8,15 +8,16 @@
       "required": false
     },
     {
+      "path": "/data/graph/skorea.json",
+      "required": true,
+      "sha256": "547fb48586b39782329fce3c302036a827d5d7d8c5abd505d7982f3c9dba3ecc",
+      "sizeBytes": 38372472
+    },
+    {
       "path": "/data/poi/skorea.json",
       "required": true,
       "sha256": "cf57e25432cf1697186882f4ae931f731bf1a8be069c44e760abfd89a1b21cd0",
       "sizeBytes": 983
-    },
-    {
-      "path": "/data/graph/skorea.json",
-      "required": true,
-      "sha256": "24f4507854a468a158e1944be4195bb47f7ac75fd8b3ded8eba7c20498f3c951"
     }
   ]
 }

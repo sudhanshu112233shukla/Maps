@@ -12,7 +12,10 @@ REGIONS = {
     "usa": (-74.0060, 40.7128),
     "uk": (-0.1278, 51.5074),
     "europe": (2.3522, 48.8566),
-    "skorea": (126.9780, 37.5665)
+    "skorea": (126.9780, 37.5665),
+    "japan": (138.2529, 36.2048),
+    "russia": (105.3188, 61.524),
+    "australia": (133.7751, -25.2744)
 }
 
 def translate_graph(source_graph, target_region, target_center):

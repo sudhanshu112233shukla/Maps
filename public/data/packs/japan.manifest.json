@@ -8,6 +8,12 @@
       "required": false
     },
     {
+      "path": "/data/graph/japan.json",
+      "required": true,
+      "sha256": "3bcdc061ebc67a188ba1d07d71339dfe4c06cb25c46d5424bb6eb6c0d5b53874",
+      "sizeBytes": 38372470
+    },
+    {
       "path": "/data/poi/japan.json",
       "required": true,
       "sha256": "698e31cdc5fb04c9e77d0f85eb5ef2694a9fd65e32a8cb09704affc5d9fdfa7c",

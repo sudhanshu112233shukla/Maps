@@ -2,11 +2,11 @@
 
 | Region | Ready | Missing |
 | --- | --- | --- |
-| india | yes | map(optional) |
-| usa | no | graph, map(optional) |
-| uk | no | graph, map(optional) |
-| europe | no | graph, map(optional) |
-| skorea | no | graph, map(optional) |
-| japan | no | graph, map(optional) |
-| russia | no | graph, map(optional) |
-| australia | no | graph, map(optional) |
+| india | yes | none |
+| usa | yes | none |
+| uk | yes | none |
+| europe | yes | none |
+| skorea | yes | none |
+| japan | yes | none |
+| russia | yes | none |
+| australia | yes | none |

@@ -8,6 +8,12 @@
       "required": false
     },
     {
+      "path": "/data/graph/russia.json",
+      "required": true,
+      "sha256": "5434473818e7d5f24f1e0274846bbf898203bdc55332b9eec18b4255504994aa",
+      "sizeBytes": 38372471
+    },
+    {
       "path": "/data/poi/russia.json",
       "required": true,
       "sha256": "49eb38dfdbe428e02badfea25f87734b69911ef7843824b255127898892d58cf",
