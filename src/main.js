@@ -422,14 +422,13 @@ function showRoutePanel(route) {
   safetyBadge.style.color = badge.color;
 
   const instructions = router.generateInstructions(route.path || [], route.coords || []);
-  renderTurnByTurn(
-    instructions.length > 0
-      ? instructions
-      : [
-          { text: `Head towards ${state.destination.name}`, dist: route.distance, icon: 'straight' },
-          { text: `Arrive at ${state.destination.name}`, dist: 0, icon: 'arrive' },
-        ],
-  );
+  state.currentInstructions = instructions.length > 0
+    ? instructions
+    : [
+        { text: `Head towards ${state.destination.name}`, dist: route.distance, icon: 'straight' },
+        { text: `Arrive at ${state.destination.name}`, dist: 0, icon: 'arrive' },
+      ];
+  renderTurnByTurn(state.currentInstructions);
 
   routePanel.classList.remove('hidden');
   setTimeout(() => routePanel.classList.add('visible'), 30);
@@ -490,14 +489,27 @@ function setupNavUI() {
   });
 }
 
+let navSimInterval = null;
+
 function startNavigation() {
   if (!state.currentRoute) return;
 
   state.isNavigating = true;
+  state.activeInstructionIndex = 0;
   routePanel.classList.remove('visible');
   routePanel.classList.add('hidden');
   navHud.classList.remove('hidden');
   updateHUD(state.currentRoute);
+
+  if (navSimInterval) clearInterval(navSimInterval);
+  navSimInterval = setInterval(() => {
+    if (!state.isNavigating) return;
+    const instructions = state.currentInstructions || [];
+    if (state.activeInstructionIndex < instructions.length - 1) {
+      state.activeInstructionIndex++;
+      updateHUD(state.currentRoute);
+    }
+  }, 8000);
 
   if (meshAlert) {
     setTimeout(() => {
@@ -512,6 +524,10 @@ function startNavigation() {
 
 function stopNavigation() {
   state.isNavigating = false;
+  if (navSimInterval) {
+    clearInterval(navSimInterval);
+    navSimInterval = null;
+  }
   navHud.classList.add('hidden');
   routePanel.classList.remove('visible');
   routePanel.classList.add('hidden');
@@ -525,12 +541,35 @@ function stopNavigation() {
 
 function updateHUD(route) {
   hudDistance.textContent = `${(route.distance / 1000).toFixed(1)} km`;
-  hudInstruction.textContent = `Head toward ${state.destination?.name || 'destination'}`;
+  
+  const instructions = state.currentInstructions || [];
+  const activeIndex = state.activeInstructionIndex || 0;
+  const currentStep = instructions[activeIndex] || { text: `Head toward ${state.destination?.name || 'destination'}`, icon: 'straight' };
+  
+  hudInstruction.textContent = currentStep.text;
   hudTime.textContent = formatDuration(route.duration);
 
   const eta = new Date();
   eta.setSeconds(eta.getSeconds() + route.duration);
   hudArrival.textContent = `ETA ${eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+  // Update AR Overlay elements
+  const arText = document.getElementById('ar-text');
+  if (arText) {
+    arText.textContent = currentStep.text;
+  }
+  const arArrowSvg = document.getElementById('ar-arrow-svg');
+  if (arArrowSvg) {
+    let rotation = '0deg';
+    if (currentStep.icon === 'left') {
+      rotation = '-90deg';
+    } else if (currentStep.icon === 'right') {
+      rotation = '90deg';
+    } else if (currentStep.icon === 'arrive') {
+      rotation = '180deg';
+    }
+    arArrowSvg.style.transform = `rotate(${rotation})`;
+  }
 }
 
 function updateNavHUD(position) {
