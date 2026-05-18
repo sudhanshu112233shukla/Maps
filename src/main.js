@@ -83,6 +83,7 @@ async function init() {
   setupOfflineManager();
   setupFABs();
   registerServiceWorker();
+  setupHardwareTelemetry();
 
   gps.startWatching(handlePositionUpdate);
 }
@@ -1046,4 +1047,64 @@ const DEMO_GRAPH = {
 
 window.addEventListener('beforeunload', () => mapView.destroy());
 init().catch(console.error);
+
+async function setupHardwareTelemetry() {
+  const container = document.getElementById('hardware-telemetry');
+  if (!container) return;
+  
+  container.classList.remove('hidden');
+
+  function updateBatteryUI(level, charging) {
+    const batteryElem = document.getElementById('telemetry-battery');
+    if (!batteryElem) return;
+    batteryElem.textContent = `${Math.round(level)}%${charging ? ' ⚡' : ''}`;
+    const batteryItem = batteryElem.parentElement;
+    batteryItem.className = 'telemetry-item';
+    if (level < 15) {
+      batteryItem.classList.add('critical');
+    } else if (level < 30) {
+      batteryItem.classList.add('warning');
+    }
+  }
+
+  async function updateTelemetry() {
+    try {
+      const telemetry = await ai.getTelemetry();
+      const thermalElem = document.getElementById('telemetry-thermal');
+      if (thermalElem) {
+        const thermalValue = telemetry.thermalStatus || 'Normal';
+        thermalElem.textContent = thermalValue;
+        const thermalItem = thermalElem.parentElement;
+        thermalItem.className = 'telemetry-item';
+        if (['critical', 'overheating', 'throttling'].includes(thermalValue.toLowerCase())) {
+          thermalItem.classList.add('critical');
+        } else if (['fair', 'moderate', 'warm'].includes(thermalValue.toLowerCase())) {
+          thermalItem.classList.add('warning');
+        }
+      }
+      
+      if (telemetry.batteryLevel !== undefined && telemetry.batteryLevel !== null) {
+        updateBatteryUI(telemetry.batteryLevel, telemetry.charging || false);
+      }
+    } catch (e) {
+      console.warn('Native telemetry failed:', e);
+    }
+  }
+
+  // Hook into Web Battery API if available for web preview parity
+  if (navigator.getBattery) {
+    try {
+      const battery = await navigator.getBattery();
+      updateBatteryUI(battery.level * 100, battery.charging);
+      battery.addEventListener('levelchange', () => updateBatteryUI(battery.level * 100, battery.charging));
+      battery.addEventListener('chargingchange', () => updateBatteryUI(battery.level * 100, battery.charging));
+    } catch (e) {
+      console.warn('Web Battery API failed:', e);
+    }
+  }
+
+  // Periodically update via native telemetry
+  updateTelemetry();
+  setInterval(updateTelemetry, 5000);
+}
 
