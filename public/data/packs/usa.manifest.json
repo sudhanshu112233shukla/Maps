@@ -12,6 +12,11 @@
       "required": true,
       "sha256": "de75387c1e95998ffec0894ee303f9b3dcab6a747159dad2883da88a51e1d8dc",
       "sizeBytes": 960
+    },
+    {
+      "path": "/data/graph/usa.json",
+      "required": true,
+      "sha256": "09ea915a18b1b8757588402464b6cfd17c68523cb7a2162f49e8f9ce746cdc1d"
     }
   ]
 }

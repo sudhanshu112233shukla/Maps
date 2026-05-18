@@ -12,6 +12,11 @@
       "required": true,
       "sha256": "f5a77a8c95ace127c08ee49f13fca66be948944ec76c446bac29273b540d4095",
       "sizeBytes": 965
+    },
+    {
+      "path": "/data/graph/uk.json",
+      "required": true,
+      "sha256": "ba945c8e13cb49a7cd052913b1508d408bf308287d3f42f14ce368f72eb9d444"
     }
   ]
 }

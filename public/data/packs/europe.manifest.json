@@ -12,6 +12,11 @@
       "required": true,
       "sha256": "01f41af9bb7bff2cd442b8cd4dfd31553af41641a369137c960ad1d9870c8c95",
       "sizeBytes": 943
+    },
+    {
+      "path": "/data/graph/europe.json",
+      "required": true,
+      "sha256": "6b2de53b82dbe863240f065f1b23f0de443b893f55144bd34b8c48bde2e0c1af"
     }
   ]
 }

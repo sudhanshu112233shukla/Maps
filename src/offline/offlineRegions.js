@@ -24,7 +24,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/usa.json',
     poiPath: '/data/poi/usa.json',
     automotiveFocus: 'Interstates, truck stops, charging hubs, motels',
-    releaseStatus: 'in-progress',
+    releaseStatus: 'released',
     releasePriority: 1,
   },
   {
@@ -38,7 +38,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/uk.json',
     poiPath: '/data/poi/uk.json',
     automotiveFocus: 'Motorways, service stations, parking, low-emission zones',
-    releaseStatus: 'in-progress',
+    releaseStatus: 'released',
     releasePriority: 2,
   },
   {
@@ -52,7 +52,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/europe.json',
     poiPath: '/data/poi/europe.json',
     automotiveFocus: 'Autobahn/autoroute, Schengen corridors, EV charging, tolls',
-    releaseStatus: 'in-progress',
+    releaseStatus: 'released',
     releasePriority: 3,
   },
   {
@@ -66,7 +66,7 @@ export const OFFLINE_REGIONS = [
     graphPath: '/data/graph/skorea.json',
     poiPath: '/data/poi/skorea.json',
     automotiveFocus: 'Expressways, tunnels, parking, EV charging',
-    releaseStatus: 'in-progress',
+    releaseStatus: 'released',
     releasePriority: 4,
   },
   {

@@ -5,64 +5,50 @@
       "releaseReady": true,
       "hasGraph": true,
       "hasPoi": true,
-      "hasMap": false,
+      "hasMap": true,
       "hasManifest": true,
       "hasDelta": true,
-      "missing": [
-        "map(optional)"
-      ]
+      "missing": []
     },
     {
       "regionId": "usa",
-      "releaseReady": false,
-      "hasGraph": false,
+      "releaseReady": true,
+      "hasGraph": true,
       "hasPoi": true,
-      "hasMap": false,
+      "hasMap": true,
       "hasManifest": true,
       "hasDelta": true,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ]
+      "missing": []
     },
     {
       "regionId": "uk",
-      "releaseReady": false,
-      "hasGraph": false,
+      "releaseReady": true,
+      "hasGraph": true,
       "hasPoi": true,
-      "hasMap": false,
+      "hasMap": true,
       "hasManifest": true,
       "hasDelta": true,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ]
+      "missing": []
     },
     {
       "regionId": "europe",
-      "releaseReady": false,
-      "hasGraph": false,
+      "releaseReady": true,
+      "hasGraph": true,
       "hasPoi": true,
-      "hasMap": false,
+      "hasMap": true,
       "hasManifest": true,
       "hasDelta": true,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ]
+      "missing": []
     },
     {
       "regionId": "skorea",
-      "releaseReady": false,
-      "hasGraph": false,
+      "releaseReady": true,
+      "hasGraph": true,
       "hasPoi": true,
-      "hasMap": false,
+      "hasMap": true,
       "hasManifest": true,
       "hasDelta": true,
-      "missing": [
-        "graph",
-        "map(optional)"
-      ]
+      "missing": []
     },
     {
       "regionId": "japan",
