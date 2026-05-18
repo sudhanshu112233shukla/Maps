@@ -19,16 +19,16 @@
 
     <!-- Top UI (Search & Menu) -->
     <div id="top-bar">
-        <button id="main-menu-btn" class="icon-btn">
+        <button id="main-menu-btn" class="icon-btn" aria-label="Main menu">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
         <div id="search-box">
             <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="search-input" placeholder="Search for a destination" autocomplete="off">
-            <div id="clear-search-btn" class="icon-btn-sm hidden">
+            <input type="text" id="search-input" placeholder="Search for a destination" autocomplete="off" aria-label="Search destination">
+            <div id="clear-search-btn" class="icon-btn-sm hidden" aria-label="Clear search">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </div>
-            <div id="voice-btn" class="icon-btn-sm">
+            <div id="voice-btn" class="icon-btn-sm" aria-label="Voice command input">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
             </div>
         </div>
@@ -71,12 +71,12 @@
         <div style="display: flex; flex-direction: column; gap: 8px;">
             <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px; border-bottom: 1px solid #f1f3f4; height: 44px;">
                 <div style="width: 8px; height: 8px; background: #1a73e8; border-radius: 50%;"></div>
-                <input type="text" id="origin-input" placeholder="Your location" style="flex: 1; border: none; outline: none; font-size: 14px;">
-                <div id="gps-btn" class="icon-btn-sm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div>
+                <input type="text" id="origin-input" placeholder="Your location" style="flex: 1; border: none; outline: none; font-size: 14px;" aria-label="Starting location">
+                <div id="gps-btn" class="icon-btn-sm" role="button" aria-label="Use current GPS location" tabindex="0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div>
             </div>
             <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px; height: 44px;">
                 <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></div>
-                <input type="text" id="dest-input" placeholder="Choose destination" style="flex: 1; border: none; outline: none; font-size: 14px;">
+                <input type="text" id="dest-input" placeholder="Choose destination" style="flex: 1; border: none; outline: none; font-size: 14px;" aria-label="Destination location">
             </div>
             <div class="route-options" style="display: flex; gap: 8px; margin-top: 4px;">
                 <button class="option-chip active" data-mode="fastest" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">FASTEST</button>
@@ -152,10 +152,10 @@
 
         <div id="navigate-btn-wrap">
             <div style="display: flex; gap: 10px; width: 100%;">
-                <button id="ar-mode-btn" class="icon-btn" style="width: 54px; height: 54px; background: #000; color: #fff; border: none; border-radius: 14px;">
+                <button id="ar-mode-btn" class="icon-btn" style="width: 54px; height: 54px; background: #000; color: #fff; border: none; border-radius: 14px;" aria-label="Open augmented reality navigation view">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-9H14.5V7L12 10.5 9.5 7v4H7.5V14h1.5v3H11v-3h2v3h2v-3h1.5v-3z"/></svg>
                 </button>
-                <button id="start-navigate-btn" style="flex: 1;">
+                <button id="start-navigate-btn" style="flex: 1;" aria-label="Start active route navigation">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
                     START NAVIGATING
                 </button>
@@ -165,19 +165,19 @@
 
     <!-- FAB Group -->
     <div id="fab-group">
-        <button id="ai-fab-btn" class="fab">
+        <button id="ai-fab-btn" class="fab" aria-label="Open AI Assistant panel">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </button>
-        <button id="locate-btn" class="fab">
+        <button id="locate-btn" class="fab" aria-label="Locate me on map">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
         </button>
-        <button id="zoom-in-btn" class="fab">
+        <button id="zoom-in-btn" class="fab" aria-label="Zoom map in">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
-        <button id="zoom-out-btn" class="fab">
+        <button id="zoom-out-btn" class="fab" aria-label="Zoom map out">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
-        <button id="compass-btn" class="fab">
+        <button id="compass-btn" class="fab" aria-label="Reset map compass orientation">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/><circle cx="12" cy="12" r="10"/></svg>
         </button>
     </div>
