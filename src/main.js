@@ -6,6 +6,7 @@ import { AStarRouter } from './routing/AStarRouter.js';
 import { Geocoder } from './routing/Geocoder.js';
 import { GPSTracker } from './gps/GPSTracker.js';
 import { AIAssistant } from './ai/AIAssistant.js';
+import { captureNavigationAudio } from './ai/audio/captureNavigationAudio.js';
 import { OfflineRegionStore } from './offline/OfflineRegionStore.js';
 import { OfflineDataLoader } from './offline/OfflineDataLoader.js';
 import { RegionProvisioner } from './offline/RegionProvisioner.js';
@@ -676,7 +677,8 @@ async function startVoiceInput() {
 
   if (ai.supportsVoiceCommands()) {
     try {
-      const transcript = await ai.transcribeNavigationCommand();
+      const audioBase64 = await captureNavigationAudio();
+      const transcript = await ai.transcribeNavigationCommand(audioBase64);
       if (transcript) {
         searchInput.value = transcript;
         await triggerSearch(transcript);

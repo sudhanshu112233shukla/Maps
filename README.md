@@ -100,6 +100,7 @@ npm run selfcheck:search
 npm run selfcheck:routing
 npm run selfcheck:storage
 npm run selfcheck:melange-contract
+npm run selfcheck:voice-pipeline
 npm run selfcheck:melange-runtime
 npm run selfcheck:delta
 npm run selfcheck:graph-pipeline

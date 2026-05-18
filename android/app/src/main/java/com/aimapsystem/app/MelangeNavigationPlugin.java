@@ -329,7 +329,7 @@ public class MelangeNavigationPlugin extends Plugin {
         result.put("prepared", prepared);
         result.put("runtime", nativeModelReady ? "melange-llm" : "native-bridge");
         result.put("supportsNativeMelange", nativeModelReady);
-        result.put("supportsVoiceCommands", false);
+        result.put("supportsVoiceCommands", speechEncoderModel != null && speechDecoderModel != null);
         result.put("supportsSpeechRuntime", speechEncoderModel != null && speechDecoderModel != null);
         result.put("supportsSemanticSearch", nativeModelReady);
         result.put("supportsPredictiveCaching", nativeModelReady);

@@ -357,12 +357,12 @@ export class AIAssistant {
     }
   }
 
-  async transcribeNavigationCommand() {
+  async transcribeNavigationCommand(audioBase64 = '') {
     if (!this.supportsVoiceCommands()) {
       throw new Error('Voice transcription is unavailable on the current provider');
     }
 
-    return this.provider.transcribeNavigationCommand(...arguments);
+    return this.provider.transcribeNavigationCommand(audioBase64);
   }
 
   async rankPoiCandidates(query, candidates = [], limit = 5) {
