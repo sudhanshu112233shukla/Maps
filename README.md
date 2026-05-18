@@ -1,15 +1,15 @@
-# 🗺️ Melange Maps — Premium On-Device AI Navigation
+# Melange Maps — Premium On-Device AI Navigation
 
 [![Build Status](https://img.shields.io/badge/Build-Success-brightgreen?style=for-the-badge)](https://github.com/sudhanshu112233shukla/Maps.git)
 [![Offline Capable](https://img.shields.io/badge/Offline-100%25-blue?style=for-the-badge)](https://github.com/sudhanshu112233shukla/Maps.git)
 [![NPU Accelerated](https://img.shields.io/badge/Hardware-NPU%20Accelerated-orange?style=for-the-badge)](https://github.com/sudhanshu112233shukla/Maps.git)
 [![Accessibility Compliant](https://img.shields.io/badge/WCAG%202.1-AA%20Compliant-purple?style=for-the-badge)](https://github.com/sudhanshu112233shukla/Maps.git)
 
-An premium, **100% offline-first smart navigation system** built specifically for low-connectivity environments, extreme safety assurance, and automotive HMI infotainment integration. Fully powered by local, **NPU-accelerated neural networks** and high-performance vector mapping.
+A premium, **100% offline-first smart navigation system** built specifically for low-connectivity environments, extreme safety assurance, and automotive HMI infotainment integration. Fully powered by local, **NPU-accelerated neural networks** and high-performance vector mapping.
 
 ---
 
-## 🎨 HMI Dashboard Interface Overview
+## HMI Dashboard Interface Overview
 The system features a **glassmorphic, state-of-the-art visual cockpit** optimized for high-glare automotive display dashboards:
 * **Interactive Map Layer:** Seamless local MapLibre-rendered vector tiles with robust multi-touch and adaptive scaling.
 * **Telemetry HUD Widget:** Real-time system battery status, temperature tracking, and safety alerting (automatically transitioning colors based on sustained CPU/GPU/NPU stress).
@@ -18,7 +18,7 @@ The system features a **glassmorphic, state-of-the-art visual cockpit** optimize
 
 ---
 
-## 🏗️ Architecture Blueprint & Data Flow
+## Architecture Blueprint & Data Flow
 
 ```mermaid
 graph TD
@@ -50,24 +50,24 @@ graph TD
 
 ---
 
-## 📦 Global Offline Region Provisioning Matrix
+## Global Offline Region Provisioning Matrix
 
 The platform supports robust, resumable, and validated **transactional offline asset downloads** across 8 primary global territories:
 
 | Territory ID | Region Name | Map Engine | Local A* Graph | POI Index | Release Status |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **`india`** | India | 🟢 100% Active | 🟢 38.5 MB | 🟢 1.7 KB | **RELEASED (Downloadable)** |
-| **`usa`** | United States | 🟢 100% Active | 🟢 38.3 MB | 🟢 960 B | **RELEASED (Downloadable)** |
-| **`uk`** | United Kingdom | 🟢 100% Active | 🟢 38.0 MB | 🟢 965 B | **RELEASED (Downloadable)** |
-| **`europe`** | Europe | 🟢 100% Active | 🟢 37.9 MB | 🟢 943 B | **RELEASED (Downloadable)** |
-| **`japan`** | Japan | 🟢 100% Active | 🟢 38.3 MB | 🟢 968 B | **RELEASED (Downloadable)** |
-| **`skorea`** | South Korea | 🟢 100% Active | 🟢 38.3 MB | 🟢 983 B | **RELEASED (Downloadable)** |
-| **`russia`** | Russia | 🟢 100% Active | 🟢 38.3 MB | 🟢 966 B | **RELEASED (Downloadable)** |
-| **`australia`** | Australia | 🟢 100% Active | 🟢 38.5 MB | 🟢 984 B | **RELEASED (Downloadable)** |
+| **`india`** | India | 100% Active | 38.5 MB | 1.7 KB | **RELEASED (Downloadable)** |
+| **`skorea`** | South Korea | 100% Active | 38.3 MB | 983 B | **RELEASED (Downloadable)** |
+| **`usa`** | United States | 100% Active | 38.3 MB | 960 B | **RELEASED (Downloadable)** |
+| **`uk`** | United Kingdom | 100% Active | 38.0 MB | 965 B | **RELEASED (Downloadable)** |
+| **`europe`** | Europe | 100% Active | 37.9 MB | 943 B | **RELEASED (Downloadable)** |
+| **`japan`** | Japan | 100% Active | 38.3 MB | 968 B | **RELEASED (Downloadable)** |
+| **`russia`** | Russia | 100% Active | 38.3 MB | 966 B | **RELEASED (Downloadable)** |
+| **`australia`** | Australia | 100% Active | 38.5 MB | 984 B | **RELEASED (Downloadable)** |
 
 ---
 
-## 🧠 Local Neural Model Specifications
+## Local Neural Model Specifications
 
 All neural workloads are fully self-contained on the client hardware. The orchestration layer classifies device memory tiers and selects the optimal profile automatically:
 
@@ -85,7 +85,7 @@ All neural workloads are fully self-contained on the client hardware. The orches
 
 ---
 
-## 🛠️ Local Development & Deployment
+## Local Development & Deployment
 
 ### Dependencies Installation:
 ```bash
@@ -104,7 +104,7 @@ npm run build
 
 ---
 
-## 📱 Mobile Build & Platforms Sync
+## Mobile Build & Platforms Sync
 
 ### Android App Generation:
 To keep your Gradle compilation fully isolated on Windows targets, run the checked‑in Gradle cache wrapper script:
@@ -121,7 +121,7 @@ npm run cap:sync
 
 ---
 
-## 🧪 System Integrity Self-Checks
+## System Integrity Self-Checks
 
 Run the unified test runner to execute all **20 automated system validation checks** (verifying graph integrity, model configs, storage budgets, offline queue states, and HMI telemetry):
 
@@ -131,11 +131,11 @@ npm run selfcheck:all
 
 ---
 
-## ⚖️ Design Code Laws
+## Design Code Laws
 
 1. **Safety Over AI:** Core route routing must always remain deterministic. Neural models are only used to assist ranking or voice query parsing; they can *never* override absolute driving safety constraints.
 2. **Offline-Priority:** The application must boot, search, and navigate fully even if the device has zero cellular network connectivity.
 3. **UI Thread Preservation:** All heavy geocoding, A* search, and graph traversal tasks must run in background threads, keeping the dashboard render performance locked at a smooth **60 FPS**.
 
 ---
-*Developed with ❤️ for high-performance offline vehicle systems.*
+*Developed for high-performance offline vehicle systems.*
