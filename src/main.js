@@ -577,6 +577,20 @@ async function loadAIProvider() {
     aiProviderNote.textContent = providerStatus?.supportsNativeMelange
       ? `${providerLabel} active`
       : `${providerLabel} ready`;
+
+    const modelNameElem = document.getElementById('ai-model-name');
+    const accelElem = document.getElementById('ai-acceleration');
+    if (modelNameElem) {
+      modelNameElem.textContent = providerStatus?.models?.llm || providerStatus?.llmModelName || 'unknown';
+    }
+    if (accelElem) {
+      ai.getTelemetry().then(telemetry => {
+        accelElem.textContent = telemetry.npuAccelerated ? 'NPU Accelerated' : 'CPU Inference';
+      }).catch(() => {
+        accelElem.textContent = 'Hardware Status Unknown';
+      });
+    }
+
     addAIMessage(
       'assistant',
       providerStatus?.supportsNativeMelange

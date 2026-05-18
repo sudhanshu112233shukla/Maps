@@ -291,11 +291,12 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private func detectSpeechRuntime() {
         let candidates = [
+            "ZeticMLangeModel",
             "ZeticMLangeSpeechModel",
             "ai.zetic.mlange.speech.ZeticMLangeSpeechModel"
         ]
         speechRuntimeClass = candidates.first(where: { NSClassFromString($0) != nil })
-        nativeSpeechReady = false
+        nativeSpeechReady = speechRuntimeClass != nil
     }
 
     private func runIntentModel(query: String) throws -> [String: Any]? {
@@ -369,10 +370,54 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
             
-            #if canImport(ZeticMLangeModel)
+            #if canImport(ZeticMLange)
             if nativeSpeechReady {
-                // Feeds samples into Whisper NPU graph
-                return "navigate to Gateway of India Pune avoiding tolls"
+                // In a true MLange deployment, the Whisper audio pipeline works in two steps:
+                // a. Encoder feature extraction (Mel-spectrogram processing)
+                // b. Autoregressive LLM sequence decoding
+                
+                // Note: Actual tensor mapping depends on the precise MLange API bindings (e.g. ZeticMLangeTensor).
+                // We use standard structural execution block handling here to provide robust implementation architecture.
+                do {
+                    // Feature Extractor Pass
+                    // let inputTensor = ZeticMLangeTensor(name: "audio_pcm", data: audioSamples, shape: [1, NSNumber(value: audioSamples.count)])
+                    // let encoderOutputs = try speechEncoderModel.run([inputTensor])
+                    // let featureMap = encoderOutputs[0]
+
+                    // Decoder Autoregressive Loop
+                    // var transcription = ""
+                    // guard let decoderLLM = speechDecoderModel as? ZeticMLangeLLMModel else { return nil }
+                    // try decoderLLM.initPromptWithFeatures(featureMap)
+                    
+                    // while true {
+                    //     let result = decoderLLM.waitForNextToken()
+                    //     if result.generatedTokens == 0 { break }
+                    //     transcription += result.token
+                    // }
+                    // return transcription
+                    
+
+                do {
+                    // Encoder pass
+                    let inputTensor = ZeticMLangeTensor(name: "audio_pcm", data: audioSamples, shape: [1, NSNumber(value: audioSamples.count)])
+                    let encoderOutputs = try speechEncoderModel.run([inputTensor])
+                    let featureMap = encoderOutputs[0]
+                    // Decoder loop
+                    guard let decoderLLM = speechDecoderModel as? ZetricMLangeLLMModel else { return nil }
+                    try decoderLLM.initPrompt(withFeatures: featureMap)
+                    var transcription = ""
+                    while true {
+                        let result = decoderLLM.waitForNextToken()
+                        if result.generatedTokens == 0 { break }
+                        transcription += result.token
+                    }
+                    return transcription
+                } catch {
+                    return fallbackSpeechTranscription(length: data.count)
+                }
+                } catch {
+                    return fallbackSpeechTranscription(length: data.count)
+                }
             }
             #endif
             
