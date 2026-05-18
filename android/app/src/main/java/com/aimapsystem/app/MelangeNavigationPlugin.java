@@ -1,15 +1,14 @@
 package com.aimapsystem.app;
 
-import android.content.Context;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import com.zeticai.mlange.core.model.ZeticMLangeModel;
+import com.zeticai.mlange.core.model.llm.LLMNextTokenResult;
+import com.zeticai.mlange.core.model.llm.ZeticMLangeLLMModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -48,8 +47,9 @@ public class MelangeNavigationPlugin extends Plugin {
     private int maxGeneratedTokens = 320;
     private int inferenceTimeoutMs = 4500;
     private int voiceCommandLatencyTargetMs = 2500;
-    private Object llmModel = null;
-    private Object speechModel = null;
+    private ZeticMLangeLLMModel llmModel = null;
+    private ZeticMLangeModel speechEncoderModel = null;
+    private ZeticMLangeModel speechDecoderModel = null;
     private String llmRuntimeClass = null;
     private String speechRuntimeClass = null;
 
@@ -292,20 +292,20 @@ public class MelangeNavigationPlugin extends Plugin {
             return null;
         }
         try {
-            invokeMethod(llmModel, "run", new Class<?>[]{String.class}, new Object[]{prompt});
+            llmModel.run(prompt);
 
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < maxGeneratedTokens; i++) {
-                Object tokenResult = invokeMethod(llmModel, "waitForNextToken", new Class<?>[]{}, new Object[]{});
+                LLMNextTokenResult tokenResult = llmModel.waitForNextToken();
                 if (tokenResult == null) {
                     break;
                 }
 
-                int generatedTokens = readIntMember(tokenResult, "generatedTokens", "getGeneratedTokens");
+                int generatedTokens = tokenResult.getGeneratedTokens();
                 if (generatedTokens == 0) {
                     break;
                 }
-                String token = readStringMember(tokenResult, "token", "getToken");
+                String token = tokenResult.getToken();
                 if (token != null) {
                     builder.append(token);
                 }
@@ -318,30 +318,10 @@ public class MelangeNavigationPlugin extends Plugin {
     }
 
     private String runSpeechModel(String audioBase64) {
-        if (speechModel == null) {
+        if (speechEncoderModel == null || speechDecoderModel == null) {
             return null;
         }
-        try {
-            Object response;
-            try {
-                response = invokeMethod(
-                        speechModel,
-                        "transcribeBase64",
-                        new Class<?>[]{String.class},
-                        new Object[]{audioBase64}
-                );
-            } catch (Exception firstError) {
-                response = invokeMethod(
-                        speechModel,
-                        "run",
-                        new Class<?>[]{String.class},
-                        new Object[]{audioBase64}
-                );
-            }
-            return response == null ? null : response.toString().trim();
-        } catch (Exception error) {
-            return null;
-        }
+        return null;
     }
 
     private JSObject buildPrepareResult() {
@@ -349,7 +329,8 @@ public class MelangeNavigationPlugin extends Plugin {
         result.put("prepared", prepared);
         result.put("runtime", nativeModelReady ? "melange-llm" : "native-bridge");
         result.put("supportsNativeMelange", nativeModelReady);
-        result.put("supportsVoiceCommands", speechModel != null);
+        result.put("supportsVoiceCommands", false);
+        result.put("supportsSpeechRuntime", speechEncoderModel != null && speechDecoderModel != null);
         result.put("supportsSemanticSearch", nativeModelReady);
         result.put("supportsPredictiveCaching", nativeModelReady);
         result.put("threadingModel", "ui+navigation+ai+index+background");
@@ -364,6 +345,10 @@ public class MelangeNavigationPlugin extends Plugin {
         result.put("voiceCommandLatencyTargetMs", voiceCommandLatencyTargetMs);
         result.put("llmRuntimeClass", llmRuntimeClass == null ? JSONObject.NULL : llmRuntimeClass);
         result.put("speechRuntimeClass", speechRuntimeClass == null ? JSONObject.NULL : speechRuntimeClass);
+        result.put("speechEncoderReady", speechEncoderModel != null);
+        result.put("speechDecoderReady", speechDecoderModel != null);
+        result.put("speechEncoderInputCount", speechEncoderModel == null ? 0 : speechEncoderModel.getInputBuffers().length);
+        result.put("speechDecoderInputCount", speechDecoderModel == null ? 0 : speechDecoderModel.getInputBuffers().length);
         return result;
     }
 
@@ -373,16 +358,6 @@ public class MelangeNavigationPlugin extends Plugin {
             nativeModelReady = false;
             return;
         }
-
-        // Real ZETIC Melange Android SDK 1.6+ package; the previous
-        // `ai.zetic.mlange.*` paths never resolved. The LLM class lives at
-        // `com.zeticai.mlange.core.model.llm.ZeticMLangeLLMModel`. Reflection is
-        // retained instead of a direct import only so that JVM-default-arg
-        // constructors stay usable from Java; replacement with a typed Kotlin
-        // wrapper is tracked as a follow-up.
-        String[] classCandidates = new String[]{
-            "com.zeticai.mlange.core.model.llm.ZeticMLangeLLMModel"
-        };
 
         String[] modelCandidates = new String[]{
             llmModelName,
@@ -394,25 +369,15 @@ public class MelangeNavigationPlugin extends Plugin {
             if (modelId == null || modelId.trim().isEmpty()) {
                 continue;
             }
-            for (String className : classCandidates) {
-                try {
-                    Class<?> modelClass = Class.forName(className);
-                    Constructor<?> constructor = resolveContextKeyNameConstructor(modelClass);
-                    if (constructor == null) {
-                        lastError = new NoSuchMethodException(
-                                "No (Context,String,String) constructor on " + className
-                        );
-                        continue;
-                    }
-                    llmModel = constructor.newInstance(getContext(), personalKey, modelId);
-                    llmRuntimeClass = className;
-                    llmModelName = modelId;
-                    nativeModelReady = true;
-                    initializeSpeechModel();
-                    return;
-                } catch (Exception error) {
-                    lastError = error;
-                }
+            try {
+                llmModel = new ZeticMLangeLLMModel(getContext(), personalKey, modelId);
+                llmRuntimeClass = ZeticMLangeLLMModel.class.getName();
+                llmModelName = modelId;
+                nativeModelReady = true;
+                initializeSpeechModel();
+                return;
+            } catch (Exception error) {
+                lastError = error;
             }
         }
 
@@ -424,13 +389,29 @@ public class MelangeNavigationPlugin extends Plugin {
     }
 
     private void initializeSpeechModel() {
-        // Whisper integration on Melange is a two-stage pipeline (encoder + decoder
-        // ZeticMLangeModel instances) fed with mel-spectrogram tensors, not a single
-        // `transcribeBase64` call. Until the tensor I/O path is wired (see the
-        // "Whisper tensor I/O wiring" roadmap task), keep the speech model
-        // intentionally unset so callers correctly fall back to the JS path.
-        speechModel = null;
+        speechEncoderModel = null;
+        speechDecoderModel = null;
         speechRuntimeClass = null;
+
+        if (personalKey == null || personalKey.trim().isEmpty()) {
+            return;
+        }
+        if (speechEncoderModelName == null || speechEncoderModelName.trim().isEmpty()) {
+            return;
+        }
+        if (speechModelName == null || speechModelName.trim().isEmpty()) {
+            return;
+        }
+
+        try {
+            speechEncoderModel = new ZeticMLangeModel(getContext(), personalKey, speechEncoderModelName);
+            speechDecoderModel = new ZeticMLangeModel(getContext(), personalKey, speechModelName);
+            speechRuntimeClass = ZeticMLangeModel.class.getName();
+        } catch (Exception ignored) {
+            speechEncoderModel = null;
+            speechDecoderModel = null;
+            speechRuntimeClass = null;
+        }
     }
 
     private JSArray rankCandidates(String query, JSONArray candidates, int limit) {
@@ -545,34 +526,32 @@ public class MelangeNavigationPlugin extends Plugin {
         return result;
     }
 
-    private Constructor<?> resolveContextKeyNameConstructor(Class<?> modelClass) {
-        // Kotlin classes compiled without @JvmOverloads expose only the full
-        // constructor. Walk every public ctor and accept any whose first three
-        // params are (Context, String, String); remaining params receive null.
-        for (Constructor<?> candidate : modelClass.getConstructors()) {
-            Class<?>[] params = candidate.getParameterTypes();
-            if (params.length >= 3
-                    && Context.class.isAssignableFrom(params[0])
-                    && params[1] == String.class
-                    && params[2] == String.class
-                    && params.length == 3) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
     private void releaseModel() {
         if (llmModel != null) {
             try {
-                invokeMethod(llmModel, "deinit", new Class<?>[]{}, new Object[]{});
+                llmModel.deinit();
             } catch (Exception ignored) {
                 // ignore
             }
         }
         llmModel = null;
         llmRuntimeClass = null;
-        speechModel = null;
+        if (speechEncoderModel != null) {
+            try {
+                speechEncoderModel.close();
+            } catch (Exception ignored) {
+                // ignore
+            }
+        }
+        if (speechDecoderModel != null) {
+            try {
+                speechDecoderModel.close();
+            } catch (Exception ignored) {
+                // ignore
+            }
+        }
+        speechEncoderModel = null;
+        speechDecoderModel = null;
         speechRuntimeClass = null;
         nativeModelReady = false;
     }
@@ -756,63 +735,6 @@ public class MelangeNavigationPlugin extends Plugin {
             }
         }
         return deduped;
-    }
-
-    private Object invokeMethod(
-            Object target,
-            String methodName,
-            Class<?>[] parameterTypes,
-            Object[] args
-    ) throws Exception {
-        Method method = target.getClass().getMethod(methodName, parameterTypes);
-        method.setAccessible(true);
-        return method.invoke(target, args);
-    }
-
-    private int readIntMember(Object target, String fieldName, String getterName) {
-        List<Integer> candidates = new ArrayList<>();
-        try {
-            Field field = target.getClass().getField(fieldName);
-            Object value = field.get(target);
-            if (value instanceof Number) {
-                candidates.add(((Number) value).intValue());
-            }
-        } catch (Exception ignored) {
-            // ignore
-        }
-        try {
-            Method getter = target.getClass().getMethod(getterName);
-            Object value = getter.invoke(target);
-            if (value instanceof Number) {
-                candidates.add(((Number) value).intValue());
-            }
-        } catch (Exception ignored) {
-            // ignore
-        }
-        return candidates.isEmpty() ? 0 : candidates.get(0);
-    }
-
-    private String readStringMember(Object target, String fieldName, String getterName) {
-        try {
-            Field field = target.getClass().getField(fieldName);
-            Object value = field.get(target);
-            if (value != null) {
-                return value.toString();
-            }
-        } catch (Exception ignored) {
-            // ignore
-        }
-
-        try {
-            Method getter = target.getClass().getMethod(getterName);
-            Object value = getter.invoke(target);
-            if (value != null) {
-                return value.toString();
-            }
-        } catch (Exception ignored) {
-            // ignore
-        }
-        return null;
     }
 
     private String extractJson(String source) {

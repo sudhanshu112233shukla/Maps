@@ -15,6 +15,7 @@
     "cap:open:ios": "npx cap open ios",
     "cap:run:android": "npx cap run android",
     "mobile:build": "vite build && npx cap sync",
+    "android:assemble:debug:g": "powershell -ExecutionPolicy Bypass -File tools/android/assemble_debug_g.ps1",
     "graph:build": "python tools/osm_pipeline/build_from_manifest.py",
     "graph:build:india": "python tools/osm_pipeline/build_from_manifest.py --region-id india",
     "graph:build:usa": "python tools/osm_pipeline/build_from_manifest.py --region-id usa",

@@ -56,6 +56,19 @@ npm run build
 npm run cap:sync
 ```
 
+## Android Melange Build
+
+Use the checked-in wrapper script to keep Gradle cache and temp files on drive `G:` and force a Gradle-compatible Java runtime:
+
+```bash
+npm run android:assemble:debug:g
+```
+
+This uses:
+- `G:\gradle-cache` for `GRADLE_USER_HOME`
+- `G:\gradle-tmp` for `TEMP`/`TMP`
+- `C:\Program Files\Java\jdk-17` when present, otherwise Android Studio `jbr`
+
 ## Offline Pack Status
 
 - `india`: `released` (downloadable)

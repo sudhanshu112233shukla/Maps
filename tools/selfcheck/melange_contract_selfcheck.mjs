@@ -34,6 +34,9 @@ async function run() {
   assertContains(iosPlugin, 'speechEncoderModelName', 'iOS speech encoder config');
   assertContains(androidPlugin, 'deviceClass', 'Android device class config');
   assertContains(iosPlugin, 'deviceClass', 'iOS device class config');
+  assertContains(androidPlugin, 'supportsSpeechRuntime', 'Android speech runtime capability response');
+  assertContains(androidPlugin, 'speechEncoderReady', 'Android speech encoder readiness response');
+  assertContains(androidPlugin, 'speechDecoderReady', 'Android speech decoder readiness response');
 }
 
 run()
