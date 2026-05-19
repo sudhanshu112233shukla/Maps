@@ -57,6 +57,7 @@
     "selfcheck:storage": "node tools/selfcheck/storage_budget_selfcheck.mjs",
     "selfcheck:voice-pipeline": "node tools/selfcheck/voice_pipeline_selfcheck.mjs",
     "selfcheck:phase1-closure": "node tools/selfcheck/phase1_closure_selfcheck.mjs",
+    "selfcheck:phase2-closure": "node tools/selfcheck/phase2_closure_selfcheck.mjs",
     "selfcheck:multilingual-eval": "node tools/selfcheck/multilingual_voice_evaluation.mjs",
     "selfcheck:benchmarks": "node tools/selfcheck/battery_thermal_benchmarks.mjs",
     "selfcheck:all": "node tools/selfcheck/run_all_selfchecks.mjs",

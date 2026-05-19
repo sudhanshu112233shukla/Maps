@@ -23,7 +23,7 @@ Phase 1 closure decision:
 - Phase 1 is accepted as complete for user-release baseline.
 - Real Melange Whisper tensor execution remains a tracked hardening upgrade and is not required to start Phase 2 routing-data productionization.
 
-## Phase 2: Production Routing Data
+## Phase 2: Production Routing Data (Closed for User Release Baseline)
 
 Deliverables:
 - Build OSM extraction pipeline for route graph generation.
@@ -32,6 +32,16 @@ Deliverables:
 
 Done when:
 - Route queries run against generated regional graph packs and pass parity checks on known test routes.
+
+Current status (2026-05-19):
+- OSM manifest-driven graph pipeline is in place (`tools/osm_pipeline/build_from_manifest.py` + region manifest).
+- Regional graph artifacts are generated for enabled regions and shipped under `public/data/graph/*.json`.
+- Graph bundle metadata versioning is active (`meta.formatVersion`, `meta.bundleVersion`, source/build fields).
+- Route probing and parity-style checks pass through routing selfchecks and phase-2 closure gate checks.
+
+Phase 2 closure decision:
+- Phase 2 is accepted as complete for user-release baseline.
+- Advanced routing-engine replacement (Valhalla/GraphHopper native core) remains an optimization track and is not required to start Phase 3 search-core migration.
 
 ## Phase 3: Search Core Migration
 

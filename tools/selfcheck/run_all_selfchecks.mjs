@@ -25,6 +25,7 @@ const SELFCHECK_LIST = [
   { name: 'Storage Budgets Constraints', cmd: 'selfcheck:storage' },
   { name: 'Whisper Speech Pipeline Specs', cmd: 'selfcheck:voice-pipeline' },
   { name: 'Phase-1 Closure Gates', cmd: 'selfcheck:phase1-closure' },
+  { name: 'Phase-2 Closure Gates', cmd: 'selfcheck:phase2-closure' },
   { name: 'Multilingual Geocoding Heuristics', cmd: 'selfcheck:multilingual-eval' },
   { name: 'Sustained Power Telemetry', cmd: 'selfcheck:benchmarks' },
 ];
