@@ -83,7 +83,7 @@ Phase 4 closure decision:
 - Phase 4 is accepted as complete for user-release baseline.
 - Deep native parity hardening (full production data/runtime replacement of JS harness) remains a follow-on track and is not a blocker for entering Phase 5 operations work.
 
-## Phase 5: Pack Update and Operations
+## Phase 5: Pack Update and Operations (Closed for User Release Baseline)
 
 Deliverables:
 - Implement resumable region download manager.
@@ -96,3 +96,14 @@ Deliverables:
 
 Done when:
 - Region updates are resumable, validated, and recover cleanly from interruptions.
+
+Current status (2026-05-19):
+- Resumable region download manager is active with queue control (`pause/resume/cancel`) and per-asset chunk progress persistence.
+- Transactional update lifecycle is enforced per region (`download -> verify -> activate -> rollback`) with explicit state tracking.
+- Delta manifests are consumed and validated (`baseVersion`, `patchAssets`, `deleteAssets`) before patch activation.
+- Atomic staged storage activation/rollback hooks are present in native-capable pack storage paths.
+- Region store recovers interrupted transactions on restart and surfaces recoverable state to UI/runtime.
+
+Phase 5 closure decision:
+- Phase 5 is accepted as complete for user-release baseline.
+- Advanced ops hardening (distributed telemetry pipelines and long-haul soak benchmarks) remains a post-baseline optimization track.

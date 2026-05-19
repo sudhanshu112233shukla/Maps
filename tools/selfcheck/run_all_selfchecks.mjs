@@ -28,6 +28,7 @@ const SELFCHECK_LIST = [
   { name: 'Phase-2 Closure Gates', cmd: 'selfcheck:phase2-closure' },
   { name: 'Phase-3 Closure Gates', cmd: 'selfcheck:phase3-closure' },
   { name: 'Phase-4 Closure Gates', cmd: 'selfcheck:phase4-closure' },
+  { name: 'Phase-5 Closure Gates', cmd: 'selfcheck:phase5-closure' },
   { name: 'Multilingual Geocoding Heuristics', cmd: 'selfcheck:multilingual-eval' },
   { name: 'Sustained Power Telemetry', cmd: 'selfcheck:benchmarks' },
 ];
