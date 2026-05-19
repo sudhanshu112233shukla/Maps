@@ -30,6 +30,7 @@ const SELFCHECK_LIST = [
   { name: 'Phase-4 Closure Gates', cmd: 'selfcheck:phase4-closure' },
   { name: 'Phase-5 Closure Gates', cmd: 'selfcheck:phase5-closure' },
   { name: 'Release Execution Plan', cmd: 'selfcheck:release-execution' },
+  { name: 'RC Freeze Lockfile', cmd: 'selfcheck:rc-freeze' },
   { name: 'Multilingual Geocoding Heuristics', cmd: 'selfcheck:multilingual-eval' },
   { name: 'Sustained Power Telemetry', cmd: 'selfcheck:benchmarks' },
 ];

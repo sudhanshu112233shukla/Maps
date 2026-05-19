@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-05-19T10:30:01.470Z",
+  "gitHead": "440e3eeedd2b122e54e867da519424fbe05ccbee",
+  "inputs": {
+    "catalog": {
+      "path": "/data/releases/catalog.json",
+      "sha256": "fe1ff3209a042c27d4c70c6073f95b29d4452b132b1be4dc9f1e226ef1630a68"
+    },
+    "readiness": {
+      "path": "/data/releases/readiness.json",
+      "sha256": "0371a5ae8c93c102f7a367d9f20bc79d96581fbe54fbf6740c6f2c2f61accc15"
+    }
+  },
+  "packs": {
+    "india": {
+      "manifest": {
+        "path": "/data/packs/india.manifest.json",
+        "sha256": "87e803623a933bc9ce39d8f73c7599f70587709ed592db6050a6d56603fead5b"
+      },
+      "delta": {
+        "path": "/data/packs/india.delta.json",
+        "sha256": "570a4e620837a25a4d1843c7f6008f313fcd116a9b390322229b47963d23b4aa"
+      }
+    },
+    "usa": {
+      "manifest": {
+        "path": "/data/packs/usa.manifest.json",
+        "sha256": "990180852d28b6b3fc82e265c0a7a95480fdb3f860ed650236706da7adad477a"
+      },
+      "delta": {
+        "path": "/data/packs/usa.delta.json",
+        "sha256": "facb644227f655f3b186bb7d3c877704526ab706a463611593e122e29c2794ef"
+      }
+    },
+    "uk": {
+      "manifest": {
+        "path": "/data/packs/uk.manifest.json",
+        "sha256": "a4825b7e08271547623a436ce31ac76a04706cc895debf99494a58d74359ed75"
+      },
+      "delta": {
+        "path": "/data/packs/uk.delta.json",
+        "sha256": "443b57672cd3a849d930d249b100893cbf765b026c2f29ee53d742fd4bf61566"
+      }
+    },
+    "europe": {
+      "manifest": {
+        "path": "/data/packs/europe.manifest.json",
+        "sha256": "965cce656ad833bc052063881a08b6ec9f6b07c3dfaf9db11f3cc35d946be1e2"
+      },
+      "delta": {
+        "path": "/data/packs/europe.delta.json",
+        "sha256": "747076dc73d5396ac4dd412f62b701b6c3be6eea524246addeb6e6062bc64fcf"
+      }
+    },
+    "skorea": {
+      "manifest": {
+        "path": "/data/packs/skorea.manifest.json",
+        "sha256": "70f82a7a6d2bf48d6d2420cef0e2a2d9faf5edd9ef7f1f5c1e1a939f2be8b2bf"
+      },
+      "delta": {
+        "path": "/data/packs/skorea.delta.json",
+        "sha256": "ffc31d0130506a6936c744c9ca7dbccd8aa5abe515db8225de87e761299dddb3"
+      }
+    },
+    "japan": {
+      "manifest": {
+        "path": "/data/packs/japan.manifest.json",
+        "sha256": "c950e371ec2c8751ec8f6abf33c7dfb00a7868c3b38cf03f02e92a7ff8b06b84"
+      },
+      "delta": {
+        "path": "/data/packs/japan.delta.json",
+        "sha256": "159a3b8e82796ae5cf5f6585fb01a4f1c8240d501dfdd05b35a7af5cfa2867fa"
+      }
+    },
+    "russia": {
+      "manifest": {
+        "path": "/data/packs/russia.manifest.json",
+        "sha256": "751ce749e930c97084009330f5fe572534253790bc079f81d8a293f23854b847"
+      },
+      "delta": {
+        "path": "/data/packs/russia.delta.json",
+        "sha256": "f095fddac0479f5e9fa4e574aa5ab23833d6979729fd4c9b12935e2b1952e85e"
+      }
+    },
+    "australia": {
+      "manifest": {
+        "path": "/data/packs/australia.manifest.json",
+        "sha256": "4d32b7d59faaafc5d8daae012da947924e4c20d6388a55e64c5eb1d4d4dde1aa"
+      },
+      "delta": {
+        "path": "/data/packs/australia.delta.json",
+        "sha256": "30f973ac2c946b17baa690fb47c263930f9a2b658246833876857040c3ccafa4"
+      }
+    }
+  }
+}
