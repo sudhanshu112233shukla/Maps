@@ -1,6 +1,6 @@
 param(
-    [string]$GradleUserHome = "G:\gradle-cache",
-    [string]$TempRoot = "G:\gradle-tmp",
+    [string]$GradleUserHome = "G:\maps\Maps\artifacts\gradle-cache",
+    [string]$TempRoot = "G:\maps\Maps\artifacts\gradle-tmp",
     [switch]$NoDaemon = $true
 )
 

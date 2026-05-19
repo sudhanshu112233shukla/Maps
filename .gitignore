@@ -25,6 +25,7 @@ dist-ssr
 
 # Local large map artifacts
 data/osm/
+artifacts/
 
 # Native build outputs
 native/rust-search/target/
