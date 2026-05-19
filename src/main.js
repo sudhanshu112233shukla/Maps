@@ -118,10 +118,17 @@ async function syncRegionAssets(regionId, { recenter = false } = {}) {
   const regionMeta = state.offlineRegions.find((region) => region.id === regionId) || null;
   const isDownloaded = Boolean(regionMeta?.downloaded);
 
-  const { graph, pois } = await offlineDataLoader.loadRegionAssets(regionId, {
-    graphFallback: DEMO_GRAPH,
-    poiFallback: geocoder.points,
-  }, !isDownloaded);
+  // Always prefer the bundled regional assets as a baseline for routing/search.
+  // Downloaded packs can later override these paths, but we never want to force a
+  // tiny demo graph just because a region isn't downloaded yet.
+  const { graph, pois } = await offlineDataLoader.loadRegionAssets(
+    regionId,
+    {
+      graphFallback: DEMO_GRAPH,
+      poiFallback: geocoder.points,
+    },
+    false,
+  );
 
   geocoder.setDataset(pois);
   await geocoder.prepareRegionIndex({
