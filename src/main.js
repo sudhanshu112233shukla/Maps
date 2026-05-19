@@ -81,6 +81,12 @@ async function init() {
   setupNavUI();
   setupAIPanel();
   setupOfflineManager();
+
+  const anyDownloaded = state.offlineRegions.some((region) => region.downloaded);
+  if (!anyDownloaded) {
+    window.openOfflineManager?.();
+  }
+
   setupFABs();
   registerServiceWorker();
   setupHardwareTelemetry();
@@ -860,10 +866,14 @@ function setupOfflineManager() {
       .join('');
   };
 
-  mainMenuButton.addEventListener('click', () => {
+  window.openOfflineManager = () => {
     renderRegions();
     offlineManager.classList.remove('hidden');
     setTimeout(() => offlineManager.classList.add('visible'), 10);
+  };
+
+  mainMenuButton.addEventListener('click', () => {
+    window.openOfflineManager();
   });
 
   closeButton.addEventListener('click', () => {
