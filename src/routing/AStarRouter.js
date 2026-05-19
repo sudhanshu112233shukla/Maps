@@ -142,15 +142,17 @@ export class AStarRouter {
     this.loaded = true;
   }
 
-  snapToNode(lng, lat, maxDistanceMeters = MAX_SNAP_DISTANCE_METERS) {
+  snapToNode(lng, lat, maxDistanceMeters = MAX_SNAP_DISTANCE_METERS, options = {}) {
     if (!this.nodeList.length) return null;
 
+    const excludeId = options.excludeId || null;
     const candidates = this.#gatherCandidateNodes(lng, lat, maxDistanceMeters);
     let closestNodeId = null;
     let closestDistance = Infinity;
 
     if (candidates.length) {
       for (const node of candidates) {
+        if (excludeId && node.id === excludeId) continue;
         const distance = haversine([lng, lat], node.coord);
         if (distance < closestDistance) {
           closestDistance = distance;
@@ -167,6 +169,7 @@ export class AStarRouter {
     let absoluteClosestNodeId = null;
     let absoluteClosestDistance = Infinity;
     for (const node of this.nodeList) {
+      if (excludeId && node.id === excludeId) continue;
       const distance = haversine([lng, lat], node.coord);
       if (distance < absoluteClosestDistance) {
         absoluteClosestDistance = distance;
@@ -224,31 +227,43 @@ export class AStarRouter {
   }
 
   async routeLatLng(startLng, startLat, endLng, endLat, mode = 'fastest') {
-    const startId = this.snapToNode(startLng, startLat);
-    const endId = this.snapToNode(endLng, endLat);
+    let startId = this.snapToNode(startLng, startLat);
+    let endId = this.snapToNode(endLng, endLat);
     if (!startId || !endId) return null;
     
     if (startId === endId) {
-      const dist = haversine([startLng, startLat], [endLng, endLat]);
-      return {
-        path: [startId, endId],
-        coords: [[startLng, startLat], [endLng, endLat]],
-        distance: Math.round(dist),
-        duration: Math.round(dist / 12),
-        geojson: {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: [[startLng, startLat], [endLng, endLat]],
+      const endAlt = this.snapToNode(endLng, endLat, MAX_SNAP_DISTANCE_METERS, { excludeId: startId });
+      if (endAlt && endAlt !== startId) {
+        endId = endAlt;
+      } else {
+        const startAlt = this.snapToNode(startLng, startLat, MAX_SNAP_DISTANCE_METERS, { excludeId: endId });
+        if (startAlt && startAlt !== endId) {
+          startId = startAlt;
+        }
+      }
+
+      if (startId === endId) {
+        const dist = haversine([startLng, startLat], [endLng, endLat]);
+        return {
+          path: [startId, endId],
+          coords: [[startLng, startLat], [endLng, endLat]],
+          distance: Math.round(dist),
+          duration: Math.round(dist / 12),
+          geojson: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [[startLng, startLat], [endLng, endLat]],
+                },
+                properties: { distance: dist, duration: dist / 12 },
               },
-              properties: { distance: dist, duration: dist / 12 },
-            },
-          ],
-        },
-      };
+            ],
+          },
+        };
+      }
     }
     
     return this.route(startId, endId, mode);
