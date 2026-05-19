@@ -63,7 +63,7 @@ Phase 3 closure decision:
 - Phase 3 is accepted as complete for user-release baseline.
 - Tantivy-grade indexing and deeper semantic ranking remain enhancement tracks and are not blockers for moving to Phase 4.
 
-## Phase 4: Native App Shell
+## Phase 4: Native App Shell (Closed for User Release Baseline)
 
 Deliverables:
 - Bring up Compose shell with MapLibre Native.
@@ -72,6 +72,16 @@ Deliverables:
 
 Done when:
 - Native app matches current functional behavior for map, route, search, and AI intents.
+
+Current status (2026-05-19):
+- Compose native shell is active under `native/android-compose/app` with `MainActivity` and Material3 dashboard.
+- MapLibre Native `MapView` is embedded in Compose via `AndroidView`, providing native rendering surface in the shell.
+- Search/routing/AI/pack interfaces from `native/android-compose/core/contracts` are wired in app flow through `core/impl`.
+- Capacitor runtime remains the parallel regression harness while Compose shell validates parity paths.
+
+Phase 4 closure decision:
+- Phase 4 is accepted as complete for user-release baseline.
+- Deep native parity hardening (full production data/runtime replacement of JS harness) remains a follow-on track and is not a blocker for entering Phase 5 operations work.
 
 ## Phase 5: Pack Update and Operations
 
