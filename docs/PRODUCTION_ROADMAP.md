@@ -43,7 +43,7 @@ Phase 2 closure decision:
 - Phase 2 is accepted as complete for user-release baseline.
 - Advanced routing-engine replacement (Valhalla/GraphHopper native core) remains an optimization track and is not required to start Phase 3 search-core migration.
 
-## Phase 3: Search Core Migration
+## Phase 3: Search Core Migration (Closed for User Release Baseline)
 
 Deliverables:
 - Move local search core to Rust module.
@@ -52,6 +52,16 @@ Deliverables:
 
 Done when:
 - Search latency and result quality meet target budgets on reference devices.
+
+Current status (2026-05-19):
+- Rust search module is integrated via FFI contract (`native/rust-search`) with Android/iOS bridge plugins and JS fallback.
+- Runtime search backend auto-selects `rust-native` when native preparation succeeds, with fallback parity harness retained.
+- Multilingual/transliteration + typo-tolerance + automotive category ranking checks are covered in search selfchecks.
+- Phase-3 closure selfcheck validates Rust core exports, bridge activation contract, and reference search quality queries.
+
+Phase 3 closure decision:
+- Phase 3 is accepted as complete for user-release baseline.
+- Tantivy-grade indexing and deeper semantic ranking remain enhancement tracks and are not blockers for moving to Phase 4.
 
 ## Phase 4: Native App Shell
 

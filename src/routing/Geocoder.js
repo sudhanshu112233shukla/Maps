@@ -40,7 +40,7 @@ const DEFAULT_POIS = [
     lng: 81.8463,
     lat: 25.4358,
     region: 'india',
-    keywords: ['allahabad', 'railway', 'station', 'junction'],
+    keywords: ['allahabad', 'allahbad', 'prayagraj', 'pryagraj', 'railway', 'station', 'staton', 'junction', 'stn'],
   },
   {
     name: 'Indian Oil Colaba Fuel Station',
@@ -48,7 +48,7 @@ const DEFAULT_POIS = [
     lng: 72.8311,
     lat: 18.9248,
     region: 'india',
-    keywords: ['petrol', 'gas', 'diesel'],
+    keywords: ['petrol', 'petrrol', 'gas', 'diesel', 'mumbai', 'mumbaai'],
   },
   {
     name: 'Tata Power EV Charging Hub',

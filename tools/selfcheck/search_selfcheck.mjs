@@ -19,9 +19,12 @@ async function expectTop(query, expectedName) {
 
 async function run() {
   await expectTop('allahabad station', 'Prayagraj Junction');
+  await expectTop('allahbad staton', 'Prayagraj Junction');
   await expectTop('prayagraj railway', 'Prayagraj Junction');
+  await expectTop('pryagraj railwy', 'Prayagraj Junction');
   await expectTop('\u0907\u0932\u093e\u0939\u093e\u092c\u093e\u0926 \u091c\u0902\u0915\u094d\u0936\u0928', 'Prayagraj Junction');
   await expectTop('petrol near mumbai', 'Indian Oil Colaba Fuel Station');
+  await expectTop('petrrol mumbaai', 'Indian Oil Colaba Fuel Station');
   await expectTop('nearest ev charger', 'Tata Power EV Charging Hub');
   await expectTop('washroom service plaza', 'Expressway Food Plaza Lonavala');
 }
