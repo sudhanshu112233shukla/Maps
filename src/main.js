@@ -236,7 +236,8 @@ function setupQuickSearch() {
       event.preventDefault(); // Prevent input focus loss
       const query = chip.dataset.query;
       searchInput.value = chip.textContent.trim();
-      const results = await geocoder.search(query);
+      const bias = state.origin ? { biasLng: state.origin.lng, biasLat: state.origin.lat } : {};
+      const results = await geocoder.search(query, 6, bias);
       renderSuggestions(results);
       suggestionsPanel.classList.remove('hidden');
     });
@@ -250,7 +251,8 @@ async function triggerSearch(query) {
   }
 
   const searchSequence = ++activeSearchSequence;
-  const results = await geocoder.search(query);
+  const bias = state.origin ? { biasLng: state.origin.lng, biasLat: state.origin.lat } : {};
+  const results = await geocoder.search(query, 6, bias);
   if (searchSequence !== activeSearchSequence) {
     return;
   }
@@ -331,12 +333,23 @@ async function selectDestination(place) {
 
 async function calculateRoute() {
   if (!state.destination && destInput.value.trim().length >= 2) {
-    const results = await geocoder.search(destInput.value, 1);
-    if (results[0]) {
+    const bias = state.origin
+      ? { biasLng: state.origin.lng, biasLat: state.origin.lat }
+      : {};
+    const results = await geocoder.search(destInput.value, 5, bias);
+    if (results.length > 0) {
+      const chosen = state.origin
+        ? results
+            .map((item) => ({
+              item,
+              distance: haversineDistance(state.origin, { lng: item.lng, lat: item.lat }),
+            }))
+            .sort((a, b) => a.distance - b.distance)[0].item
+        : results[0];
       state.destination = {
-        name: results[0].name,
-        lng: results[0].lng,
-        lat: results[0].lat,
+        name: chosen.name,
+        lng: chosen.lng,
+        lat: chosen.lat,
       };
     }
   }
@@ -364,7 +377,10 @@ async function calculateRoute() {
   }
 
   if (!route) {
-    route = buildFallbackRoute(state.origin, state.destination);
+    state.currentRoute = null;
+    mapView.clearRoute();
+    alert('No offline route available for this origin/destination. Download the correct region pack or choose a closer destination.');
+    return;
   }
 
   state.currentRoute = route;

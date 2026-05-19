@@ -184,8 +184,11 @@ export class Geocoder {
     };
   }
 
-  async search(query, limit = 6) {
+  async search(query, limit = 6, options = {}) {
     if (!query || query.trim().length < 2) return [];
+
+    const biasLng = Number.isFinite(options.biasLng) ? options.biasLng : null;
+    const biasLat = Number.isFinite(options.biasLat) ? options.biasLat : null;
 
     const normalizedQuery = normalizeSearchText(query);
     const cacheKey = `${this.activeRegion}:${normalizedQuery}:${limit}`;
@@ -196,10 +199,12 @@ export class Geocoder {
       query,
       regionId: this.activeRegion,
       limit,
+      biasLng,
+      biasLat,
     });
     if (Array.isArray(nativeResults) && nativeResults.length > 0) {
       const filteredNative = nativeResults
-        .filter((poi) => poi.region === this.activeRegion || poi.type === 'city')
+        .filter((poi) => poi.region === this.activeRegion)
         .slice(0, limit);
       if (filteredNative.length > 0) {
         this.searchBackend = 'rust-native';
@@ -214,9 +219,17 @@ export class Geocoder {
       region: this.activeRegion,
     });
 
-    const filtered = indexedResults
-      .filter((poi) => poi.region === this.activeRegion || poi.type === 'city')
+    let filtered = indexedResults
+      .filter((poi) => poi.region === this.activeRegion)
       .slice(0, limit);
+
+    if (Number.isFinite(biasLng) && Number.isFinite(biasLat) && filtered.length > 1) {
+      filtered = [...filtered].sort((left, right) => {
+        const dl = haversine([biasLng, biasLat], [left.lng, left.lat]);
+        const dr = haversine([biasLng, biasLat], [right.lng, right.lat]);
+        return dl - dr;
+      });
+    }
 
     if (filtered.length > 0 || !this.allowOnlineFallback || !navigator.onLine) {
       this.searchBackend = 'js-fallback';
