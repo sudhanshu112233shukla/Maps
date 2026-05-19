@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAtUtc": "2026-05-19T10:30:01.470Z",
-  "gitHead": "440e3eeedd2b122e54e867da519424fbe05ccbee",
+  "generatedAtUtc": "2026-05-19T10:35:22.433Z",
+  "gitHead": "3dd50758e55159ead4eb01d1d3c38ecc2a18eddd",
   "inputs": {
     "catalog": {
       "path": "/data/releases/catalog.json",

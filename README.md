@@ -92,6 +92,10 @@ All neural workloads are fully self-contained on the client hardware. The orches
 npm install
 ```
 
+## Demo
+
+For a user-facing demo runbook, use `docs/DEMO_RUNBOOK.md`.
+
 ### Launch Development Server:
 ```bash
 npm run dev
