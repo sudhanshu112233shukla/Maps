@@ -62,10 +62,11 @@ Completed:
 1. Added Melange dependency in `android/app/build.gradle` and fixed direct SDK bindings (`com.zeticai.mlange:mlange:1.6.1`).
 2. Added background inference executor in plugin for multi-threading safety.
 3. Added real prompt-run-token loop path for intent parsing and chat generation with 10ms-resolution NPU abort timeouts.
-4. Implemented structural Whisper speech tensor I/O paths (Mel-spectrogram encoding and LLM decoding) in `transcribeNavigationCommand`.
+4. Added fallback-safe `transcribeNavigationCommand` path with runtime guards and truthful capability reporting.
 
 Remaining:
-- None. Fully integrated.
+- Real Whisper speech tensor I/O mapping in `transcribeNavigationCommand`.
+- Device validation for speech path with bundled encoder/decoder assets.
 
 ## iOS Status
 
@@ -74,10 +75,11 @@ Completed:
 2. Added `pod 'ZeticMLange'` to `ios/App/Podfile` for standard Xcode dependency synchronization.
 3. Added background inference queue with synchronous `Date().timeIntervalSince(startTime)` abort timeouts to prevent UI starvation.
 4. Added intent/chat model execution with deterministic offline fallback behavior.
-5. Implemented structural Whisper speech tensor I/O execution loops in `transcribeNavigationCommand`.
+5. Added fallback-safe `transcribeNavigationCommand` path with runtime guards and truthful capability reporting.
 
 Remaining:
-- None. Fully integrated.
+- Real Whisper speech tensor I/O mapping in `transcribeNavigationCommand`.
+- Device validation for speech path with bundled encoder/decoder assets.
 
 ## Production Completion Checklist
 
@@ -87,4 +89,4 @@ Remaining:
 4. [x] Add multilingual evaluation set (English + Hinglish + Hindi).
 5. [x] Add battery/thermal benchmarks for sustained navigation sessions.
 6. [x] Finalize Android API imports and iOS `Podfile` configuration.
-7. [x] Integrate Whisper structural architecture for voice transcriptions.
+7. [ ] Integrate real Whisper tensor architecture for voice transcriptions.

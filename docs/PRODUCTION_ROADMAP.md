@@ -12,6 +12,17 @@ Deliverables:
 Done when:
 - `prepare`, `parseRouteIntent`, `chatNavigation`, and `transcribeNavigationCommand` run on device without cloud calls.
 
+Current status (2026-05-19):
+- `prepare` is wired in Android/iOS plugins with runtime guards and fallback-safe behavior.
+- `parseRouteIntent` and `chatNavigation` are wired with native + JS fallback paths and validated through selfchecks.
+- `transcribeNavigationCommand` keeps cloud-free fallback behavior, but real Whisper tensor I/O wiring is still pending for full Phase 1 closure.
+- Capability flags now report runtime truth (`supportsNativeMelange`, `supportsVoiceCommands`, `supportsSpeechRuntime`) instead of optimistic placeholders.
+
+Exit criteria to mark Phase 1 complete:
+- Real Melange speech encoder/decoder tensor mapping implemented on Android and iOS.
+- Voice path validated on physical devices with bundled models and no cloud dependency.
+- Capability flags flip to `supportsVoiceCommands=true` only when real speech runtime is loaded and passing health checks.
+
 ## Phase 2: Production Routing Data
 
 Deliverables:
