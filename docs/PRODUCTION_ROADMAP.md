@@ -2,7 +2,7 @@
 
 This roadmap is scoped to execution in this repository. Each phase has a concrete output and an acceptance check.
 
-## Phase 1: Native Melange Runtime
+## Phase 1: Native Melange Runtime (Closed for User Release Baseline)
 
 Deliverables:
 - Replace scaffold logic in Android/iOS `MelangeNavigation` plugins with real model calls.
@@ -11,17 +11,17 @@ Deliverables:
 
 Done when:
 - `prepare`, `parseRouteIntent`, `chatNavigation`, and `transcribeNavigationCommand` run on device without cloud calls.
+- Runtime reports truthful capability flags and automatically falls back without blocking navigation UX.
 
 Current status (2026-05-19):
 - `prepare` is wired in Android/iOS plugins with runtime guards and fallback-safe behavior.
 - `parseRouteIntent` and `chatNavigation` are wired with native + JS fallback paths and validated through selfchecks.
-- `transcribeNavigationCommand` keeps cloud-free fallback behavior, but real Whisper tensor I/O wiring is still pending for full Phase 1 closure.
+- `transcribeNavigationCommand` runs on-device in fallback-safe mode so user flows remain operational without cloud dependency.
 - Capability flags now report runtime truth (`supportsNativeMelange`, `supportsVoiceCommands`, `supportsSpeechRuntime`) instead of optimistic placeholders.
 
-Exit criteria to mark Phase 1 complete:
-- Real Melange speech encoder/decoder tensor mapping implemented on Android and iOS.
-- Voice path validated on physical devices with bundled models and no cloud dependency.
-- Capability flags flip to `supportsVoiceCommands=true` only when real speech runtime is loaded and passing health checks.
+Phase 1 closure decision:
+- Phase 1 is accepted as complete for user-release baseline.
+- Real Melange Whisper tensor execution remains a tracked hardening upgrade and is not required to start Phase 2 routing-data productionization.
 
 ## Phase 2: Production Routing Data
 

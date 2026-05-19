@@ -175,8 +175,8 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
         
         call.resolve([
             "sdkVersion": "3.14.0",
-            "batteryLevel": 82,
-            "thermalStatus": "normal",
+            "batteryLevel": NSNull(),
+            "thermalStatus": "unknown",
             "inferenceCount": inferenceCount,
             "timeoutCount": timeoutCount,
             "avgInferenceTimeMs": avgTime,
@@ -240,6 +240,7 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
             "runtime": nativeModelReady ? "melange-llm" : "native-bridge",
             "supportsNativeMelange": nativeModelReady,
             "supportsVoiceCommands": false,
+            "supportsSpeechRuntime": nativeSpeechReady,
             "supportsSemanticSearch": nativeModelReady,
             "supportsPredictiveCaching": nativeModelReady,
             "threadingModel": "ui+navigation+ai+index+background",
