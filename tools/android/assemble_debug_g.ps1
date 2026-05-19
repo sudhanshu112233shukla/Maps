@@ -36,6 +36,7 @@ $env:TMP = $TempRoot
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $androidRoot = Join-Path $repoRoot "android"
+$apkOutDir = Join-Path $repoRoot "artifacts\\apks"
 
 Push-Location $androidRoot
 try {
@@ -47,6 +48,17 @@ try {
     & ".\gradlew.bat" @arguments
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
+    }
+
+    $apkPath = Join-Path $androidRoot "app\\build\\outputs\\apk\\debug\\app-debug.apk"
+    if (Test-Path $apkPath) {
+        New-Item -ItemType Directory -Force -Path $apkOutDir | Out-Null
+        $stamp = Get-Date -Format "yyyyMMdd-HHmm"
+        $dest = Join-Path $apkOutDir "MelangeMaps-debug-$stamp.apk"
+        Copy-Item -Force $apkPath $dest
+        Write-Host "[ok] apk -> $dest"
+    } else {
+        Write-Warning "APK not found at expected path: $apkPath"
     }
 }
 finally {

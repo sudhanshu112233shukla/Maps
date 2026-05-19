@@ -27,8 +27,11 @@ What to demo:
    - `npm run mobile:build`
 2. Assemble debug APK with Gradle cache on `G:`:
    - `npm run android:assemble:debug:g`
+   - APK output is copied to `artifacts/apks/` automatically.
 
 Notes:
 - For full native SDK validation, install and run on a physical device via Android Studio or `npx cap run android`.
 - If you change pack manifests/catalog/readiness, re-run `npm run release:freeze`.
 
+Troubleshooting:
+- If routing says no offline route, verify the active region matches your location (region auto-infers after GPS) and that `public/data/graph/<region>.json` exists in the bundle.
