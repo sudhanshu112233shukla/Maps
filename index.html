@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href="./manifest.webmanifest">
+    <!-- Premium Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <title>Neural Maps — Offline Premium Navigation</title>
     
     <style>
@@ -67,22 +71,22 @@
     </div>
 
     <!-- Routing Panel -->
-    <div id="routing-panel" class="hidden" style="position: fixed; top: calc(12px + var(--safe-top)); left: 12px; right: 12px; background: #fff; z-index: 101; border-radius: 20px; padding: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px; border-bottom: 1px solid #f1f3f4; height: 44px;">
-                <div style="width: 8px; height: 8px; background: #1a73e8; border-radius: 50%;"></div>
-                <input type="text" id="origin-input" placeholder="Your location" style="flex: 1; border: none; outline: none; font-size: 14px;" aria-label="Starting location">
+    <div id="routing-panel" class="hidden">
+        <div class="routing-fields">
+            <div class="routing-input-row">
+                <div class="dot dot-origin"></div>
+                <input type="text" id="origin-input" placeholder="Your location" aria-label="Starting location">
                 <div id="gps-btn" class="icon-btn-sm" role="button" aria-label="Use current GPS location" tabindex="0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></div>
             </div>
-            <div style="display: flex; align-items: center; gap: 12px; padding: 0 8px; height: 44px;">
-                <div style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></div>
-                <input type="text" id="dest-input" placeholder="Choose destination" style="flex: 1; border: none; outline: none; font-size: 14px;" aria-label="Destination location">
+            <div class="routing-input-row dest-row">
+                <div class="dot dot-dest"></div>
+                <input type="text" id="dest-input" placeholder="Choose destination" aria-label="Destination location">
             </div>
-            <div class="route-options" style="display: flex; gap: 8px; margin-top: 4px;">
-                <button class="option-chip active" data-mode="fastest" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">FASTEST</button>
-                <button class="option-chip" data-mode="safest" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">SAFEST</button>
-                <button class="option-chip" data-mode="eco" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">ECO</button>
-                <button class="option-chip" data-mode="no-toll" style="flex: 1; border-radius: 12px; border: 1px solid #dadce0; background: #f8f9fa; height: 32px; font-size: 12px; font-weight: 600; cursor: pointer;">NO TOLL</button>
+            <div class="route-options">
+                <button class="option-chip active" data-mode="fastest">FASTEST</button>
+                <button class="option-chip" data-mode="safest">SAFEST</button>
+                <button class="option-chip" data-mode="eco">ECO</button>
+                <button class="option-chip" data-mode="no-toll">NO TOLL</button>
             </div>
         </div>
     </div>
@@ -144,18 +148,18 @@
                 <div id="route-distance">-- km</div>
             </div>
             <div id="route-actions">
-                <div id="safety-badge" class="chip" style="background: #e6f4ea; color: #1e8e3e; font-weight: 700; font-size: 11px;">STANDARD ROUTE</div>
+                <div id="safety-badge" class="chip">STANDARD ROUTE</div>
             </div>
         </div>
 
         <div id="turn-by-turn-list"></div>
 
         <div id="navigate-btn-wrap">
-            <div style="display: flex; gap: 10px; width: 100%;">
-                <button id="ar-mode-btn" class="icon-btn" style="width: 54px; height: 54px; background: #000; color: #fff; border: none; border-radius: 14px;" aria-label="Open augmented reality navigation view">
+            <div class="nav-actions-row">
+                <button id="ar-mode-btn" class="icon-btn ar-btn" aria-label="Open augmented reality navigation view">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.5-9H14.5V7L12 10.5 9.5 7v4H7.5V14h1.5v3H11v-3h2v3h2v-3h1.5v-3z"/></svg>
                 </button>
-                <button id="start-navigate-btn" style="flex: 1;" aria-label="Start active route navigation">
+                <button id="start-navigate-btn" aria-label="Start active route navigation">
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
                     START NAVIGATING
                 </button>
@@ -229,12 +233,12 @@
     </div>
 
     <!-- Mesh Alert -->
-    <div id="mesh-alert" style="position: fixed; top: calc(80px + var(--safe-top)); left: 16px; right: 16px; background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 500; display: none; align-items: center; gap: 12px; border-left: 5px solid #ef4444;">
-        <div style="flex: 1;">
-            <div style="font-weight: 700; color: #ef4444; font-size: 11px; margin-bottom: 2px;">MESH UPDATE</div>
-            <div style="font-size: 13px; color: #202124;">Road closure detected ahead by community.</div>
+    <div id="mesh-alert" class="mesh-alert-panel">
+        <div class="mesh-alert-body">
+            <div class="mesh-alert-header">MESH UPDATE</div>
+            <div class="mesh-alert-message">Road closure detected ahead by community.</div>
         </div>
-        <button id="mesh-reroute-btn" style="background: #1a73e8; color: #fff; border: none; padding: 8px 16px; border-radius: 12px; font-weight: 700; font-size: 12px; cursor: pointer;">REROUTE</button>
+        <button id="mesh-reroute-btn">REROUTE</button>
     </div>
 
     <script type="module" src="/src/main.js"></script>

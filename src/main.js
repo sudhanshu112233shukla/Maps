@@ -110,18 +110,19 @@ async function syncRegionAssets(regionId, { recenter = false } = {}) {
   geocoder.setRegion(regionId);
   mapView.updateSourceConfig(offlineStore.getSourceConfig(regionId));
   const regionMeta = state.offlineRegions.find((region) => region.id === regionId) || null;
+  const isDownloaded = Boolean(regionMeta?.downloaded);
 
   const { graph, pois } = await offlineDataLoader.loadRegionAssets(regionId, {
     graphFallback: DEMO_GRAPH,
-    poiFallback: [],
-  });
+    poiFallback: geocoder.points,
+  }, !isDownloaded);
 
   geocoder.setDataset(pois);
   await geocoder.prepareRegionIndex({
     regionId,
-    graphPath: regionMeta?.graphPath || null,
-    poiPath: regionMeta?.poiPath || null,
-    dataVersion: regionMeta?.dataVersion || null,
+    graphPath: isDownloaded ? (regionMeta?.graphPath || null) : null,
+    poiPath: isDownloaded ? (regionMeta?.poiPath || null) : null,
+    dataVersion: isDownloaded ? (regionMeta?.dataVersion || null) : null,
   });
   state.searchBackend = geocoder.getBackendStatus().backend;
   await router.loadGraph(graph);
@@ -225,7 +226,8 @@ function setupSearchUI() {
 
 function setupQuickSearch() {
   document.querySelectorAll('.q-chip').forEach((chip) => {
-    chip.addEventListener('click', async () => {
+    chip.addEventListener('mousedown', async (event) => {
+      event.preventDefault(); // Prevent input focus loss
       const query = chip.dataset.query;
       searchInput.value = chip.textContent.trim();
       const results = await geocoder.search(query);
@@ -265,7 +267,8 @@ function renderSuggestions(results) {
     .join('');
 
   suggestionsList.querySelectorAll('.suggestion-item').forEach((element, index) => {
-    element.addEventListener('click', async () => {
+    element.addEventListener('mousedown', async (event) => {
+      event.preventDefault(); // Keep focus to prevent blur race conditions
       const result = results[index];
       if (activeInput === originInput) {
         state.origin = { name: result.name, lng: result.lng, lat: result.lat };
@@ -410,10 +413,10 @@ function showRoutePanel(route) {
   routeDistance.textContent = `${(route.distance / 1000).toFixed(1)} km`;
 
   const badgeByMode = {
-    fastest: { text: 'FASTEST', background: '#eff6ff', color: '#1d4ed8' },
-    safest: { text: 'SAFEST', background: '#ecfdf5', color: '#047857' },
-    eco: { text: 'ECO', background: '#fffbeb', color: '#b45309' },
-    'no-toll': { text: 'NO TOLL', background: '#f8fafc', color: '#334155' },
+    fastest: { text: 'FASTEST', background: 'rgba(59,130,246,0.18)', color: '#60a5fa' },
+    safest: { text: 'SAFEST', background: 'rgba(16,185,129,0.18)', color: '#34d399' },
+    eco: { text: 'ECO', background: 'rgba(245,158,11,0.18)', color: '#fbbf24' },
+    'no-toll': { text: 'NO TOLL', background: 'rgba(148,163,184,0.18)', color: '#cbd5e1' },
   };
 
   const badge = badgeByMode[state.routeMode] || badgeByMode.fastest;
@@ -496,6 +499,7 @@ function startNavigation() {
 
   state.isNavigating = true;
   state.activeInstructionIndex = 0;
+  document.body.classList.add('navigating');
   routePanel.classList.remove('visible');
   routePanel.classList.add('hidden');
   navHud.classList.remove('hidden');
@@ -524,6 +528,7 @@ function startNavigation() {
 
 function stopNavigation() {
   state.isNavigating = false;
+  document.body.classList.remove('navigating');
   if (navSimInterval) {
     clearInterval(navSimInterval);
     navSimInterval = null;
@@ -991,6 +996,11 @@ const DEMO_GRAPH = {
     cst_station: [72.8355, 18.94],
     mumbai_uni: [72.83, 18.927],
     mumbai_center: [72.8777, 18.9667],
+    highway_nasik: [73.7898, 19.9975],
+    highway_dhule: [74.7749, 20.9042],
+    highway_indore: [75.8577, 22.7196],
+    highway_jabalpur: [79.9864, 23.1608],
+    prayagraj_junction: [81.8463, 25.4358],
     highway_vapi: [72.9022, 20.3851],
     highway_surat: [72.8311, 21.1702],
     highway_vadodara: [73.1812, 22.3072],
@@ -1053,6 +1063,26 @@ const DEMO_GRAPH = {
       { to: 'cst_station', dist: 3000, time: 600, type: 'primary' },
       { to: 'marine_drive_north', dist: 2500, time: 500, type: 'primary' },
       { to: 'highway_vapi', dist: 170000, time: 10800, type: 'motorway', toll: true },
+      { to: 'highway_nasik', dist: 165000, time: 10800, type: 'motorway' },
+    ],
+    highway_nasik: [
+      { to: 'mumbai_center', dist: 165000, time: 10800, type: 'motorway' },
+      { to: 'highway_dhule', dist: 90000, time: 5400, type: 'motorway' },
+    ],
+    highway_dhule: [
+      { to: 'highway_nasik', dist: 90000, time: 5400, type: 'motorway' },
+      { to: 'highway_indore', dist: 200000, time: 12000, type: 'motorway' },
+    ],
+    highway_indore: [
+      { to: 'highway_dhule', dist: 200000, time: 12000, type: 'motorway' },
+      { to: 'highway_jabalpur', dist: 500000, time: 30000, type: 'motorway' },
+    ],
+    highway_jabalpur: [
+      { to: 'highway_indore', dist: 500000, time: 30000, type: 'motorway' },
+      { to: 'prayagraj_junction', dist: 360000, time: 21600, type: 'motorway' },
+    ],
+    prayagraj_junction: [
+      { to: 'highway_jabalpur', dist: 360000, time: 21600, type: 'motorway' },
     ],
     highway_vapi: [
       { to: 'mumbai_center', dist: 170000, time: 10800, type: 'motorway', toll: true },

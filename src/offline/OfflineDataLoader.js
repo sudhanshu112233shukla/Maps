@@ -13,20 +13,24 @@ export class OfflineDataLoader {
     this.cache = new Map();
   }
 
-  async loadRegionAssets(regionId, { graphFallback = null, poiFallback = [] } = {}) {
-    if (this.cache.has(regionId)) {
+  async loadRegionAssets(regionId, { graphFallback = null, poiFallback = [] } = {}, forceFallback = false) {
+    if (this.cache.has(regionId) && !forceFallback) {
       return this.cache.get(regionId);
     }
 
     const region = getRegionById(regionId);
+    const graphPath = forceFallback ? null : region?.graphPath;
+    const poiPath = forceFallback ? null : region?.poiPath;
 
     const [graph, pois] = await Promise.all([
-      this.#loadGraph(region?.graphPath, graphFallback),
-      this.#loadPois(region?.poiPath, poiFallback),
+      this.#loadGraph(graphPath, graphFallback),
+      this.#loadPois(poiPath, poiFallback),
     ]);
 
     const payload = { graph, pois };
-    this.cache.set(regionId, payload);
+    if (!forceFallback) {
+      this.cache.set(regionId, payload);
+    }
     return payload;
   }
 

@@ -200,8 +200,8 @@ public class MelangeNavigationPlugin extends Plugin {
     public void getTelemetry(PluginCall call) {
         JSObject telemetry = new JSObject();
         telemetry.put("sdkVersion", "3.14.0");
-        telemetry.put("batteryLevel", 82); 
-        telemetry.put("thermalStatus", "normal"); 
+        telemetry.put("batteryLevel", JSONObject.NULL);
+        telemetry.put("thermalStatus", "unknown");
         telemetry.put("inferenceCount", inferenceCount);
         telemetry.put("timeoutCount", timeoutCount);
         
@@ -354,56 +354,9 @@ public class MelangeNavigationPlugin extends Plugin {
         if (audioBase64 == null || audioBase64.trim().isEmpty()) {
             return "";
         }
-        try {
-            byte[] decodedBytes = android.util.Base64.decode(audioBase64, android.util.Base64.DEFAULT);
-            
-            // 1. Zero-dependency DSP: Convert PCM 16-bit Mono bytes to float normalized samples (-1.0 to 1.0)
-            float[] audioSamples = new float[decodedBytes.length / 2];
-            for (int i = 0; i < audioSamples.length; i++) {
-                if (2 * i + 1 < decodedBytes.length) {
-                    short sample = (short) ((decodedBytes[2 * i + 1] << 8) | (decodedBytes[2 * i] & 0xff));
-                    audioSamples[i] = sample / 32768.0f;
-                }
-            }
-            // 2. Real Zetic MLange Tensor execution path
-            try {
-                // Feature Extractor Pass (Encoder)
-                ZeticMLangeTensor inputTensor = new ZeticMLangeTensor("audio_pcm", audioSamples, new int[]{1, audioSamples.length});
-                ZeticMLangeTensor[] encoderOutputs = speechEncoderModel.run(new ZeticMLangeTensor[]{inputTensor});
-                ZeticMLangeTensor featureMap = encoderOutputs[0];
-
-                // Decoder Autoregressive Loop
-                ZeticMLangeLLMModel decoderLLM = (ZeticMLangeLLMModel) speechDecoderModel;
-                decoderLLM.initPromptWithFeatures(featureMap);
-                StringBuilder transcription = new StringBuilder();
-                while (true) {
-                    LLMNextTokenResult tokenResult = decoderLLM.waitForNextToken();
-                    if (tokenResult == null || tokenResult.getGeneratedTokens() == 0) {
-                        break;
-                    }
-                    transcription.append(tokenResult.getToken());
-                }
-                return transcription.toString();
-            } catch (Exception e) {
-                // Fallback to deterministic simulation on error
-                return fallbackSpeechTranscription(decodedBytes.length);
-            }
-        } catch (Exception error) {
-            return fallbackSpeechTranscription(audioBase64.length());
-        }
-    }
-
-
-
-    private String fallbackSpeechTranscription(int length) {
-        // Return highly relevant navigation queries based on the audio capture length
-        if (length % 3 == 0) {
-            return "route to Tata Power EV Charging Hub Pune";
-        } else if (length % 2 == 0) {
-            return "navigate to Fortis Hospital Mumbai avoiding tolls";
-        } else {
-            return "find nearest petrol pump along highway";
-        }
+        // Tensor mapping for Whisper encoder/decoder is still pending.
+        // Keep runtime fallback-safe and deterministic until real tensor I/O is wired.
+        return null;
     }
 
     private JSObject buildPrepareResult() {
@@ -411,7 +364,7 @@ public class MelangeNavigationPlugin extends Plugin {
         result.put("prepared", prepared);
         result.put("runtime", nativeModelReady ? "melange-llm" : "native-bridge");
         result.put("supportsNativeMelange", nativeModelReady);
-        result.put("supportsVoiceCommands", speechEncoderModel != null && speechDecoderModel != null);
+        result.put("supportsVoiceCommands", false);
         result.put("supportsSpeechRuntime", speechEncoderModel != null && speechDecoderModel != null);
         result.put("supportsSemanticSearch", nativeModelReady);
         result.put("supportsPredictiveCaching", nativeModelReady);

@@ -25,8 +25,9 @@
   --radius-md:     14px;
   --radius-lg:     20px;
   --radius-xl:     28px;
-  --font-main:     system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display:  "Segoe UI", system-ui, sans-serif;
+  --font-main:     'Outfit', sans-serif;
+  --font-display:  'Outfit', sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
   --safe-top:      env(safe-area-inset-top, 0px);
   --safe-bottom:   env(safe-area-inset-bottom, 0px);
   --tap-min:       48px;
@@ -102,12 +103,12 @@ html, body {
   outline: none;
   font-family: var(--font-main);
   font-size: 16px;
-  color: #202124; /* Google Search Text Color */
+  color: var(--text-primary);
   padding: 0 10px;
   caret-color: var(--accent);
 }
 
-#search-input::placeholder { color: #70757a; }
+#search-input::placeholder { color: var(--text-muted); }
 
 /* ---------- Hardware Telemetry ---------- */
 .telemetry-widget {
@@ -126,6 +127,7 @@ html, body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 4px 8px;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
   display: flex;
@@ -152,8 +154,10 @@ html, body {
 #quick-search::-webkit-scrollbar { display: none; }
 
 .q-chip {
-  background: #fff;
-  color: #3c4043;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--text-primary);
   padding: 8px 14px;
   border-radius: 18px;
   font-size: 13px;
@@ -161,12 +165,17 @@ html, body {
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-card);
   white-space: nowrap;
   cursor: pointer;
-  border: 1px solid #dadce0;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
 }
-.q-chip svg { color: #1a73e8; }
+.q-chip:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent);
+}
+.q-chip svg { color: var(--accent); }
 
 /* ---------- Icon Buttons ---------- */
 .icon-btn {
@@ -759,3 +768,280 @@ html, body {
 
 /* ---------- Utilities ---------- */
 .hidden { display: none !important; }
+
+/* ===================================================
+   PREMIUM GLASSMORPHIC OVERRIDES & FIXES
+   =================================================== */
+
+/* Search Input Visibility Parity */
+#search-input {
+  color: var(--text-primary) !important;
+}
+#search-input::placeholder {
+  color: var(--text-secondary) !important;
+}
+
+/* Dynamic Telemetry Layout Adjustments during Navigation */
+body.navigating .telemetry-widget {
+  top: calc(105px + var(--safe-top)) !important;
+  z-index: 250 !important;
+}
+
+/* Routing Panel Styling */
+#routing-panel {
+  position: fixed;
+  top: calc(12px + var(--safe-top));
+  left: 12px;
+  right: 12px;
+  z-index: 101;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s ease;
+}
+
+.routing-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.routing-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card2);
+  height: 46px;
+  transition: border-color 0.2s;
+}
+
+.routing-input-row:focus-within {
+  border-color: var(--border-active);
+}
+
+.routing-input-row input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-main);
+  font-size: 14px;
+  color: var(--text-primary);
+  caret-color: var(--accent);
+}
+
+.routing-input-row input::placeholder {
+  color: var(--text-muted);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-origin {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.dot-dest {
+  background: var(--accent-red);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.route-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.route-options .option-chip {
+  flex: 1;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card2);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.route-options .option-chip:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.route-options .option-chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* Bottom Sheet Styling */
+.bottom-sheet {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 1000;
+  background: var(--bg-glass) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6) !important;
+  transform: translateY(110%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0 20px 20px;
+  color: var(--text-primary) !important;
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--text-muted) !important;
+  border-radius: 2px;
+  margin: 12px auto 16px;
+}
+
+.sheet-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-primary) !important;
+}
+
+.sheet-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary) !important;
+  margin-bottom: 20px;
+}
+
+/* Action Buttons inside Bottom Sheet */
+.action-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 22px;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-card2) !important;
+  color: var(--text-primary) !important;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px var(--accent-glow) !important;
+}
+
+.action-btn.primary:active {
+  transform: scale(0.97);
+}
+
+/* Mesh Alert Panel Styling */
+.mesh-alert-panel {
+  position: fixed;
+  top: calc(85px + var(--safe-top));
+  left: 12px;
+  right: 12px;
+  background: rgba(239, 68, 68, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-left: 5px solid var(--accent-red);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  gap: 16px;
+  animation: slideDown 0.3s ease;
+}
+
+.mesh-alert-body {
+  flex: 1;
+}
+
+.mesh-alert-header {
+  font-weight: 800;
+  color: var(--accent-red);
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  margin-bottom: 2px;
+}
+
+.mesh-alert-message {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+#mesh-reroute-btn {
+  background: var(--accent-red);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  transition: all 0.2s;
+}
+
+#mesh-reroute-btn:active {
+  transform: scale(0.95);
+}
+
+/* AR Button styling */
+.nav-actions-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.icon-btn.ar-btn {
+  width: 54px;
+  height: 54px;
+  background: var(--bg-card2) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.icon-btn.ar-btn:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+#safety-badge {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: var(--accent-green) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  font-weight: 700;
+  font-size: 11px;
+}
+

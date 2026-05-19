@@ -146,20 +146,34 @@ export class AStarRouter {
     if (!this.nodeList.length) return null;
 
     const candidates = this.#gatherCandidateNodes(lng, lat, maxDistanceMeters);
-    if (!candidates.length) return null;
-
     let closestNodeId = null;
     let closestDistance = Infinity;
 
-    for (const node of candidates) {
-      const distance = haversine([lng, lat], node.coord);
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestNodeId = node.id;
+    if (candidates.length) {
+      for (const node of candidates) {
+        const distance = haversine([lng, lat], node.coord);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestNodeId = node.id;
+        }
       }
     }
 
-    return closestDistance <= maxDistanceMeters ? closestNodeId : null;
+    if (closestNodeId && closestDistance <= maxDistanceMeters) {
+      return closestNodeId;
+    }
+
+    // Unconditional global fallback to absolute closest node in the entire graph
+    let absoluteClosestNodeId = null;
+    let absoluteClosestDistance = Infinity;
+    for (const node of this.nodeList) {
+      const distance = haversine([lng, lat], node.coord);
+      if (distance < absoluteClosestDistance) {
+        absoluteClosestDistance = distance;
+        absoluteClosestNodeId = node.id;
+      }
+    }
+    return absoluteClosestNodeId;
   }
 
   route(startId, endId, mode = 'fastest') {
@@ -213,6 +227,30 @@ export class AStarRouter {
     const startId = this.snapToNode(startLng, startLat);
     const endId = this.snapToNode(endLng, endLat);
     if (!startId || !endId) return null;
+    
+    if (startId === endId) {
+      const dist = haversine([startLng, startLat], [endLng, endLat]);
+      return {
+        path: [startId, endId],
+        coords: [[startLng, startLat], [endLng, endLat]],
+        distance: Math.round(dist),
+        duration: Math.round(dist / 12),
+        geojson: {
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: [[startLng, startLat], [endLng, endLat]],
+              },
+              properties: { distance: dist, duration: dist / 12 },
+            },
+          ],
+        },
+      };
+    }
+    
     return this.route(startId, endId, mode);
   }
 

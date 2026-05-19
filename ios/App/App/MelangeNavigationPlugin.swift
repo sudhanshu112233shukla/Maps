@@ -20,7 +20,6 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     private let inferenceQueue = DispatchQueue(label: "com.aimapsystem.melange.inference", qos: .userInitiated)
-    private let maxGeneratedTokens = 320
     private let intentPattern = #"(?:to|navigate to|take me to|directions to|route to|drive to)\s+(.+?)(?:\s+(?:avoiding|avoid|with|via|and)|$)"#
     private let systemPrompt = "You are an offline automotive navigation assistant. Always return strict JSON without markdown."
 
@@ -356,85 +355,9 @@ public class MelangeNavigationPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private func runSpeechModel(audioBase64: String) -> String? {
         guard !audioBase64.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "" }
-        
-        let length = audioBase64.count
-        
-        if let data = Data(base64Encoded: audioBase64) {
-            let sampleCount = data.count / 2
-            var audioSamples = [Float](repeating: 0.0, count: sampleCount)
-            data.withUnsafeBytes { (rawBuffer: UnsafeRawBufferPointer) in
-                if let shortPointer = rawBuffer.baseAddress?.assumingMemoryBound(to: Int16.self) {
-                    for i in 0..<sampleCount {
-                        audioSamples[i] = Float(shortPointer[i]) / 32768.0
-                    }
-                }
-            }
-            
-            #if canImport(ZeticMLange)
-            if nativeSpeechReady {
-                // In a true MLange deployment, the Whisper audio pipeline works in two steps:
-                // a. Encoder feature extraction (Mel-spectrogram processing)
-                // b. Autoregressive LLM sequence decoding
-                
-                // Note: Actual tensor mapping depends on the precise MLange API bindings (e.g. ZeticMLangeTensor).
-                // We use standard structural execution block handling here to provide robust implementation architecture.
-                do {
-                    // Feature Extractor Pass
-                    // let inputTensor = ZeticMLangeTensor(name: "audio_pcm", data: audioSamples, shape: [1, NSNumber(value: audioSamples.count)])
-                    // let encoderOutputs = try speechEncoderModel.run([inputTensor])
-                    // let featureMap = encoderOutputs[0]
-
-                    // Decoder Autoregressive Loop
-                    // var transcription = ""
-                    // guard let decoderLLM = speechDecoderModel as? ZeticMLangeLLMModel else { return nil }
-                    // try decoderLLM.initPromptWithFeatures(featureMap)
-                    
-                    // while true {
-                    //     let result = decoderLLM.waitForNextToken()
-                    //     if result.generatedTokens == 0 { break }
-                    //     transcription += result.token
-                    // }
-                    // return transcription
-                    
-
-                do {
-                    // Encoder pass
-                    let inputTensor = ZeticMLangeTensor(name: "audio_pcm", data: audioSamples, shape: [1, NSNumber(value: audioSamples.count)])
-                    let encoderOutputs = try speechEncoderModel.run([inputTensor])
-                    let featureMap = encoderOutputs[0]
-                    // Decoder loop
-                    guard let decoderLLM = speechDecoderModel as? ZetricMLangeLLMModel else { return nil }
-                    try decoderLLM.initPrompt(withFeatures: featureMap)
-                    var transcription = ""
-                    while true {
-                        let result = decoderLLM.waitForNextToken()
-                        if result.generatedTokens == 0 { break }
-                        transcription += result.token
-                    }
-                    return transcription
-                } catch {
-                    return fallbackSpeechTranscription(length: data.count)
-                }
-                } catch {
-                    return fallbackSpeechTranscription(length: data.count)
-                }
-            }
-            #endif
-            
-            return fallbackSpeechTranscription(length: data.count)
-        }
-        
-        return fallbackSpeechTranscription(length: length)
-    }
-
-    private func fallbackSpeechTranscription(length: Int) -> String {
-        if length % 3 == 0 {
-            return "route to Tata Power EV Charging Hub Pune"
-        } else if length % 2 == 0 {
-            return "navigate to Fortis Hospital Mumbai avoiding tolls"
-        } else {
-            return "find nearest petrol pump along highway"
-        }
+        // Tensor mapping for Whisper encoder/decoder is still pending.
+        // Keep runtime fallback-safe and deterministic until real tensor I/O is wired.
+        return nil
     }
 
     private func rankCandidates(query: String, candidates: [[String: Any]], limit: Int) -> [[String: Any]] {
