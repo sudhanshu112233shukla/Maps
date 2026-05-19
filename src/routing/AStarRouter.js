@@ -18,7 +18,10 @@ const ROAD_SPEEDS = {
 
 const MINOR_ROADS = new Set(['residential', 'living_street', 'service', 'tertiary']);
 const MAJOR_ROADS = new Set(['motorway', 'trunk', 'primary']);
-const MAX_SNAP_DISTANCE_METERS = 35000;
+// Snap radius is intentionally conservative to avoid "teleporting" to a far-away
+// graph node which creates misleading straight-line routes when the active
+// region pack is missing or the destination is outside the loaded graph.
+const MAX_SNAP_DISTANCE_METERS = 8000;
 const HEURISTIC_SPEED_METERS_PER_SECOND = (130 * 1000) / 3600;
 
 function haversine([lng1, lat1], [lng2, lat2]) {
@@ -161,22 +164,9 @@ export class AStarRouter {
       }
     }
 
-    if (closestNodeId && closestDistance <= maxDistanceMeters) {
-      return closestNodeId;
-    }
+    if (closestNodeId && closestDistance <= maxDistanceMeters) return closestNodeId;
 
-    // Unconditional global fallback to absolute closest node in the entire graph
-    let absoluteClosestNodeId = null;
-    let absoluteClosestDistance = Infinity;
-    for (const node of this.nodeList) {
-      if (excludeId && node.id === excludeId) continue;
-      const distance = haversine([lng, lat], node.coord);
-      if (distance < absoluteClosestDistance) {
-        absoluteClosestDistance = distance;
-        absoluteClosestNodeId = node.id;
-      }
-    }
-    return absoluteClosestNodeId;
+    return null;
   }
 
   route(startId, endId, mode = 'fastest') {
@@ -243,26 +233,7 @@ export class AStarRouter {
       }
 
       if (startId === endId) {
-        const dist = haversine([startLng, startLat], [endLng, endLat]);
-        return {
-          path: [startId, endId],
-          coords: [[startLng, startLat], [endLng, endLat]],
-          distance: Math.round(dist),
-          duration: Math.round(dist / 12),
-          geojson: {
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                geometry: {
-                  type: 'LineString',
-                  coordinates: [[startLng, startLat], [endLng, endLat]],
-                },
-                properties: { distance: dist, duration: dist / 12 },
-              },
-            ],
-          },
-        };
+        return null;
       }
     }
     
