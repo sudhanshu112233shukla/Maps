@@ -11,7 +11,7 @@ import { OfflineRegionStore } from './offline/OfflineRegionStore.js';
 import { OfflineDataLoader } from './offline/OfflineDataLoader.js';
 import { RegionProvisioner } from './offline/RegionProvisioner.js';
 import { registerServiceWorker } from './registerServiceWorker.js';
-
+import { NavigationSession } from './navigation/NavigationSession.js';
 const state = {
   activeRegion: 'india',
   origin: null,
@@ -32,7 +32,7 @@ const ai = new AIAssistant({ locale: 'en-US' });
 const offlineStore = new OfflineRegionStore();
 const offlineDataLoader = new OfflineDataLoader();
 const regionProvisioner = new RegionProvisioner({ offlineDataLoader, offlineStore });
-
+const navSession = new NavigationSession();
 const searchInput = document.getElementById('search-input');
 const originInput = document.getElementById('origin-input');
 const destInput = document.getElementById('dest-input');
@@ -460,9 +460,7 @@ function showRoutePanel(route) {
         { text: `Head towards ${state.destination.name}`, dist: route.distance, icon: 'straight' },
         { text: `Arrive at ${state.destination.name}`, dist: 0, icon: 'arrive' },
       ];
-  renderTurnByTurn(state.currentInstructions);
-
-  routePanel.classList.remove('hidden');
+  renderTurnByTurn(state.currentInstructions);  navSession.setRoute(route.coords || [], state.currentInstructions);  routePanel.classList.remove('hidden');
   setTimeout(() => routePanel.classList.add('visible'), 30);
 
   if (state.isNavigating) {
@@ -521,28 +519,19 @@ function setupNavUI() {
   });
 }
 
-let navSimInterval = null;
-
 function startNavigation() {
   if (!state.currentRoute) return;
 
   state.isNavigating = true;
+  navSession.reset();
+  navSession.setRoute(state.currentRoute.coords || [], state.currentInstructions || []);
   state.activeInstructionIndex = 0;
+
   document.body.classList.add('navigating');
   routePanel.classList.remove('visible');
   routePanel.classList.add('hidden');
   navHud.classList.remove('hidden');
   updateHUD(state.currentRoute);
-
-  if (navSimInterval) clearInterval(navSimInterval);
-  navSimInterval = setInterval(() => {
-    if (!state.isNavigating) return;
-    const instructions = state.currentInstructions || [];
-    if (state.activeInstructionIndex < instructions.length - 1) {
-      state.activeInstructionIndex++;
-      updateHUD(state.currentRoute);
-    }
-  }, 8000);
 
   if (meshAlert) {
     setTimeout(() => {
@@ -557,62 +546,90 @@ function startNavigation() {
 
 function stopNavigation() {
   state.isNavigating = false;
+  navSession.reset();
+
   document.body.classList.remove('navigating');
-  if (navSimInterval) {
-    clearInterval(navSimInterval);
-    navSimInterval = null;
-  }
   navHud.classList.add('hidden');
   routePanel.classList.remove('visible');
   routePanel.classList.add('hidden');
   meshAlert.style.display = 'none';
+
   mapView.clearRoute();
   mapView.clearMarkers();
   state.currentRoute = null;
   state.destination = null;
   searchInput.value = '';
 }
+function updateHUD(route, navSnapshot = null) {
+  const remainingMeters = navSnapshot?.distanceRemainingMeters ?? route.distance;
+  hudDistance.textContent = remainingMeters != null
+    ? `${(remainingMeters / 1000).toFixed(1)} km`
+    : `${(route.distance / 1000).toFixed(1)} km`;
 
-function updateHUD(route) {
-  hudDistance.textContent = `${(route.distance / 1000).toFixed(1)} km`;
-  
-  const instructions = state.currentInstructions || [];
-  const activeIndex = state.activeInstructionIndex || 0;
-  const currentStep = instructions[activeIndex] || { text: `Head toward ${state.destination?.name || 'destination'}`, icon: 'straight' };
-  
+  const currentStep = navSession.active
+    ? (navSession.currentInstruction() || { text: `Head toward ${state.destination?.name || 'destination'}`, icon: 'straight' })
+    : ((state.currentInstructions || [])[state.activeInstructionIndex || 0] || { text: `Head toward ${state.destination?.name || 'destination'}`, icon: 'straight' });
+
   hudInstruction.textContent = currentStep.text;
-  hudTime.textContent = formatDuration(route.duration);
+
+  const remainingTimeSeconds = (route.distance && remainingMeters != null)
+    ? Math.max(0, Math.round(route.duration * (remainingMeters / route.distance)))
+    : route.duration;
+  hudTime.textContent = formatDuration(remainingTimeSeconds);
 
   const eta = new Date();
-  eta.setSeconds(eta.getSeconds() + route.duration);
+  eta.setSeconds(eta.getSeconds() + remainingTimeSeconds);
   hudArrival.textContent = `ETA ${eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 
-  // Update AR Overlay elements
   const arText = document.getElementById('ar-text');
-  if (arText) {
-    arText.textContent = currentStep.text;
-  }
+  if (arText) arText.textContent = currentStep.text;
   const arArrowSvg = document.getElementById('ar-arrow-svg');
   if (arArrowSvg) {
     let rotation = '0deg';
-    if (currentStep.icon === 'left') {
-      rotation = '-90deg';
-    } else if (currentStep.icon === 'right') {
-      rotation = '90deg';
-    } else if (currentStep.icon === 'arrive') {
-      rotation = '180deg';
-    }
+    if (currentStep.icon === 'left') rotation = '-90deg';
+    else if (currentStep.icon === 'right') rotation = '90deg';
+    else if (currentStep.icon === 'arrive') rotation = '180deg';
     arArrowSvg.style.transform = `rotate(${rotation})`;
   }
 }
 
 function updateNavHUD(position) {
+  if (!position) return;
+
+  let navSnapshot = null;
+  if (state.isNavigating && state.currentRoute && navSession.active) {
+    navSnapshot = navSession.updateFromGps({
+      lng: position.lng,
+      lat: position.lat,
+      speedMps: position.speed || 0,
+      headingDeg: position.heading,
+      accuracyM: position.accuracy,
+      timestampMs: position.timestampMs || Date.now(),
+    });
+
+    if (navSnapshot?.matched) {
+      mapView.setUserLocation(navSnapshot.matched.lng, navSnapshot.matched.lat);
+    } else {
+      mapView.setUserLocation(position.lng, position.lat);
+    }
+
+    if (navSnapshot?.shouldReroute && !state.rerouteInProgress) {
+      state.rerouteInProgress = true;
+      const originLng = navSnapshot?.matched?.lng ?? position.lng;
+      const originLat = navSnapshot?.matched?.lat ?? position.lat;
+      state.origin = { name: 'Current Location', lng: originLng, lat: originLat };
+      calculateRoute().finally(() => { state.rerouteInProgress = false; });
+    }
+
+    updateHUD(state.currentRoute, navSnapshot);
+    return;
+  }
+
   mapView.setUserLocation(position.lng, position.lat);
   if (state.currentRoute) {
-    updateHUD(state.currentRoute);
+    updateHUD(state.currentRoute, navSnapshot);
   }
 }
-
 function setupAIPanel() {
   document.getElementById('ai-fab-btn').addEventListener('click', async () => {
     aiPanel.classList.remove('hidden');
@@ -1159,7 +1176,7 @@ async function setupHardwareTelemetry() {
   function updateBatteryUI(level, charging) {
     const batteryElem = document.getElementById('telemetry-battery');
     if (!batteryElem) return;
-    batteryElem.textContent = `${Math.round(level)}%${charging ? ' ⚡' : ''}`;
+    batteryElem.textContent = `${Math.round(level)}%${charging ? ' ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡' : ''}`;
     const batteryItem = batteryElem.parentElement;
     batteryItem.className = 'telemetry-item';
     if (level < 15) {

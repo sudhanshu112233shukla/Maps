@@ -1,5 +1,5 @@
 /**
- * GPSTracker.js — On-device GPS using Capacitor Geolocation
+ * GPSTracker.js â€” On-device GPS using Capacitor Geolocation
  * Falls back to browser geolocation API for web testing
  */
 
@@ -48,7 +48,7 @@ export class GPSTracker {
     if (this.watchId) return;
 
     const handlePos = (pos) => {
-      this.position = { lng: pos.coords.longitude, lat: pos.coords.latitude, speed: pos.coords.speed, heading: pos.coords.heading };
+      this.position = {        lng: pos.coords.longitude,        lat: pos.coords.latitude,        speed: pos.coords.speed,        heading: pos.coords.heading,        accuracy: pos.coords.accuracy,        timestampMs: pos.timestamp || Date.now(),      };
       this.listeners.forEach(cb => cb(this.position));
     };
 
