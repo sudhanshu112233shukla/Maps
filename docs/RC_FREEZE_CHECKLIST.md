@@ -1,4 +1,4 @@
-# RC Freeze Checklist (Stage 1)
+﻿# RC Freeze Checklist (Stage 1)
 
 Scope: This checklist defines the minimum bar for cutting a release-candidate snapshot from `main`.
 
@@ -12,7 +12,7 @@ Scope: This checklist defines the minimum bar for cutting a release-candidate sn
 
 - `npm.cmd run selfcheck:all` passes.
 - Android debug assemble passes on Windows:
-  - `npm.cmd run android:assemble:debug:g`
+  - `npm.cmd run android:assemble:debug:h`
 
 ## Freeze Actions
 

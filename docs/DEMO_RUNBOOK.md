@@ -1,4 +1,4 @@
-# Demo Runbook
+﻿# Demo Runbook
 
 This repo supports a user-facing demo in two modes:
 
@@ -26,8 +26,8 @@ What to demo:
 1. Build web + sync Capacitor:
    - `npm run mobile:build`
 2. Assemble debug APK with Gradle cache on `G:`:
-   - `npm run android:assemble:debug:g`
-   - APK output is copied to `artifacts/apks/` automatically.
+   - `npm run android:assemble:debug:h`
+   - APKs export to `H:\MelangeMaps\apks\` (and `MelangeMaps-debug-latest.apk` is kept updated).
 
 Notes:
 - For full native SDK validation, install and run on a physical device via Android Studio or `npx cap run android`.

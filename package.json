@@ -2,7 +2,7 @@
   "name": "ai-map-system",
   "version": "1.0.0",
   "type": "module",
-  "description": "On-device AI Map — Offline routing for Europe, Americas, India, Japan, South Korea, Canada, Russia",
+  "description": "On-device AI Map â€” Offline routing for Europe, Americas, India, Japan, South Korea, Canada, Russia",
   "main": "index.html",
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,7 @@
     "cap:open:ios": "npx cap open ios",
     "cap:run:android": "npx cap run android",
     "mobile:build": "vite build && npx cap sync",
-    "android:assemble:debug:g": "powershell -ExecutionPolicy Bypass -File tools/android/assemble_debug_g.ps1",
+    "android:assemble:debug:h": "powershell -ExecutionPolicy Bypass -File tools/android/assemble_debug_h.ps1",
     "graph:build": "python tools/osm_pipeline/build_from_manifest.py",
     "graph:build:india": "python tools/osm_pipeline/build_from_manifest.py --region-id india",
     "graph:build:usa": "python tools/osm_pipeline/build_from_manifest.py --region-id usa",
