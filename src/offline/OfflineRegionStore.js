@@ -49,6 +49,7 @@ export class OfflineRegionStore {
         packPath: status.packPath || region.bundledPackPath,
         graphPath: status.graphPath || region.graphPath,
         poiPath: status.poiPath || region.poiPath,
+        graphhopperDir: status.graphhopperDir || null,
         dataVersion: status.dataVersion || region.dataVersion || 'unversioned',
         verifiedAt: status.verifiedAt || null,
         stageKey: status.stageKey || null,

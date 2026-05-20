@@ -7,6 +7,7 @@ import {
   verifyAssetChecksum,
 } from './PackIntegrity.js';
 import { OfflinePackManager } from './OfflinePackManager.js';
+import { GraphPackRegistry } from '../packs/GraphPackRegistry.js';
 import {
   canFitStorage,
   estimateRequiredBytesFromAssets,
@@ -24,6 +25,7 @@ export class RegionProvisioner {
     this.offlineDataLoader = options.offlineDataLoader || null;
     this.offlineStore = options.offlineStore || null;
     this.packManager = options.packManager || new OfflinePackManager({ offlineStore: this.offlineStore });
+    this.graphPackRegistry = options.graphPackRegistry || new GraphPackRegistry();
   }
 
   pauseRegion(regionId) {
@@ -67,6 +69,7 @@ export class RegionProvisioner {
       patch = await this.packManager.updateRegion(region, progressCallback);
     } catch (error) {
       await this.packManager.rollbackRegion(regionId, previousActive, error?.message || 'Pack transaction failed');
+      await this.graphPackRegistry.remove(regionId).catch(() => null);
       throw error;
     }
 
@@ -112,6 +115,15 @@ export class RegionProvisioner {
     }
 
     await this.packManager.finalizeRegion?.(regionId);
+
+    if (patch?.graphhopperDir) {
+      await this.graphPackRegistry.set(regionId, {
+        regionId,
+        graphhopperDir: patch.graphhopperDir,
+        graphVersion: patch.dataVersion || 'unversioned',
+        graphhopperVersion: '9.0',
+      });
+    }
     progressCallback?.(100, 'Region ready for offline use');
     return {
       ...patch,

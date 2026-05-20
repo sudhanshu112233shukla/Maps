@@ -1,4 +1,4 @@
-import {
+﻿import {
   findAssetInManifest,
   loadDeltaManifest,
   loadPackManifest,
@@ -225,11 +225,14 @@ export class OfflinePackManager {
     const poiAsset = bySourcePath.get(region.poiPath) || findAssetInManifest(manifest, region.poiPath);
     const packAsset =
       bySourcePath.get(region.bundledPackPath) || findAssetInManifest(manifest, region.bundledPackPath);
+    const graphhopperAsset =
+      activatedAssets.find((asset) => asset.path?.includes('/graphhopper/') || asset.activePath?.includes('/graphhopper/')) || null;
 
     return {
       packPath: packAsset?.activePath || packAsset?.path || region.bundledPackPath || null,
       graphPath: graphAsset?.activePath || graphAsset?.path || region.graphPath || null,
       poiPath: poiAsset?.activePath || poiAsset?.path || region.poiPath || null,
+      graphhopperDir: graphhopperAsset?.activePath || region.graphhopperDir || null,
       dataVersion: manifest.dataVersion || region.dataVersion || 'unversioned',
       manifestVersion: manifest.schemaVersion || 1,
       updateType: activatedAssets.length > 0 ? 'delta-or-full' : 'full',
