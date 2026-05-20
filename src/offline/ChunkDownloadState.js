@@ -51,6 +51,17 @@ export class ChunkDownloadState {
     await saveAll(all);
   }
 
+  async clearRegion(regionId) {
+    const all = await loadAll();
+    const prefix = `${regionId}::`;
+    for (const key of Object.keys(all)) {
+      if (key.startsWith(prefix)) {
+        delete all[key];
+      }
+    }
+    await saveAll(all);
+  }
+
   async clearTransaction(regionId, transactionId) {
     const all = await loadAll();
     const prefix = `${regionId}::${transactionId}::`;

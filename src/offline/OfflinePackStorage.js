@@ -395,6 +395,14 @@ export class OfflinePackStorage {
     await removeDir(rollbackToken.backupDir);
   }
 
+  async removeRegionStorage(regionId) {
+    if (!regionId) {
+      return;
+    }
+    await removeDir(`${ROOT_DIR}/${regionId}`);
+    await this.chunkState.clearRegion(regionId);
+  }
+
   async clearTransactionState(regionId, transactionId) {
     if (!regionId || !transactionId) {
       return;

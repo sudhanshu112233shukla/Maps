@@ -42,6 +42,16 @@ export class RegionProvisioner {
     this.packManager?.cancelRegion?.(regionId);
   }
 
+  async deleteRegion(regionId) {
+    this.cancelRegion(regionId);
+    await this.packManager.removeRegion(regionId).catch(() => null);
+    await this.graphPackManager.rollbackActivation(regionId).catch(() => null);
+    await this.graphPackRegistry.remove(regionId).catch(() => null);
+    await this.offlineStore?.removeRegionData?.(regionId);
+    this.offlineDataLoader?.clear?.(regionId);
+    return { regionId, removed: true };
+  }
+
   async provisionRegion(regionId, progressCallback = null) {
     const region = getRegionById(regionId);
     if (!region) {

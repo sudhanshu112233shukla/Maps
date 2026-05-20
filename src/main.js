@@ -35,6 +35,24 @@ const ai = new AIAssistant({ locale: 'en-US' });
 const offlineStore = new OfflineRegionStore();
 const offlineDataLoader = new OfflineDataLoader();
 const regionProvisioner = new RegionProvisioner({ offlineDataLoader, offlineStore });
+
+
+function updateOfflineReadyBadge() {
+  const badge = document.getElementById('offline-badge');
+  if (!badge) return;
+  const active = state.offlineRegions.find((region) => region.id === state.activeRegion) || null;
+  const graphhopperActive = state.routingBackend === 'graphhopper-native';
+  const offlineReady = Boolean(active?.downloaded && graphhopperActive);
+  badge.classList.toggle('offline-state-ok', offlineReady);
+  badge.classList.toggle('offline-state-fallback', !offlineReady);
+  if (offlineReady) {
+    badge.textContent = `Offline Ready ? ${active?.name || state.activeRegion} ? GraphHopper`;
+  } else if (active?.downloaded) {
+    badge.textContent = `Pack Ready ? ${active?.name || state.activeRegion} ? JS fallback`;
+  } else {
+    badge.textContent = `Offline not ready ? download ${active?.name || state.activeRegion}`;
+  }
+}
 const navSession = new NavigationSession();
 const searchInput = document.getElementById('search-input');
 const originInput = document.getElementById('origin-input');
@@ -150,6 +168,7 @@ async function syncRegionAssets(regionId, { recenter = false } = {}) {
   });
   state.routingBackend = routingStatus?.backend || 'js-astar';
   state.offlineRegions = await offlineStore.hydrateRegions();
+  updateOfflineReadyBadge();
 
   if (recenter) {
     mapView.setRegion(regionId);
@@ -838,6 +857,7 @@ function setupOfflineManager() {
   const closeButton = document.getElementById('offline-close-btn');
 
   const renderRegions = () => {
+    updateOfflineReadyBadge();
     regionList.innerHTML = state.offlineRegions
       .map(
         (region) => `
@@ -881,7 +901,11 @@ function setupOfflineManager() {
               ${
                 region.downloaded
                   ? `<button class="download-btn downloaded">Ready</button>
-                     <div class="region-meta">${region.verifiedAt ? `Verified ${new Date(region.verifiedAt).toLocaleDateString()}` : ''}</div>`
+                     <div class="region-meta">${region.verifiedAt ? `Verified ${new Date(region.verifiedAt).toLocaleDateString()}` : ''}</div>
+                     <div class="region-actions">
+                       <button class="region-action-btn" onclick="activateRegion('${region.id}')" ${region.id === state.activeRegion ? 'disabled' : ''}>${region.id === state.activeRegion ? 'Active' : 'Use this region'}</button>
+                       <button class="region-action-btn" onclick="deleteRegionPack('${region.id}')">Delete</button>
+                     </div>`
                   : region.releaseStatus === 'released'
                     ? `<button class="download-btn" onclick="startDownload('${region.id}')">Download</button>
                      <div class="progress-bar-container" id="progress-${region.id}">
@@ -992,6 +1016,37 @@ function setupOfflineManager() {
 
   window.clearDownloadState = async (regionId) => {
     state.offlineRegions = await offlineStore.clearTransaction(regionId);
+    renderRegions();
+  };
+
+
+  window.activateRegion = async (regionId) => {
+    const target = state.offlineRegions.find((region) => region.id === regionId);
+    if (!target?.downloaded) {
+      alert('Download this region first.');
+      return;
+    }
+    await syncRegionAssets(regionId, { recenter: true });
+    renderRegions();
+  };
+
+  window.deleteRegionPack = async (regionId) => {
+    const target = state.offlineRegions.find((region) => region.id === regionId);
+    if (!target?.downloaded) {
+      return;
+    }
+    const ok = window.confirm(`Delete offline pack for ${target.name}?`);
+    if (!ok) return;
+
+    await regionProvisioner.deleteRegion(regionId);
+    state.offlineRegions = await offlineStore.hydrateRegions();
+
+    if (regionId === state.activeRegion) {
+      const fallback = state.offlineRegions.find((region) => region.downloaded) || state.offlineRegions[0];
+      if (fallback) {
+        await syncRegionAssets(fallback.id, { recenter: true });
+      }
+    }
     renderRegions();
   };
 }

@@ -179,6 +179,43 @@ export class OfflineRegionStore {
     return this.getRegions();
   }
 
+  async removeRegionData(regionId) {
+    const current = this.statusByRegion[regionId] || {};
+    this.statusByRegion[regionId] = {
+      ...current,
+      downloaded: false,
+      progress: 0,
+      downloadedAt: null,
+      verifiedAt: null,
+      packPath: null,
+      graphPath: null,
+      poiPath: null,
+      graphhopperDir: null,
+      dataVersion: getRegionById(regionId)?.dataVersion || 'unversioned',
+      stageKey: null,
+      stageStatus: null,
+      stageProgress: null,
+      transactionId: null,
+      transactionStatus: null,
+      transactionError: null,
+      transactionDataVersion: null,
+      transactionUpdatedAt: new Date().toISOString(),
+      transactionAssetPath: null,
+      transactionDownloadedBytes: null,
+      transactionTotalBytes: null,
+      transactionRetryCount: null,
+      transactionChunkStatus: null,
+      transactionChunkError: null,
+      transactionEtaSeconds: null,
+      transactionBytesPerSecond: null,
+      transactionPaused: false,
+      transactionCancelled: false,
+      lastError: null,
+    };
+    await this.#save();
+    return this.getRegions();
+  }
+
   async clearTransaction(regionId) {
     const current = this.statusByRegion[regionId] || {};
     this.statusByRegion[regionId] = {

@@ -49,6 +49,14 @@ export class OfflinePackManager {
     this.offlineStore?.updateTransaction?.(regionId, { transactionPaused: false }).catch?.(() => null);
   }
 
+  async removeRegion(regionId) {
+    this.downloadQueue.cancel(`region:${regionId}`);
+    await this.packStorage.removeRegionStorage(regionId);
+    this.lastRollbackTokenByRegion.delete(regionId);
+    this.lastTransactionIdByRegion.delete(regionId);
+    await this.offlineStore?.clearTransaction?.(regionId);
+  }
+
   cancelRegion(regionId) {
     this.downloadQueue.cancel(`region:${regionId}`);
     this.offlineStore?.updateTransaction?.(regionId, { transactionCancelled: true }).catch?.(() => null);
