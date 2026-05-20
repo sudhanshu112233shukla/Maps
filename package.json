@@ -2,7 +2,7 @@
   "name": "ai-map-system",
   "version": "1.0.0",
   "type": "module",
-  "description": "On-device AI Map â€” Offline routing for Europe, Americas, India, Japan, South Korea, Canada, Russia",
+  "description": "On-device AI Map ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Offline routing for Europe, Americas, India, Japan, South Korea, Canada, Russia",
   "main": "index.html",
   "scripts": {
     "dev": "vite",
@@ -55,6 +55,7 @@
     "selfcheck:release-state": "node tools/selfcheck/release_state_selfcheck.mjs",
     "selfcheck:region-catalog": "node tools/selfcheck/region_catalog_selfcheck.mjs",
     "selfcheck:routing": "node tools/selfcheck/routing_selfcheck.mjs",
+    "selfcheck:graphhopper": "node tools/selfcheck/graphhopper_plugin_selfcheck.mjs",
     "selfcheck:rust-native": "node tools/selfcheck/rust_native_activation_selfcheck.mjs",
     "selfcheck:search": "node tools/selfcheck/search_selfcheck.mjs",
     "selfcheck:storage": "node tools/selfcheck/storage_budget_selfcheck.mjs",

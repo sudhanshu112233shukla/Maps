@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(MelangeNavigationPlugin.class);
         registerPlugin(RustSearchPlugin.class);
+        registerPlugin(GraphHopperRoutingPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
