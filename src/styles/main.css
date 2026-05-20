@@ -1,36 +1,36 @@
-/* ===================================================
-   AI MAP SYSTEM — Global Styles
+﻿/* ===================================================
+      AI MAP SYSTEM - Global Styles
    Automobile + Mobile HMI Design
    =================================================== */
 
 /* ---------- CSS Variables / Design Tokens ---------- */
 :root {
-  --bg-deep:       #0a0e1a;
-  --bg-card:       #111827;
-  --bg-card2:      #1a2235;
-  --bg-glass:      rgba(17, 24, 39, 0.85);
-  --accent:        #3b82f6;
-  --accent-glow:   rgba(59, 130, 246, 0.35);
-  --accent-green:  #10b981;
-  --accent-amber:  #f59e0b;
-  --accent-red:    #ef4444;
-  --text-primary:  #f1f5f9;
-  --text-secondary:#94a3b8;
-  --text-muted:    #475569;
-  --border:        rgba(255,255,255,0.07);
-  --border-active: rgba(59,130,246,0.5);
-  --shadow-card:   0 8px 32px rgba(0,0,0,0.5);
-  --shadow-glow:   0 0 24px var(--accent-glow);
-  --radius-sm:     8px;
-  --radius-md:     14px;
-  --radius-lg:     20px;
-  --radius-xl:     28px;
-  --font-main:     'Outfit', sans-serif;
-  --font-display:  'Outfit', sans-serif;
-  --font-mono:     'JetBrains Mono', monospace;
-  --safe-top:      env(safe-area-inset-top, 0px);
-  --safe-bottom:   env(safe-area-inset-bottom, 0px);
-  --tap-min:       48px;
+  --bg-deep: #f5f7fb;
+  --bg-card: #ffffff;
+  --bg-card2: #f1f3f4;
+  --bg-glass: rgba(255, 255, 255, 0.96);
+  --accent: #1a73e8;
+  --accent-glow: rgba(26, 115, 232, 0.22);
+  --accent-green: #137333;
+  --accent-amber: #b06000;
+  --accent-red: #d93025;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #80868b;
+  --border: rgba(60, 64, 67, 0.16);
+  --border-active: rgba(26, 115, 232, 0.42);
+  --shadow-card: 0 2px 10px rgba(60, 64, 67, 0.18);
+  --shadow-glow: 0 0 14px var(--accent-glow);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 26px;
+  --font-main: 'Outfit', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tap-min: 46px;
 }
 
 /* ---------- Reset ---------- */
@@ -61,26 +61,24 @@ html, body {
 /* ---------- Top Bar ---------- */
 #top-bar {
   position: fixed;
-  top: calc(12px + var(--safe-top));
-  left: 12px;
-  right: 12px;
+  top: calc(10px + var(--safe-top));
+  left: 10px;
+  right: 10px;
   z-index: 100;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 #search-box {
   flex: 1;
   display: flex;
   align-items: center;
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 0 14px;
-  height: 52px;
+  padding: 0 12px;
+  height: 50px;
   box-shadow: var(--shadow-card);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -141,26 +139,24 @@ html, body {
 /* Quick Search Chips (Google Maps Style) */
 #quick-search {
   position: absolute;
-  top: 110px;
-  left: 12px;
-  right: 12px;
+  top: 78px;
+  left: 10px;
+  right: 10px;
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 4px 0;
+  padding: 2px 0;
   scrollbar-width: none;
   z-index: 90;
 }
 #quick-search::-webkit-scrollbar { display: none; }
 
 .q-chip {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #fff;
   color: var(--text-primary);
-  padding: 8px 14px;
+  padding: 7px 12px;
   border-radius: 18px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -169,7 +165,7 @@ html, body {
   white-space: nowrap;
   cursor: pointer;
   border: 1px solid var(--border);
-  transition: all 0.2s;
+  transition: all 0.18s;
 }
 .q-chip:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -183,9 +179,7 @@ html, body {
   height: var(--tap-min);
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: #fff;
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -458,16 +452,14 @@ html, body {
 /* ---------- Navigation HUD ---------- */
 #nav-hud {
   position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 200;
-  background: linear-gradient(135deg, #1e3a5f 0%, #0a0e1a 100%);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: calc(14px + var(--safe-top)) 16px 14px;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.7);
-  animation: slideDown 0.3s ease;
+  top: calc(124px + var(--safe-top));
+  left: 10px;
+  right: 10px;
+  z-index: 110;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
 }
 
 #hud-turn-arrow {
@@ -1044,4 +1036,6 @@ body.navigating .telemetry-widget {
   font-weight: 700;
   font-size: 11px;
 }
+
+
 

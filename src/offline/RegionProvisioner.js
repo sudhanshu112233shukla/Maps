@@ -8,6 +8,7 @@ import {
 } from './PackIntegrity.js';
 import { OfflinePackManager } from './OfflinePackManager.js';
 import { GraphPackRegistry } from '../packs/GraphPackRegistry.js';
+import { PackDownloadManager } from '../packs/PackDownloadManager.js';
 import {
   canFitStorage,
   estimateRequiredBytesFromAssets,
@@ -26,6 +27,7 @@ export class RegionProvisioner {
     this.offlineStore = options.offlineStore || null;
     this.packManager = options.packManager || new OfflinePackManager({ offlineStore: this.offlineStore });
     this.graphPackRegistry = options.graphPackRegistry || new GraphPackRegistry();
+    this.graphPackManager = options.graphPackManager || new PackDownloadManager({ registry: this.graphPackRegistry });
   }
 
   pauseRegion(regionId) {
@@ -69,6 +71,7 @@ export class RegionProvisioner {
       patch = await this.packManager.updateRegion(region, progressCallback);
     } catch (error) {
       await this.packManager.rollbackRegion(regionId, previousActive, error?.message || 'Pack transaction failed');
+      await this.graphPackManager.rollbackActivation(regionId).catch(() => null);
       await this.graphPackRegistry.remove(regionId).catch(() => null);
       throw error;
     }
@@ -115,6 +118,22 @@ export class RegionProvisioner {
     }
 
     await this.packManager.finalizeRegion?.(regionId);
+    // Optional GraphHopper pack lifecycle for regions that publish graph bundle metadata.
+    const ghBundleUrl = manifest?.graphhopperBundleUrl || manifest?.graphhopper?.bundleUrl || null;
+    const ghGraphDir = manifest?.graphhopperDir || manifest?.graphhopper?.graphDir || null;
+    if (ghBundleUrl && ghGraphDir) {
+      progressCallback?.(95, 'Preparing GraphHopper graph pack');
+      await this.graphPackManager.downloadToTemp(regionId, ghBundleUrl);
+      await this.graphPackManager.validateDownloadedPack(regionId, {
+        checksum: manifest?.graphhopperChecksum || manifest?.graphhopper?.checksum || null,
+        graphhopperVersion: manifest?.graphhopperVersion || manifest?.graphhopper?.version || '9.0',
+      });
+      const activation = await this.graphPackManager.activateGraphPack(regionId, ghGraphDir, {
+        graphVersion: manifest?.graphVersion || manifest?.dataVersion || patch.dataVersion,
+        graphhopperVersion: manifest?.graphhopperVersion || manifest?.graphhopper?.version || '9.0',
+      });
+      patch = { ...patch, graphhopperDir: activation.graphhopperDir };
+    }
 
     if (patch?.graphhopperDir) {
       await this.graphPackRegistry.set(regionId, {

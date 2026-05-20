@@ -1,6 +1,15 @@
 ﻿import { Filesystem, Directory } from '@capacitor/filesystem';
-import { sha256 } from '../offline/PackIntegrity.js';
 import { GraphPackRegistry } from './GraphPackRegistry.js';
+
+async function sha256Hex(buffer) {
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  const bytes = new Uint8Array(digest);
+  let hex = '';
+  for (const value of bytes) {
+    hex += value.toString(16).padStart(2, '0');
+  }
+  return hex;
+}
 
 async function ensureDir(path) {
   await Filesystem.mkdir({ directory: Directory.Data, path, recursive: true }).catch(() => null);
@@ -53,7 +62,7 @@ export class PackDownloadManager {
     if (!file?.data) throw new Error('Downloaded pack archive missing');
 
     const bytes = Uint8Array.from(atob(file.data), (char) => char.charCodeAt(0));
-    const digest = await sha256(bytes.buffer);
+    const digest = await sha256Hex(bytes.buffer);
 
     const validation = {
       regionId,
