@@ -50,3 +50,5 @@ tools/graphhopper_pack_builder/__pycache__/
 # Keep repository pack manifests tracked
 !public/data/packs/
 !public/data/packs/*.json
+# Local promoted graphhopper bundle artifacts (large)
+public/data/graphhopper_packs/

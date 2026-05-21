@@ -19,3 +19,11 @@ Checksum verification:
 
 Note:
 - `kr_seoul_core` currently uses the full South Korea input PBF you provided (`south-korea-260519.osm.pbf`) mapped to the Seoul-core target id for demo continuity.
+
+## Runtime wiring
+- Region manifests now include GraphHopper bundle metadata fields:
+  - `graphhopperBundleUrl`
+  - `graphhopperChecksum`
+  - `graphhopperVersion`
+  - `graphhopperDir`
+- Local promoted bundles copied to `public/data/graphhopper_packs/<region>/pack.zip` for demo runtime.

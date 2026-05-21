@@ -1,10 +1,24 @@
-﻿{
+{
   "regionId": "kr_seoul_core",
   "dataVersion": "2026.05",
   "schemaVersion": 1,
   "assets": [
-    { "path": "/data/maps/kr_seoul_core.pmtiles", "required": false },
-    { "path": "/data/graph/kr_seoul_core.json", "required": true },
-    { "path": "/data/poi/kr_seoul_core.json", "required": true }
-  ]
+    {
+      "path": "/data/maps/kr_seoul_core.pmtiles",
+      "required": false
+    },
+    {
+      "path": "/data/graph/kr_seoul_core.json",
+      "required": true
+    },
+    {
+      "path": "/data/poi/kr_seoul_core.json",
+      "required": true
+    }
+  ],
+  "graphVersion": "1.0.0",
+  "graphhopperVersion": "9.0",
+  "graphhopperBundleUrl": "/data/graphhopper_packs/kr_seoul_core/pack.zip",
+  "graphhopperChecksum": "4e646dd479fb09dffe9cf9fb2d4b4793b9c27a5b28bcca0f45d78e4d628e878e",
+  "graphhopperDir": "/data/graphhopper_packs/kr_seoul_core/graphhopper"
 }
