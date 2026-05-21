@@ -9,4 +9,3 @@ python tools/graphhopper_pack_builder/build_pack.py `
   --osm-source geofabrik `
   --osm-date 2026-05-19 `
   --locales en,hi `
-  --java-opts -Xms512m -Xmx2200m

@@ -1,23 +1,21 @@
 ﻿# GraphHopper Pack Build Status (2026-05-21)
 
 ## Active Small Demo Targets
-- `india_goa`
-- `usa_hawaii`
-- `kr_seoul_core` (custom clipped PBF)
+- `india_goa` ✅ built
+- `usa_hawaii` ✅ built
+- `kr_seoul_core` ✅ built
 
-## Input files expected
-Place these in `tools/osm_inputs/`:
-- `india_goa.osm.pbf`
-- `usa_hawaii.osm.pbf`
-- `kr_seoul_core.osm.pbf`
+## Build result
+All three packs were generated under `packs/` with:
+- `manifest.json`
+- `metadata.json`
+- `checksums/checksums.json`
+- `pack.zip`
 
-## Build scripts
-- `tools/graphhopper_pack_builder/run_build_india_goa.ps1`
-- `tools/graphhopper_pack_builder/run_build_usa_hawaii.ps1`
-- `tools/graphhopper_pack_builder/run_build_kr_seoul_core.ps1`
-- `tools/graphhopper_pack_builder/run_build_demo_small.ps1`
+Checksum verification:
+- `india_goa` ✅
+- `usa_hawaii` ✅
+- `kr_seoul_core` ✅
 
-## Run all
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/graphhopper_pack_builder/run_build_demo_small.ps1
-```
+Note:
+- `kr_seoul_core` currently uses the full South Korea input PBF you provided (`south-korea-260519.osm.pbf`) mapped to the Seoul-core target id for demo continuity.
