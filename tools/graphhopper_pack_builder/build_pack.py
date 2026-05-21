@@ -6,7 +6,6 @@ import json
 import os
 import shutil
 import subprocess
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -32,17 +31,33 @@ def run(cmd: list[str], cwd: Path | None = None) -> None:
     subprocess.run(cmd, cwd=str(cwd) if cwd else None, check=True)
 
 
-def build_graphhopper_graph(java_bin: str, gh_jar: Path, osm_pbf: Path, output_dir: Path) -> None:
+def build_graphhopper_graph(java_bin: str, gh_jar: Path, osm_pbf: Path, output_dir: Path, java_opts: list[str] | None = None) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
-    cmd = [
-        java_bin,
+    config_path = output_dir.parent / 'graphhopper-config.yml'
+    config_yaml = f"""graphhopper:
+  datareader.file: {str(osm_pbf).replace('\\', '/')}
+  graph.location: {str(output_dir).replace('\\', '/')}
+  import.osm.ignored_highways: ""
+  graph.encoded_values: car_access,car_average_speed,bike_priority,bike_access,roundabout,bike_average_speed,foot_access,hike_rating,foot_priority,foot_average_speed
+  profiles:
+    - name: car
+      custom_model_files: [car.json]
+    - name: bike
+      custom_model_files: [bike.json]
+    - name: foot
+      custom_model_files: [foot.json]
+  datareader.worker_threads: 1
+"""
+    config_path.write_text(config_yaml, encoding='utf-8')
+    cmd = [java_bin]
+    if java_opts:
+        cmd.extend(java_opts)
+    cmd.extend([
         '-jar',
         str(gh_jar),
         'import',
-        str(osm_pbf),
-        '--profiles=car,bike,foot',
-        f'--graph.location={output_dir}',
-    ]
+        str(config_path),
+    ])
     run(cmd)
 
 
@@ -65,7 +80,7 @@ def build_pack(args: argparse.Namespace) -> Path:
     osm_pbf = Path(args.osm_pbf).resolve()
     gh_jar = Path(args.graphhopper_jar).resolve()
 
-    build_graphhopper_graph(args.java_bin, gh_jar, osm_pbf, graph_dir)
+    build_graphhopper_graph(args.java_bin, gh_jar, osm_pbf, graph_dir, args.java_opts)
 
     tree_checksums = sha256_tree(pack_dir)
     (checksums_dir / 'checksums.json').write_text(json.dumps(tree_checksums, indent=2), encoding='utf-8')
@@ -115,6 +130,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--osm-date', default=datetime.now(timezone.utc).strftime('%Y-%m-%d'))
     parser.add_argument('--locales', default='en,hi')
     parser.add_argument('--java-bin', default='java')
+    parser.add_argument('--java-opts', nargs='*', default=['-Xms512m','-Xmx2500m'])
     return parser.parse_args()
 
 

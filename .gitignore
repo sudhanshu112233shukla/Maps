@@ -42,3 +42,8 @@ android/keystore.properties
 android/app/*.keystore
 android/app/*.jks
 ios/App/App/SecretConfig.plist
+# Local GraphHopper runtime and generated packs
+tools/graphhopper/graphhopper-web-*.jar
+tools/osm_inputs/*.osm.pbf
+packs/
+tools/graphhopper_pack_builder/__pycache__/
