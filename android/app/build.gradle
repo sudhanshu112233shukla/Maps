@@ -25,6 +25,30 @@ def readZeticPat() {
     return ""
 }
 
+def readSigningValue(String key) {
+    def fromEnv = System.getenv(key)
+    if (fromEnv != null && !fromEnv.trim().isEmpty()) return fromEnv.trim()
+
+    def fromProp = project.findProperty(key)
+    if (fromProp != null && !fromProp.toString().trim().isEmpty()) return fromProp.toString().trim()
+
+    def envFile = rootProject.file("../.env.local")
+    if (envFile.exists()) {
+        for (String line : envFile.readLines("UTF-8")) {
+            def trimmed = line.trim()
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) continue
+            def eq = trimmed.indexOf("=")
+            if (eq <= 0) continue
+            def envKey = trimmed.substring(0, eq).trim()
+            def value = trimmed.substring(eq + 1).trim()
+            if (value.startsWith("\"") && value.endsWith("\"") && value.length() >= 2) {
+                value = value.substring(1, value.length() - 1)
+            }
+            if (envKey == key && !value.isEmpty()) return value
+        }
+    }
+    return ""
+}
 android {
     namespace "com.aimapsystem.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -53,10 +77,31 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+        signingConfigs {
+        release {
+            def storeFilePath = readSigningValue("MELANGE_RELEASE_STORE_FILE")
+            def storePasswordValue = readSigningValue("MELANGE_RELEASE_STORE_PASSWORD")
+            def keyAliasValue = readSigningValue("MELANGE_RELEASE_KEY_ALIAS")
+            def keyPasswordValue = readSigningValue("MELANGE_RELEASE_KEY_PASSWORD")
+
+            if (!storeFilePath.isEmpty() && !storePasswordValue.isEmpty() && !keyAliasValue.isEmpty() && !keyPasswordValue.isEmpty()) {
+                storeFile file(storeFilePath)
+                storePassword storePasswordValue
+                keyAlias keyAliasValue
+                keyPassword keyPasswordValue
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (signingConfigs.release.storeFile != null) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
@@ -93,3 +138,4 @@ try {
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
+

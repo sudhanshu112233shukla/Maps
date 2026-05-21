@@ -1,4 +1,4 @@
-﻿import 'maplibre-gl/dist/maplibre-gl.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles/main.css';
 
 import { MapView } from './map/MapView.js';
@@ -1309,3 +1309,15 @@ window.getNavigationHealth = function getNavigationHealth() {
   };
 };
 
+
+window.getAIHealth = function getAIHealth() {
+  const providerStatus = ai.getProviderStatus?.() || {};
+  const navHealth = window.getNavigationHealth?.() || {};
+  return {
+    provider: ai.getProviderLabel?.() || 'Unknown',
+    supportsNativeMelange: Boolean(providerStatus.supportsNativeMelange),
+    fallbackActive: !Boolean(providerStatus.supportsNativeMelange),
+    runtime: providerStatus.runtime || 'unknown',
+    routingBackend: navHealth.routingBackend || state.routingBackend,
+  };
+};
