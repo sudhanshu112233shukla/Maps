@@ -1,0 +1,10 @@
+﻿{
+  "regionId": "india_goa",
+  "dataVersion": "2026.05",
+  "schemaVersion": 1,
+  "assets": [
+    { "path": "/data/maps/india_goa.pmtiles", "required": false },
+    { "path": "/data/graph/india_goa.json", "required": true },
+    { "path": "/data/poi/india_goa.json", "required": true }
+  ]
+}

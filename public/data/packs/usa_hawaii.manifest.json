@@ -1,0 +1,10 @@
+﻿{
+  "regionId": "usa_hawaii",
+  "dataVersion": "2026.05",
+  "schemaVersion": 1,
+  "assets": [
+    { "path": "/data/maps/usa_hawaii.pmtiles", "required": false },
+    { "path": "/data/graph/usa_hawaii.json", "required": true },
+    { "path": "/data/poi/usa_hawaii.json", "required": true }
+  ]
+}

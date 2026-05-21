@@ -1,0 +1,10 @@
+﻿{
+  "regionId": "india_goa",
+  "baseVersion": "2026.04",
+  "targetVersion": "2026.05",
+  "patchAssets": [
+    { "path": "/data/graph/india_goa.json" },
+    { "path": "/data/poi/india_goa.json" }
+  ],
+  "deleteAssets": []
+}

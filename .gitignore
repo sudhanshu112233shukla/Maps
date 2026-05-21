@@ -47,3 +47,6 @@ tools/graphhopper/graphhopper-web-*.jar
 tools/osm_inputs/*.osm.pbf
 packs/
 tools/graphhopper_pack_builder/__pycache__/
+# Keep repository pack manifests tracked
+!public/data/packs/
+!public/data/packs/*.json

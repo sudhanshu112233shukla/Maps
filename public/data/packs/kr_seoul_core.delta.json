@@ -1,0 +1,10 @@
+﻿{
+  "regionId": "kr_seoul_core",
+  "baseVersion": "2026.04",
+  "targetVersion": "2026.05",
+  "patchAssets": [
+    { "path": "/data/graph/kr_seoul_core.json" },
+    { "path": "/data/poi/kr_seoul_core.json" }
+  ],
+  "deleteAssets": []
+}

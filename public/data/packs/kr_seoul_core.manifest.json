@@ -1,0 +1,10 @@
+﻿{
+  "regionId": "kr_seoul_core",
+  "dataVersion": "2026.05",
+  "schemaVersion": 1,
+  "assets": [
+    { "path": "/data/maps/kr_seoul_core.pmtiles", "required": false },
+    { "path": "/data/graph/kr_seoul_core.json", "required": true },
+    { "path": "/data/poi/kr_seoul_core.json", "required": true }
+  ]
+}

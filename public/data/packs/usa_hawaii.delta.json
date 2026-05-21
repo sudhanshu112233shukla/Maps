@@ -1,0 +1,10 @@
+﻿{
+  "regionId": "usa_hawaii",
+  "baseVersion": "2026.04",
+  "targetVersion": "2026.05",
+  "patchAssets": [
+    { "path": "/data/graph/usa_hawaii.json" },
+    { "path": "/data/poi/usa_hawaii.json" }
+  ],
+  "deleteAssets": []
+}
