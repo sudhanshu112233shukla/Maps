@@ -14,6 +14,7 @@ class MelangeNavigationWeb extends WebPlugin {
       models: {
         llm: options.llmModelName || 'google/gemma-3-4b-it',
         llmFallback: options.llmFallbackModelName || 'LiquidAI/LFM2.5-1.2B-Instruct',
+        semantic: options.semanticModelName || 'Steve/all-MiniLM-L6-v2',
         speech: options.speechModelName || 'ZETIC-ai/whisper-base-encoder',
         speechEncoder: options.speechEncoderModelName || 'ZETIC-ai/whisper-base-encoder',
         tts: options.ttsModelName || 'neuphonic/pocket-tts',

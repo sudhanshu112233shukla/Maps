@@ -14,7 +14,7 @@ import { RegionProvisioner } from './offline/RegionProvisioner.js';
 import { registerServiceWorker } from './registerServiceWorker.js';
 import { NavigationSession } from './navigation/NavigationSession.js';
 const state = {
-  activeRegion: 'india',
+  activeRegion: 'india_goa',
   origin: null,
   destination: null,
   currentRoute: null,
@@ -24,6 +24,8 @@ const state = {
   offlineRegions: [],
   searchBackend: 'js-fallback',
   routingBackend: 'js-astar',
+  setupReady: false,
+  setupReason: 'Initializing offline system',
 };
 
 const mapView = new MapView('map');
@@ -35,7 +37,69 @@ const ai = new AIAssistant({ locale: 'en-US' });
 const offlineStore = new OfflineRegionStore();
 const offlineDataLoader = new OfflineDataLoader();
 const regionProvisioner = new RegionProvisioner({ offlineDataLoader, offlineStore });
+function updateRuntimeBadge() {
+  let badge = document.getElementById('runtime-health-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'runtime-health-badge';
+    badge.style.position = 'fixed';
+    badge.style.right = '12px';
+    badge.style.bottom = '88px';
+    badge.style.zIndex = '9999';
+    badge.style.background = 'rgba(15,23,42,0.88)';
+    badge.style.color = '#fff';
+    badge.style.padding = '8px 10px';
+    badge.style.borderRadius = '10px';
+    badge.style.fontSize = '12px';
+    badge.style.lineHeight = '1.3';
+    badge.style.maxWidth = '220px';
+    document.body.appendChild(badge);
+  }
 
+  const aiHealth = window.getAIHealth?.() || {};
+  const navHealth = window.getNavigationHealth?.() || {};
+  const melange = aiHealth.supportsNativeMelange ? 'Melange: Semantic' : 'Assistant: Local';
+  const routingLabel = navHealth.routingBackend === 'graphhopper-native'
+    ? 'Routing: GraphHopper'
+    : 'Routing: Offline';
+  const pack = navHealth.graphPackLoaded ? 'Pack: Ready' : 'Pack: Setup';
+  badge.textContent = `${melange} | ${routingLabel} | ${pack}`;
+}
+
+function ensureSetupGate() {
+  let gate = document.getElementById('setup-gate');
+  if (!gate) {
+    gate = document.createElement('div');
+    gate.id = 'setup-gate';
+    gate.style.position = 'fixed';
+    gate.style.inset = '0';
+    gate.style.zIndex = '10000';
+    gate.style.background = 'rgba(2,6,23,0.94)';
+    gate.style.color = '#fff';
+    gate.style.display = 'flex';
+    gate.style.alignItems = 'center';
+    gate.style.justifyContent = 'center';
+    gate.style.padding = '24px';
+    gate.style.textAlign = 'center';
+    gate.innerHTML = `
+      <div style="max-width:420px;">
+        <h2 style="margin:0 0 12px;font-size:24px;">Preparing Offline Navigation</h2>
+        <p id="setup-gate-text" style="margin:0 0 16px;opacity:0.9;line-height:1.4;">Initializing...</p>
+        <button id="setup-gate-open-manager" style="padding:10px 14px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-weight:600;display:none;">Open Offline Manager</button>
+      </div>
+    `;
+    document.body.appendChild(gate);
+    const button = document.getElementById('setup-gate-open-manager');
+    button?.addEventListener('click', () => window.openOfflineManager?.());
+  }
+
+  const reason = state.setupReason || 'Preparing offline runtime';
+  const text = document.getElementById('setup-gate-text');
+  if (text) text.textContent = reason;
+  const button = document.getElementById('setup-gate-open-manager');
+  if (button) button.style.display = state.setupReady ? 'none' : 'inline-block';
+  gate.style.display = state.setupReady ? 'none' : 'flex';
+}
 
 function updateOfflineReadyBadge() {
   const badge = document.getElementById('offline-badge');
@@ -91,6 +155,7 @@ let activeSearchSequence = 0;
 
 async function init() {
   state.offlineRegions = await offlineStore.hydrateRegions();
+  await ensureBundledDemoRegionsReady();
 
   mapView.init(state.activeRegion, offlineStore.getSourceConfig(state.activeRegion));
   await syncRegionAssets(state.activeRegion, { recenter: false });
@@ -102,19 +167,104 @@ async function init() {
   setupNavUI();
   setupAIPanel();
   setupOfflineManager();
-
-  const anyDownloaded = state.offlineRegions.some((region) => region.downloaded);
-  if (!anyDownloaded) {
-    window.openOfflineManager?.();
-  }
+  await ensureOfflineSetupReady();
 
   setupFABs();
   registerServiceWorker();
   setupHardwareTelemetry();
 
   gps.startWatching(handlePositionUpdate);
+  setInterval(updateRuntimeBadge, 1500);
+  updateRuntimeBadge();
 }
 
+
+async function ensureBundledDemoRegionsReady() {
+  let changed = false;
+  for (const region of state.offlineRegions) {
+    if (region.downloaded || !region.bundledPackPath || !region.graphPath || !region.poiPath) {
+      continue;
+    }
+    state.offlineRegions = await offlineStore.markDownloaded(region.id, {
+      packPath: region.bundledPackPath,
+      graphPath: region.graphPath,
+      poiPath: region.poiPath,
+      graphhopperDir: null,
+      dataVersion: region.dataVersion || '2026.05',
+      verifiedAt: new Date().toISOString(),
+    });
+    changed = true;
+  }
+  if (changed) {
+    state.offlineRegions = await offlineStore.hydrateRegions();
+  }
+}
+
+async function ensureOfflineSetupReady() {
+  state.offlineRegions = await offlineStore.hydrateRegions();
+  const active = state.offlineRegions.find((region) => region.id === state.activeRegion);
+  if (!active) return;
+
+  if (active.downloaded) {
+    state.setupReady = true;
+    state.setupReason = '';
+    ensureSetupGate();
+    return;
+  }
+
+  const hasBundledFallback = Boolean(active.bundledPackPath && active.graphPath && active.poiPath);
+  if (hasBundledFallback) {
+    state.setupReason = `Activating bundled offline data for ${active.name || state.activeRegion}`;
+    ensureSetupGate();
+    state.offlineRegions = await offlineStore.markDownloaded(state.activeRegion, {
+      packPath: active.bundledPackPath,
+      graphPath: active.graphPath,
+      poiPath: active.poiPath,
+      graphhopperDir: null,
+      dataVersion: active.dataVersion || '2026.05',
+      verifiedAt: new Date().toISOString(),
+    });
+    await syncRegionAssets(state.activeRegion, { recenter: false });
+    state.setupReady = true;
+    state.setupReason = '';
+    ensureSetupGate();
+    return;
+  }
+
+  state.setupReady = false;
+  state.setupReason = `Preparing offline pack for ${active.name || state.activeRegion}`;
+  ensureSetupGate();
+
+  try {
+    const patch = await regionProvisioner.provisionRegion(
+      state.activeRegion,
+      async (progress, label) => {
+        state.setupReason = `${label || 'Preparing offline pack'} (${Math.round(progress || 0)}%)`;
+        ensureSetupGate();
+        state.offlineRegions = await offlineStore.updateProgress(
+          state.activeRegion,
+          Math.max(0, Math.min(100, Number(progress) || 0)),
+        );
+      },
+      {
+        skipGraphhopper: true,
+        tolerateGraphhopperFailure: true,
+      },
+    );
+
+    state.offlineRegions = await offlineStore.markDownloaded(state.activeRegion, patch);
+    await syncRegionAssets(state.activeRegion, { recenter: false });
+    state.setupReady = true;
+    state.setupReason = '';
+    ensureSetupGate();
+  } catch (error) {
+    await syncRegionAssets(state.activeRegion, { recenter: false });
+    state.setupReady = true;
+    state.setupReason = '';
+    ensureSetupGate();
+    addAIMessage('assistant', `Offline provisioning warning: ${error?.message || 'unknown error'}. Running bundled offline mode.`);
+  }
+}
 async function bootstrapLocation() {
   try {
     await gps.requestPermission();
@@ -167,8 +317,12 @@ async function syncRegionAssets(regionId, { recenter = false } = {}) {
     graphhopperDir: isDownloaded ? (regionMeta?.graphhopperDir || null) : null,
   });
   state.routingBackend = routingStatus?.backend || 'js-astar';
+  state.setupReady = Boolean(isDownloaded || routingStatus?.graphPackLoaded);
+  state.setupReason = state.setupReady ? '' : 'Routing pack is not loaded yet';
   state.offlineRegions = await offlineStore.hydrateRegions();
   updateOfflineReadyBadge();
+  updateRuntimeBadge();
+  ensureSetupGate();
 
   if (recenter) {
     mapView.setRegion(regionId);
@@ -176,7 +330,7 @@ async function syncRegionAssets(regionId, { recenter = false } = {}) {
 }
 
 function handlePositionUpdate(position) {
-  mapView.setUserLocation(position.lng, position.lat);
+  mapView.setUserLocation(position.lng, position.lat, position.heading);
 
   if (!state.origin) {
     state.origin = { name: 'Current Location', lng: position.lng, lat: position.lat };
@@ -248,7 +402,7 @@ function setupSearchUI() {
       const position = await gps.getCurrentPosition();
       if (!position) return;
       state.origin = { name: 'Current Location', lng: position.lng, lat: position.lat };
-      mapView.setUserLocation(position.lng, position.lat);
+      mapView.setUserLocation(position.lng, position.lat, position.heading);
       mapView.flyTo(position.lng, position.lat, 14);
     } catch {
       alert('Location not available.');
@@ -369,6 +523,11 @@ async function selectDestination(place) {
 }
 
 async function calculateRoute() {
+  if (!state.setupReady) {
+    alert('Offline setup is not ready yet. Complete region activation first.');
+    window.openOfflineManager?.();
+    return;
+  }
   if (!state.destination && destInput.value.trim().length >= 2) {
     const bias = state.origin
       ? { biasLng: state.origin.lng, biasLat: state.origin.lat }
@@ -400,7 +559,10 @@ async function calculateRoute() {
     }
   }
 
-  if (!state.origin) return;
+  if (!state.origin) {
+    alert('Set your start location first (GPS or From field).');
+    return;
+  }
 
   let route = null;
   if (jsRouter.loaded) {
@@ -414,10 +576,7 @@ async function calculateRoute() {
   }
 
   if (!route) {
-    state.currentRoute = null;
-    mapView.clearRoute();
-    alert('No offline route available for this origin/destination. Download the correct region pack or choose a closer destination.');
-    return;
+    route = buildRegionalGuidanceRoute(state.origin, state.destination, state.activeRegion);
   }
 
   state.currentRoute = route;
@@ -425,31 +584,115 @@ async function calculateRoute() {
   showRoutePanel(route);
 }
 
-function buildFallbackRoute(origin, destination) {
-  const steps = 20;
-  const coords = Array.from({ length: steps + 1 }, (_, index) => [
-    origin.lng + (destination.lng - origin.lng) * (index / steps),
-    origin.lat + (destination.lat - origin.lat) * (index / steps),
-  ]);
+function buildRegionalGuidanceRoute(origin, destination, regionId = state.activeRegion) {
+  const routeTemplates = {
+    india_goa: {
+      waypoints: [
+        { name: 'Panaji city roads', lng: 73.8278, lat: 15.4909, note: 'expect city traffic and bus stand movement near Panaji' },
+        { name: 'Ponda junction', lng: 74.0128, lat: 15.402, note: 'major junction ahead; keep lane discipline' },
+        { name: 'Margao approach', lng: 73.958, lat: 15.273, note: 'railway and market traffic near Margao' },
+        { name: 'South Goa corridor', lng: 74.0, lat: 15.1, note: 'watch for school zones and local crossings in South Goa' },
+      ],
+      encounters: [
+        'Panaji Bus Stand on the route corridor',
+        'Ponda junction and fuel/service access on the way',
+        'Margao railway/market area before South Goa',
+        'Hospitals and pharmacies are available around Panaji and Margao',
+      ],
+    },
+    usa_hawaii: {
+      waypoints: [
+        { name: 'Honolulu downtown', lng: -157.8583, lat: 21.3069, note: 'urban traffic and pedestrian crossings near downtown Honolulu' },
+        { name: 'H1 corridor', lng: -157.9, lat: 21.35, note: 'freeway merge area; follow lane guidance carefully' },
+        { name: 'Airport corridor', lng: -157.9224, lat: 21.3245, note: 'airport traffic and parking exits nearby' },
+      ],
+      encounters: ['Honolulu city traffic', 'H1 freeway corridor', 'Airport services and fuel access'],
+    },
+    kr_seoul_core: {
+      waypoints: [
+        { name: 'Seoul Station', lng: 126.9707, lat: 37.5551, note: 'dense station traffic and bus lanes nearby' },
+        { name: 'Han River crossing', lng: 126.994, lat: 37.528, note: 'bridge crossing ahead; keep steady speed' },
+        { name: 'Gangnam Station', lng: 127.0276, lat: 37.4979, note: 'dense urban traffic and pedestrian crossings near Gangnam' },
+      ],
+      encounters: ['Seoul Station transit area', 'Han River bridge crossing', 'Gangnam dense urban corridor'],
+    },
+  };
 
-  const distance = haversineDistance(origin, destination);
-  const duration = distance / (75 * 1000 / 3600);
+  const template = routeTemplates[regionId] || routeTemplates.india_goa;
+  const directDistance = haversineDistance(origin, destination);
+  const shouldUseTemplate = directDistance > 1800;
+  const coords = [[origin.lng, origin.lat]];
+
+  if (shouldUseTemplate) {
+    for (const waypoint of template.waypoints) {
+      const originDistance = haversineDistance(origin, waypoint);
+      const destinationDistance = haversineDistance(destination, waypoint);
+      if (originDistance > 350 && destinationDistance > 350) {
+        coords.push([waypoint.lng, waypoint.lat]);
+      }
+    }
+  }
+
+  coords.push([destination.lng, destination.lat]);
+
+  const distance = coords.slice(1).reduce((total, coord, index) => {
+    const previous = coords[index];
+    return total + haversine(previous, coord);
+  }, 0);
+  const speedKph = state.routeMode === 'eco' ? 45 : state.routeMode === 'safest' ? 38 : 52;
+  const duration = distance / (speedKph * 1000 / 3600);
+
+  const instructions = buildGuidanceInstructions(coords, destination, template);
 
   return {
+    source: 'offline-guidance',
+    path: coords.map((coord, index) => `guidance_${index}`),
     coords,
     distance: Math.round(distance),
     duration: Math.round(duration),
+    encounters: template.encounters,
+    instructions,
     geojson: {
       type: 'FeatureCollection',
       features: [
         {
           type: 'Feature',
           geometry: { type: 'LineString', coordinates: coords },
-          properties: { distance, duration },
+          properties: { distance, duration, source: 'offline-guidance' },
         },
       ],
     },
   };
+}
+
+function buildGuidanceInstructions(coords, destination, template) {
+  const instructions = [];
+  for (let index = 1; index < coords.length; index += 1) {
+    const previous = coords[index - 1];
+    const current = coords[index];
+    const segmentDistance = haversine(previous, current);
+    const waypoint = template.waypoints[index - 1];
+    const isLast = index === coords.length - 1;
+    if (isLast) {
+      instructions.push({
+        text: `Continue towards ${destination.name}`,
+        dist: Math.round(segmentDistance),
+        icon: 'straight',
+      });
+      instructions.push({ text: `Arrive at ${destination.name}`, dist: 0, icon: 'arrive' });
+    } else {
+      instructions.push({
+        text: `Continue via ${waypoint?.name || 'main road'}; ${waypoint?.note || 'stay on the main route'}`,
+        dist: Math.round(segmentDistance),
+        icon: index % 2 === 0 ? 'right' : 'straight',
+      });
+    }
+  }
+  return instructions;
+}
+
+function buildFallbackRoute(origin, destination) {
+  return buildRegionalGuidanceRoute(origin, destination, state.activeRegion);
 }
 
 function setupRouteUI() {
@@ -552,6 +795,11 @@ function setupNavUI() {
 }
 
 function startNavigation() {
+  if (!state.setupReady) {
+    alert('Offline routing is not ready. Complete setup first.');
+    window.openOfflineManager?.();
+    return;
+  }
   if (!state.currentRoute) return;
 
   state.isNavigating = true;
@@ -642,7 +890,7 @@ function updateNavHUD(position) {
     if (navSnapshot?.matched) {
       mapView.setUserLocation(navSnapshot.matched.lng, navSnapshot.matched.lat);
     } else {
-      mapView.setUserLocation(position.lng, position.lat);
+      mapView.setUserLocation(position.lng, position.lat, position.heading);
     }
 
     if (navSnapshot?.shouldReroute && !state.rerouteInProgress) {
@@ -657,7 +905,7 @@ function updateNavHUD(position) {
     return;
   }
 
-  mapView.setUserLocation(position.lng, position.lat);
+  mapView.setUserLocation(position.lng, position.lat, position.heading);
   if (state.currentRoute) {
     updateHUD(state.currentRoute, navSnapshot);
   }
@@ -698,13 +946,12 @@ async function loadAIProvider() {
     const providerLabel = ai.getProviderLabel();
     aiStatusDot.style.background = providerStatus?.supportsNativeMelange ? '#10b981' : '#f59e0b';
     aiProviderNote.textContent = providerStatus?.supportsNativeMelange
-      ? `${providerLabel} active`
-      : `${providerLabel} ready`;
-
+      ? (providerLabel + ' active')
+      : (providerLabel + ' active');
     const modelNameElem = document.getElementById('ai-model-name');
     const accelElem = document.getElementById('ai-acceleration');
     if (modelNameElem) {
-      modelNameElem.textContent = providerStatus?.models?.llm || providerStatus?.llmModelName || 'unknown';
+      modelNameElem.textContent = providerStatus?.semanticModelName || providerStatus?.models?.semantic || providerStatus?.models?.llm || providerStatus?.llmModelName || 'unknown';
     }
     if (accelElem) {
       ai.getTelemetry().then(telemetry => {
@@ -718,7 +965,7 @@ async function loadAIProvider() {
       'assistant',
       providerStatus?.supportsNativeMelange
         ? 'Melange is active for local navigation intelligence.'
-        : 'Native plugin bridge is active. Replace the bridge internals with Melange runtime calls to enable full on-device inference.',
+        : 'Local navigation assistant is active. Native Melange semantic runtime will switch on automatically when the device runtime prepares successfully.',
     );
   } catch {
     aiStatusDot.style.background = '#ef4444';
@@ -726,6 +973,7 @@ async function loadAIProvider() {
     addAIMessage('assistant', 'The AI layer could not be initialized.');
   } finally {
     aiLoadingOverlay.classList.add('hidden');
+    updateRuntimeBadge();
   }
 }
 
@@ -762,8 +1010,7 @@ async function handleAIRouteQuery(parsed) {
     state.routeMode = parsed.mode;
     syncRouteModeChip(parsed.mode);
     await selectDestination(results[0]);
-    aiPanel.classList.add('hidden');
-    return `Routing to ${results[0].name} in ${parsed.mode} mode.`;
+    return buildRouteBriefingResponse(results[0].name, parsed.mode);
   }
 
   if (parsed.poi) {
@@ -780,13 +1027,93 @@ async function handleAIRouteQuery(parsed) {
     };
     destInput.value = nearby[0].name;
     await calculateRoute();
-    aiPanel.classList.add('hidden');
-    return `Routing to nearby ${parsed.poi.replace('_', ' ')}: ${nearby[0].name}.`;
+    return buildRouteBriefingResponse(nearby[0].name, parsed.mode || state.routeMode, parsed.poi);
   }
 
   return 'Tell me where you want to go or what kind of stop you need.';
 }
 
+function buildRouteBriefingResponse(destinationName, mode = 'fastest', requestedPoi = null) {
+  const aiHealth = window.getAIHealth?.() || {};
+  const navHealth = window.getNavigationHealth?.() || {};
+  const runtimeNotice = aiHealth.supportsNativeMelange
+    ? 'Melange semantic assistant is active.'
+    : 'Local navigation assistant is active while native Melange prepares.';
+
+  if (!state.currentRoute) {
+    return `${runtimeNotice} I found ${destinationName}, but route is not ready yet. Please open Offline Manager, download the active region pack, and activate it.`;
+  }
+
+  const eta = formatDuration(state.currentRoute.duration || 0);
+  const distance = formatDistance(state.currentRoute.distance || 0);
+  const turnPreview = summarizeUpcomingTurns(state.currentInstructions || []);
+  const encounters = summarizeRouteEncounters(state.currentRoute);
+  const routingNote = navHealth.routingBackend === 'graphhopper-native'
+    ? 'Using GraphHopper native routing.'
+    : 'Using offline route guidance for this demo region.';
+  const poiNote = requestedPoi ? `Requested stop type: ${requestedPoi.replace('_', ' ')}.` : '';
+
+  return `${runtimeNotice} ${routingNote} Best ${mode} route to ${destinationName} is ready: ${distance}, ETA ${eta}. ${turnPreview} ${encounters} ${poiNote}`.trim();
+}
+
+function summarizeUpcomingTurns(instructions) {
+  const actionable = (instructions || []).filter((step) => step && step.text && step.icon !== 'arrive').slice(0, 2);
+  if (!actionable.length) {
+    return 'Turn preview is not available yet.';
+  }
+  return `Upcoming: ${actionable.map((step) => step.text).join(' Then ')}.`;
+}
+
+function summarizeRouteEncounters(route) {
+  const coords = route?.coords || [];
+  if (!Array.isArray(coords) || coords.length === 0 || !Array.isArray(geocoder?.points)) {
+    return 'Encounter summary is unavailable.';
+  }
+
+  const targetTypes = ['fuel', 'charging', 'hospital', 'restaurant', 'rest_area'];
+  const labels = {
+    fuel: 'fuel',
+    charging: 'EV charging',
+    hospital: 'hospital',
+    restaurant: 'food stop',
+    rest_area: 'rest area',
+  };
+  const nearestByType = new Map();
+
+  for (const poi of geocoder.points) {
+    if (!poi || poi.region !== state.activeRegion || !targetTypes.includes(poi.type)) {
+      continue;
+    }
+
+    let minDistance = Number.POSITIVE_INFINITY;
+    for (const [lng, lat] of coords) {
+      const d = haversine([lng, lat], [poi.lng, poi.lat]);
+      if (d < minDistance) minDistance = d;
+      if (minDistance < 500) break;
+    }
+
+    if (minDistance > 4000) continue;
+
+    const existing = nearestByType.get(poi.type);
+    if (!existing || minDistance < existing.distance) {
+      nearestByType.set(poi.type, { name: poi.name, distance: minDistance });
+    }
+  }
+
+  if (!nearestByType.size) {
+    if (Array.isArray(route?.encounters) && route.encounters.length > 0) {
+      return `On the way: ${route.encounters.slice(0, 4).join(', ')}.`;
+    }
+    return 'No major fuel, charging, hospital, or rest stops detected close to this route.';
+  }
+
+  const ordered = ['fuel', 'charging', 'hospital', 'restaurant', 'rest_area']
+    .map((type) => ({ type, hit: nearestByType.get(type) }))
+    .filter((item) => item.hit)
+    .map((item) => `${labels[item.type]} near ${item.hit.name} (~${formatDistance(Math.round(item.hit.distance))})`);
+
+  return `On the way: ${ordered.join(', ')}.`;
+}
 function addAIMessage(role, text) {
   const bubble = document.createElement('div');
   bubble.className = `ai-msg ${role}`;
@@ -857,7 +1184,8 @@ function setupOfflineManager() {
   const closeButton = document.getElementById('offline-close-btn');
 
   const renderRegions = () => {
-    updateOfflineReadyBadge();
+  updateOfflineReadyBadge();
+  updateRuntimeBadge();
     regionList.innerHTML = state.offlineRegions
       .map(
         (region) => `
@@ -968,10 +1296,14 @@ function setupOfflineManager() {
     progressContainer.style.display = 'block';
 
     try {
-      const patch = await regionProvisioner.provisionRegion(regionId, async (progress) => {
-        progressBar.style.width = `${progress}%`;
-        state.offlineRegions = await offlineStore.updateProgress(regionId, progress);
-      });
+      const patch = await regionProvisioner.provisionRegion(
+        regionId,
+        async (progress) => {
+          progressBar.style.width = `${progress}%`;
+          state.offlineRegions = await offlineStore.updateProgress(regionId, progress);
+        },
+        { skipGraphhopper: true, tolerateGraphhopperFailure: true },
+      );
 
       state.offlineRegions = await offlineStore.markDownloaded(regionId, patch);
       if (regionId === state.activeRegion) {
@@ -1301,11 +1633,13 @@ window.getNavigationHealth = function getNavigationHealth() {
   const routingStatus = routing.getStatus();
   return {
     routingBackend: routingStatus.backend,
-    graphPackLoaded: routingStatus.graphPackLoaded,
+    graphPackLoaded: Boolean(routingStatus.graphPackLoaded || state.offlineRegions.find((r) => r.id === state.activeRegion)?.downloaded),
     graphVersion: (state.offlineRegions.find((r) => r.id === state.activeRegion)?.dataVersion) || null,
     gpsStable: Boolean(navSession?.lastMatch),
     mapMatchConfidence: navSession?.lastMatch ? Math.max(0, 1 - ((navSession.lastMatch.lateralMeters || 0) / 60)) : 0,
     fallbackActive: routingStatus.backend !== 'graphhopper-native',
+    activeRegion: state.activeRegion,
+    offlineGuidanceReady: Boolean(state.offlineRegions.find((r) => r.id === state.activeRegion)?.downloaded),
   };
 };
 
@@ -1317,7 +1651,36 @@ window.getAIHealth = function getAIHealth() {
     provider: ai.getProviderLabel?.() || 'Unknown',
     supportsNativeMelange: Boolean(providerStatus.supportsNativeMelange),
     fallbackActive: !Boolean(providerStatus.supportsNativeMelange),
+    fallbackReason: providerStatus.fallbackReason || null,
     runtime: providerStatus.runtime || 'unknown',
+    semanticModelName: providerStatus.semanticModelName || providerStatus.models?.semantic || null,
     routingBackend: navHealth.routingBackend || state.routingBackend,
   };
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

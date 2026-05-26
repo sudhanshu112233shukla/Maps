@@ -1,4 +1,4 @@
-﻿import { GraphHopperBridge } from './GraphHopperBridge.js';
+import { GraphHopperBridge } from './GraphHopperBridge.js';
 import { GraphPackRegistry } from '../packs/GraphPackRegistry.js';
 
 export class RoutingManager {
@@ -7,12 +7,14 @@ export class RoutingManager {
     this.gh = new GraphHopperBridge();
     this.backend = 'js-astar';
     this.graphPackRegistry = new GraphPackRegistry();
+    this.graphLoaded = false;
   }
 
   async loadGraph(graphData) {
     if (this.fallbackRouter?.loadGraph) {
       await this.fallbackRouter.loadGraph(graphData);
     }
+    this.graphLoaded = Boolean(graphData?.nodes && graphData?.edges);
   }
 
   async prepareRegion({ regionId, graphhopperDir = null }) {
@@ -21,7 +23,7 @@ export class RoutingManager {
     const status = await this.gh.prepare({ regionId, graphDir: resolvedGraphDir });
     this.backend = status?.nativeAvailable && status?.prepared ? 'graphhopper-native' : 'js-astar';
     return {
-      graphPackLoaded: Boolean(resolvedGraphDir),
+      graphPackLoaded: Boolean(resolvedGraphDir) || this.graphLoaded,
       backend: this.backend,
       nativeAvailable: Boolean(status?.nativeAvailable),
       prepared: Boolean(status?.prepared),
@@ -34,7 +36,7 @@ export class RoutingManager {
       nativeAvailable: this.gh.nativeAvailable,
       prepared: this.gh.prepared,
       latencyMs: this.gh.lastLatencyMs,
-      graphPackLoaded: Boolean(this.gh.lastGraphDir),
+      graphPackLoaded: Boolean(this.gh.lastGraphDir) || this.graphLoaded,
     };
   }
 

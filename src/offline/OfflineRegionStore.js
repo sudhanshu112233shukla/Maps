@@ -2,7 +2,8 @@ import { Preferences } from '@capacitor/preferences';
 import {
   OFFLINE_REGIONS,
   getRegionById,
-  inferRegionFromCoordinates,
+  getVisibleRegions,
+  inferVisibleRegionFromCoordinates,
 } from './offlineRegions.js';
 
 const STORAGE_KEY = 'melange-offline-region-status-v1';
@@ -35,7 +36,7 @@ export class OfflineRegionStore {
   }
 
   getRegions() {
-    return OFFLINE_REGIONS.map((region) => {
+    return getVisibleRegions().map((region) => {
       const status = this.statusByRegion[region.id] || {};
       return {
         ...region,
@@ -89,13 +90,10 @@ export class OfflineRegionStore {
     const region = getRegionById(regionId);
     const status = this.statusByRegion[regionId] || {};
     const packPath = status.packPath || region?.bundledPackPath || null;
-    const packSource = status.downloaded ? buildPackSource(packPath) : null;
-    if (packSource) {
-      return packSource;
-    }
+    // Keep raster tiles stable for demo/runtime reliability.
 
     return {
-      name: status.downloaded ? 'local-pack-staged' : 'online-raster-fallback',
+      name: 'online-raster-fallback',
       type: 'raster',
       tiles: status.tiles || DEFAULT_TILES,
       attribution: status.downloaded
@@ -111,7 +109,7 @@ export class OfflineRegionStore {
   }
 
   inferRegionForPosition(lng, lat) {
-    return inferRegionFromCoordinates(lng, lat);
+    return inferVisibleRegionFromCoordinates(lng, lat);
   }
 
   async updateProgress(regionId, progress, patch = {}) {
@@ -278,3 +276,4 @@ export class OfflineRegionStore {
     return recoveredCount;
   }
 }
+

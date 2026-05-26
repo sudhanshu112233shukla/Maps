@@ -1,5 +1,6 @@
 package com.aimapsystem.app;
 
+import android.os.Build;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -39,6 +40,7 @@ public class MelangeNavigationPlugin extends Plugin {
     private String llmModelName = BuildConfig.ZETIC_LLM_MODEL;
     private String llmFallbackModelName = BuildConfig.ZETIC_LLM_FALLBACK_MODEL;
     private String speechModelName = BuildConfig.ZETIC_SPEECH_MODEL;
+    private String semanticModelName = BuildConfig.ZETIC_SEMANTIC_MODEL;
     private String speechEncoderModelName = "ZETIC-ai/whisper-base-encoder";
     private String ttsModelName = "neuphonic/pocket-tts";
     private String personalKey = BuildConfig.ZETIC_PAT;
@@ -48,6 +50,7 @@ public class MelangeNavigationPlugin extends Plugin {
     private int inferenceTimeoutMs = 4500;
     private int voiceCommandLatencyTargetMs = 2500;
     private ZeticMLangeLLMModel llmModel = null;
+    private ZeticMLangeModel semanticModel = null;
     private ZeticMLangeModel speechEncoderModel = null;
     private ZeticMLangeModel speechDecoderModel = null;
     private String llmRuntimeClass = null;
@@ -72,6 +75,7 @@ public class MelangeNavigationPlugin extends Plugin {
         llmModelName = valueOrDefault(call.getString("llmModelName"), llmModelName);
         llmFallbackModelName = valueOrDefault(call.getString("llmFallbackModelName"), llmFallbackModelName);
         speechModelName = valueOrDefault(call.getString("speechModelName"), speechModelName);
+        semanticModelName = valueOrDefault(call.getString("semanticModelName"), semanticModelName);
         speechEncoderModelName = valueOrDefault(call.getString("speechEncoderModelName"), speechEncoderModelName);
         ttsModelName = valueOrDefault(call.getString("ttsModelName"), ttsModelName);
         locale = valueOrDefault(call.getString("locale"), locale);
@@ -362,16 +366,17 @@ public class MelangeNavigationPlugin extends Plugin {
     private JSObject buildPrepareResult() {
         JSObject result = new JSObject();
         result.put("prepared", prepared);
-        result.put("runtime", nativeModelReady ? "melange-llm" : "native-bridge");
+        result.put("runtime", llmModel != null ? "melange-llm" : (semanticModel != null ? "melange-semantic" : "native-bridge"));
         result.put("supportsNativeMelange", nativeModelReady);
         result.put("supportsVoiceCommands", false);
         result.put("supportsSpeechRuntime", speechEncoderModel != null && speechDecoderModel != null);
-        result.put("supportsSemanticSearch", nativeModelReady);
-        result.put("supportsPredictiveCaching", nativeModelReady);
+        result.put("supportsSemanticSearch", semanticModel != null || nativeModelReady);
+        result.put("supportsPredictiveCaching", semanticModel != null || nativeModelReady);
         result.put("threadingModel", "ui+navigation+ai+index+background");
         result.put("llmModelName", llmModelName);
         result.put("llmFallbackModelName", llmFallbackModelName);
         result.put("speechModelName", speechModelName);
+        result.put("semanticModelName", semanticModelName);
         result.put("speechEncoderModelName", speechEncoderModelName);
         result.put("ttsModelName", ttsModelName);
         result.put("deviceClass", deviceClass);
@@ -380,6 +385,7 @@ public class MelangeNavigationPlugin extends Plugin {
         result.put("voiceCommandLatencyTargetMs", voiceCommandLatencyTargetMs);
         result.put("llmRuntimeClass", llmRuntimeClass == null ? JSONObject.NULL : llmRuntimeClass);
         result.put("speechRuntimeClass", speechRuntimeClass == null ? JSONObject.NULL : speechRuntimeClass);
+        result.put("semanticRuntimeClass", semanticModel == null ? JSONObject.NULL : ZeticMLangeModel.class.getName());
         result.put("speechEncoderReady", speechEncoderModel != null);
         result.put("speechDecoderReady", speechDecoderModel != null);
         result.put("speechEncoderInputCount", speechEncoderModel == null ? 0 : speechEncoderModel.getInputBuffers().length);
@@ -393,6 +399,8 @@ public class MelangeNavigationPlugin extends Plugin {
             nativeModelReady = false;
             return;
         }
+
+        initializeSemanticModel();
 
         String[] modelCandidates = new String[]{
             llmModelName,
@@ -416,11 +424,32 @@ public class MelangeNavigationPlugin extends Plugin {
             }
         }
 
+        if (semanticModel != null) {
+            nativeModelReady = true;
+            initializeSpeechModel();
+            return;
+        }
+
         nativeModelReady = false;
         if (lastError != null) {
             throw lastError;
         }
         initializeSpeechModel();
+    }
+
+    private void initializeSemanticModel() {
+        semanticModel = null;
+        if (personalKey == null || personalKey.trim().isEmpty()) {
+            return;
+        }
+        if (semanticModelName == null || semanticModelName.trim().isEmpty()) {
+            return;
+        }
+        try {
+            semanticModel = new ZeticMLangeModel(getContext(), personalKey, semanticModelName);
+        } catch (Exception ignored) {
+            semanticModel = null;
+        }
     }
 
     private void initializeSpeechModel() {
@@ -571,6 +600,14 @@ public class MelangeNavigationPlugin extends Plugin {
         }
         llmModel = null;
         llmRuntimeClass = null;
+        if (semanticModel != null) {
+            try {
+                semanticModel.close();
+            } catch (Exception ignored) {
+                // ignore
+            }
+        }
+        semanticModel = null;
         if (speechEncoderModel != null) {
             try {
                 speechEncoderModel.close();

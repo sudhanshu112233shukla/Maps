@@ -1,4 +1,4 @@
-const CACHE_NAME = 'melange-maps-shell-v3';
+const CACHE_NAME = 'melange-maps-shell-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -7,6 +7,10 @@ const APP_SHELL = [
   './icons.svg',
   './data/graph/india.json',
   './data/poi/india.json',
+  './data/graph/usa.json',
+  './data/poi/usa.json',
+  './data/graph/skorea.json',
+  './data/poi/skorea.json',
 ];
 
 self.addEventListener('install', (event) => {

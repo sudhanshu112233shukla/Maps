@@ -99,47 +99,46 @@ export const OFFLINE_REGIONS = [
   },
   {
     id: 'india_goa',
-    name: 'India ? Goa',
+    name: 'India · Goa',
     dataVersion: '2026.05',
     sizeLabel: '220 MB',
     viewport: { center: [74.124, 15.2993], zoom: 9.2 },
     bounds: { minLng: 73.7, maxLng: 74.45, minLat: 14.9, maxLat: 15.8 },
-    bundledPackPath: '/data/maps/india_goa.pmtiles',
-    graphPath: '/data/graph/india_goa.json',
-    poiPath: '/data/poi/india_goa.json',
+    bundledPackPath: '/data/maps/india.pmtiles',
+    graphPath: '/data/graph/india.json',
+    poiPath: '/data/poi/india.json',
     automotiveFocus: 'City + coastal roads, parking, fuel, emergency stops',
-    releaseStatus: 'planned',
+    releaseStatus: 'released',
     releasePriority: 8,
   },
   {
     id: 'usa_hawaii',
-    name: 'USA ? Hawaii',
+    name: 'USA · Hawaii',
     dataVersion: '2026.05',
     sizeLabel: '260 MB',
     viewport: { center: [-157.8583, 21.3069], zoom: 8.6 },
     bounds: { minLng: -160.5, maxLng: -154.5, minLat: 18.8, maxLat: 22.5 },
-    bundledPackPath: '/data/maps/usa_hawaii.pmtiles',
-    graphPath: '/data/graph/usa_hawaii.json',
-    poiPath: '/data/poi/usa_hawaii.json',
+    bundledPackPath: '/data/maps/usa.pmtiles',
+    graphPath: '/data/graph/usa.json',
+    poiPath: '/data/poi/usa.json',
     automotiveFocus: 'Island highways, parking, charging, tourist corridors',
-    releaseStatus: 'planned',
+    releaseStatus: 'released',
     releasePriority: 9,
   },
   {
     id: 'kr_seoul_core',
-    name: 'Korea ? Seoul Core',
+    name: 'Korea · Seoul Core',
     dataVersion: '2026.05',
     sizeLabel: '180 MB',
     viewport: { center: [126.978, 37.5665], zoom: 10.4 },
     bounds: { minLng: 126.73, maxLng: 127.22, minLat: 37.41, maxLat: 37.71 },
-    bundledPackPath: '/data/maps/kr_seoul_core.pmtiles',
-    graphPath: '/data/graph/kr_seoul_core.json',
-    poiPath: '/data/poi/kr_seoul_core.json',
+    bundledPackPath: '/data/maps/skorea.pmtiles',
+    graphPath: '/data/graph/skorea.json',
+    poiPath: '/data/poi/skorea.json',
     automotiveFocus: 'Dense urban roads, parking, charging, guided reroutes',
-    releaseStatus: 'planned',
+    releaseStatus: 'released',
     releasePriority: 10,
   },
-
   {
     id: 'australia',
     name: 'Australia',
@@ -179,5 +178,18 @@ export function inferRegionFromCoordinates(lng, lat) {
       lat >= bounds.minLat &&
       lat <= bounds.maxLat
     );
+  }) || null;
+}
+
+export const DEMO_REGION_IDS = ['india_goa', 'usa_hawaii', 'kr_seoul_core'];
+
+export function getVisibleRegions() {
+  return OFFLINE_REGIONS.filter((region) => DEMO_REGION_IDS.includes(region.id));
+}
+
+export function inferVisibleRegionFromCoordinates(lng, lat) {
+  return getVisibleRegions().find((region) => {
+    const bounds = region.bounds;
+    return lng >= bounds.minLng && lng <= bounds.maxLng && lat >= bounds.minLat && lat <= bounds.maxLat;
   }) || null;
 }

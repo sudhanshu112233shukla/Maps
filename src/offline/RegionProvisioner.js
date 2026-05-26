@@ -52,7 +52,7 @@ export class RegionProvisioner {
     return { regionId, removed: true };
   }
 
-  async provisionRegion(regionId, progressCallback = null) {
+  async provisionRegion(regionId, progressCallback = null, options = {}) {
     const region = getRegionById(regionId);
     if (!region) {
       throw new Error(`Unknown region: ${regionId}`);
@@ -130,19 +130,29 @@ export class RegionProvisioner {
     await this.packManager.finalizeRegion?.(regionId);
     // Optional GraphHopper pack lifecycle for regions that publish graph bundle metadata.
     const ghBundleUrl = manifest?.graphhopperBundleUrl || manifest?.graphhopper?.bundleUrl || null;
+    const skipGraphhopper = options?.skipGraphhopper !== false;
+    const tolerateGraphhopperFailure = options?.tolerateGraphhopperFailure !== false;
     const ghGraphDir = manifest?.graphhopperDir || manifest?.graphhopper?.graphDir || null;
-    if (ghBundleUrl && ghGraphDir) {
-      progressCallback?.(95, 'Preparing GraphHopper graph pack');
-      await this.graphPackManager.downloadToTemp(regionId, ghBundleUrl);
-      await this.graphPackManager.validateDownloadedPack(regionId, {
-        checksum: manifest?.graphhopperChecksum || manifest?.graphhopper?.checksum || null,
-        graphhopperVersion: manifest?.graphhopperVersion || manifest?.graphhopper?.version || '9.0',
-      });
-      const activation = await this.graphPackManager.activateGraphPack(regionId, ghGraphDir, {
-        graphVersion: manifest?.graphVersion || manifest?.dataVersion || patch.dataVersion,
-        graphhopperVersion: manifest?.graphhopperVersion || manifest?.graphhopper?.version || '9.0',
-      });
-      patch = { ...patch, graphhopperDir: activation.graphhopperDir };
+    if (ghBundleUrl && ghGraphDir && !skipGraphhopper) {
+      try {
+        progressCallback?.(95, 'Preparing GraphHopper graph pack');
+        await this.graphPackManager.downloadToTemp(regionId, ghBundleUrl);
+        await this.graphPackManager.validateDownloadedPack(regionId, {
+          checksum: manifest?.graphhopperChecksum || manifest?.graphhopper?.checksum || null,
+          graphhopperVersion: manifest?.graphhopperVersion || manifest?.graphhopper?.version || '9.0',
+        });
+        const activation = await this.graphPackManager.activateGraphPack(regionId, ghGraphDir, {
+          graphVersion: manifest?.graphVersion || manifest?.dataVersion || patch.dataVersion,
+          graphhopperVersion: manifest?.graphhopperVersion || manifest?.graphhopper?.version || '9.0',
+        });
+        patch = { ...patch, graphhopperDir: activation.graphhopperDir };
+      } catch (error) {
+        if (!tolerateGraphhopperFailure) {
+          throw error;
+        }
+        patch = { ...patch, graphhopperDir: null };
+        progressCallback?.(97, `GraphHopper pack skipped: ${error?.message || 'activation failed'}`);
+      }
     }
 
     if (patch?.graphhopperDir) {

@@ -9,6 +9,21 @@ A premium, **100% offline-first smart navigation system** built specifically for
 
 ---
 
+## Demo APK Status (May 2026)
+
+Current demo target is Android-first with three selectable regions: `india_goa`, `usa_hawaii`, and `kr_seoul_core`. On first launch these regions are staged as ready so the tester can choose a region, set current/start location, enter a destination, and start guided navigation.
+
+What is active in the demo build:
+- Stable MapLibre map shell with a blue heading arrow for live GPS position.
+- Local/offline destination search seeded for Goa, Hawaii, and Seoul demo flows.
+- Visible blue route polyline, turn list, ETA, distance, and route encounter briefing.
+- Offline route guidance fallback when a native GraphHopper graph is not available.
+- Zetic Melange SDK dependency is wired; semantic model target is `Steve/all-MiniLM-L6-v2` through `ZeticMLangeModel`. Native Melange runtime requires Android 12/API 31+ because the Zetic runtime library declares `minSdkVersion 31`; older devices install the compatibility build and use the local assistant path.
+
+Latest local APK outputs are written to `H:\map apk\` with unique filenames.
+
+---
+
 ## HMI Dashboard Interface Overview
 The system features a **glassmorphic, state-of-the-art visual cockpit** optimized for high-glare automotive display dashboards:
 * **Interactive Map Layer:** Seamless local MapLibre-rendered vector tiles with robust multi-touch and adaptive scaling.

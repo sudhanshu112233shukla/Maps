@@ -77,40 +77,54 @@ export class MapView {
     this.map.getSource('route')?.setData(this.lastRouteGeoJson);
   }
 
-  setUserLocation(lng, lat) {
+  setUserLocation(lng, lat, heading = null) {
     if (this.userMarker) {
       this.userMarker.setLngLat([lng, lat]);
+      this.#updateUserHeading(heading);
       return;
     }
 
     const markerElement = document.createElement('div');
     markerElement.className = 'user-location-marker';
     markerElement.innerHTML = `
-      <div class="user-dot-pulse"></div>
-      <div class="user-dot"></div>
+      <div class="user-arrow-pulse"></div>
+      <div class="user-arrow">
+        <svg viewBox="0 0 44 44" aria-hidden="true">
+          <path d="M22 3 36 39 22 31 8 39 22 3Z" fill="#1d4ed8" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="22" cy="24" r="4" fill="#ffffff"/>
+        </svg>
+      </div>
     `;
-    markerElement.style.cssText = 'position: relative; width: 20px; height: 20px;';
+    markerElement.style.cssText = 'position: relative; width: 44px; height: 44px; transform-origin: center;';
 
-    markerElement.querySelector('.user-dot').style.cssText = `
-      position: absolute;
-      inset: 4px;
-      background: #2563eb;
-      border-radius: 50%;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 10px rgba(37, 99, 235, 0.8);
-    `;
-
-    markerElement.querySelector('.user-dot-pulse').style.cssText = `
+    markerElement.querySelector('.user-arrow').style.cssText = `
       position: absolute;
       inset: 0;
-      background: rgba(37, 99, 235, 0.28);
+      filter: drop-shadow(0 4px 10px rgba(37, 99, 235, 0.45));
+      transform-origin: center;
+      transition: transform 180ms linear;
+    `;
+
+    markerElement.querySelector('.user-arrow-pulse').style.cssText = `
+      position: absolute;
+      inset: 8px;
+      background: rgba(37, 99, 235, 0.22);
       border-radius: 50%;
       animation: gps-pulse 1.5s infinite;
     `;
 
-    this.userMarker = new maplibregl.Marker({ element: markerElement })
+    this.userMarker = new maplibregl.Marker({ element: markerElement, rotationAlignment: 'map' })
       .setLngLat([lng, lat])
       .addTo(this.map);
+    this.#updateUserHeading(heading);
+  }
+
+
+  #updateUserHeading(heading = null) {
+    const marker = this.userMarker?.getElement?.();
+    const arrow = marker?.querySelector?.('.user-arrow');
+    if (!arrow || !Number.isFinite(Number(heading))) return;
+    arrow.style.transform = `rotate(${Number(heading)}deg)`;
   }
 
   addPinMarker(lng, lat, label = '') {

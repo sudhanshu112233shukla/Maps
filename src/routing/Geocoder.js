@@ -107,6 +107,70 @@ const DEFAULT_POIS = [
     keywords: ['city'],
   },
   {
+    name: 'Panaji Bus Stand',
+    type: 'station',
+    lng: 73.8278,
+    lat: 15.4909,
+    region: 'india_goa',
+    keywords: ['panaji', 'goa', 'bus stand', 'station'],
+  },
+  
+  {
+    name: 'South Goa',
+    type: 'city',
+    lng: 74.0,
+    lat: 15.1,
+    region: 'india_goa',
+    keywords: ['south goa', 'goa south', 'margao', 'madgaon', 'sanguem', 'quepem'],
+  },
+  {
+    name: 'North Goa',
+    type: 'city',
+    lng: 73.95,
+    lat: 15.58,
+    region: 'india_goa',
+    keywords: ['north goa', 'goa north', 'panaji', 'mapusa'],
+  },
+  {
+    name: 'Margao Railway Station',
+    type: 'station',
+    lng: 73.958,
+    lat: 15.273,
+    region: 'india_goa',
+    keywords: ['margao station', 'madgaon station', 'railway', 'goa station'],
+  },
+  {
+    name: 'Honolulu International Airport',
+    type: 'landmark',
+    lng: -157.9224,
+    lat: 21.3245,
+    region: 'usa_hawaii',
+    keywords: ['honolulu', 'hawaii', 'airport'],
+  },
+  {
+    name: 'Waikiki Beach',
+    type: 'landmark',
+    lng: -157.8266,
+    lat: 21.2767,
+    region: 'usa_hawaii',
+    keywords: ['waikiki', 'hawaii', 'beach'],
+  },
+  {
+    name: 'Seoul Station',
+    type: 'station',
+    lng: 126.9707,
+    lat: 37.5551,
+    region: 'kr_seoul_core',
+    keywords: ['seoul', 'station', 'korea'],
+  },
+  {
+    name: 'Gangnam Station',
+    type: 'station',
+    lng: 127.0276,
+    lat: 37.4979,
+    region: 'kr_seoul_core',
+    keywords: ['gangnam', 'seoul', 'station'],
+  },  {
     name: 'Pune, India',
     type: 'city',
     lng: 73.8567,
@@ -152,7 +216,16 @@ export class Geocoder {
   }
 
   setDataset(points) {
-    this.points = Array.isArray(points) && points.length > 0 ? points : [...DEFAULT_POIS];
+    const incoming = Array.isArray(points) && points.length > 0 ? points : [];
+    const merged = [...incoming, ...DEFAULT_POIS];
+    const seen = new Set();
+    this.points = merged.filter((poi) => {
+      if (!poi || !poi.name) return false;
+      const key = `${poi.region || ''}:${poi.name}`.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     this.index.build(this.points);
     this.cache.clear();
   }
@@ -293,3 +366,6 @@ export class Geocoder {
     }
   }
 }
+
+
+

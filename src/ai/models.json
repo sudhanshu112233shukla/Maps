@@ -3,6 +3,15 @@
   "version": 1,
   "generated": "2026-05-16",
   "notes": "Single source of truth for on-device AI models. Consumed by JS (AIAssistant), Android (MelangeNavigationPlugin), and future iOS Swift plugin. Update this file to add or rotate models.",
+  "semantic": {
+    "embedding": {
+      "id": "Steve/all-MiniLM-L6-v2",
+      "label": "MiniLM semantic navigation embeddings",
+      "runtime": "ZeticMLangeModel",
+      "version": 2,
+      "supported": true
+    }
+  },
   "llm": {
     "primary": {
       "id": "google/gemma-3-4b-it",

@@ -169,6 +169,7 @@ class NativeMelangeProvider {
         speech: this.runtimeConfig.speechModelName,
         speechEncoder: this.runtimeConfig.speechEncoderModelName,
         tts: this.runtimeConfig.ttsModelName || null,
+        semantic: this.runtimeConfig.semanticModelName || null,
       },
     };
   }
@@ -181,6 +182,7 @@ class NativeMelangeProvider {
       llmFallbackModelName: this.runtimeConfig.llmFallbackModelName,
       llmVersion: this.options.llmVersion || MODELS.version || 1,
       speechModelName: this.runtimeConfig.speechModelName,
+      semanticModelName: this.runtimeConfig.semanticModelName,
       speechEncoderModelName: this.runtimeConfig.speechEncoderModelName,
       ttsModelName: this.runtimeConfig.ttsModelName,
       speechVersion: this.options.speechVersion || 1,
@@ -199,7 +201,7 @@ class NativeMelangeProvider {
   }
 
   getLabel() {
-    return this.metadata.supportsNativeMelange ? 'Melange' : 'Melange bridge';
+    return this.metadata.supportsNativeMelange ? 'Melange semantic' : 'Local assistant';
   }
 
   getStatus() {
@@ -285,6 +287,7 @@ export class AIAssistant {
     this.provider = new RuleBasedNavigationProvider(options);
     this.ready = false;
     this.loading = false;
+    this.nativePrepareError = null;
     this.progressCallbacks = [];
   }
 
@@ -305,7 +308,15 @@ export class AIAssistant {
   }
 
   getProviderStatus() {
-    return this.provider?.getStatus?.() || null;
+    const base = this.provider?.getStatus?.() || null;
+    if (!base) return null;
+    if (!base.supportsNativeMelange && this.nativePrepareError) {
+      return {
+        ...base,
+        fallbackReason: this.nativePrepareError,
+      };
+    }
+    return base;
   }
 
   supportsVoiceCommands() {
@@ -337,6 +348,9 @@ export class AIAssistant {
         this.ready = true;
         break;
       } catch (error) {
+        if (candidate instanceof NativeMelangeProvider) {
+          this.nativePrepareError = error?.message || 'Native runtime prepare failed';
+        }
         lastError = error;
       }
     }
@@ -432,3 +446,5 @@ export class AIAssistant {
     this.progressCallbacks.forEach((callback) => callback(percent, message));
   }
 }
+
+

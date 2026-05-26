@@ -56,6 +56,7 @@ export function buildMelangeRuntimeConfig(options = {}) {
     deviceClass.profile?.llm === 'fallback'
       ? fallbackLlm
       : primaryLlm;
+  const semanticEmbedding = MODELS.semantic?.embedding || {};
   const speechAsr = MODELS.speech?.asr || {};
   const speechTts = MODELS.speech?.tts || {};
 
@@ -65,6 +66,7 @@ export function buildMelangeRuntimeConfig(options = {}) {
     deviceMemoryMb: deviceClass.memoryMb,
     llmModelName: options.llmModelName || selectedLlm.id || primaryLlm.id || '',
     llmFallbackModelName: options.llmFallbackModelName || fallbackLlm.id || primaryLlm.id || '',
+    semanticModelName: options.semanticModelName || semanticEmbedding.id || 'Steve/all-MiniLM-L6-v2',
     speechModelName: options.speechModelName || speechAsr.id || '',
     speechEncoderModelName: options.speechEncoderModelName || speechAsr.encoder || '',
     ttsModelName:
