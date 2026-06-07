@@ -11,7 +11,7 @@ A premium, **100% offline-first smart navigation system** built specifically for
 
 ## Demo Video
 
-![Melange Maps autoplay demo preview](demo/images/melange-maps-demo-last-30s.gif)
+![Melange Maps autoplay demo preview](demo/images/melange-maps-demo-last-60s.gif)
 
 [Open full demo video](demo/videos/melange-maps-demo-20260527.mp4)
 
