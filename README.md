@@ -109,6 +109,15 @@ npm install
 
 ## Demo
 
+
+### Demo Video
+
+<video src="demo/videos/melange-maps-demo-20260527.mp4" controls width="100%">
+  Your browser does not support embedded video. Open `demo/videos/melange-maps-demo-20260527.mp4` directly.
+</video>
+
+[Open demo video directly](demo/videos/melange-maps-demo-20260527.mp4)
+
 For a user-facing demo runbook, use `docs/DEMO_RUNBOOK.md`.
 
 ### Launch Development Server:
