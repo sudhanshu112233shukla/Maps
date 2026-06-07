@@ -11,13 +11,9 @@ A premium, **100% offline-first smart navigation system** built specifically for
 
 ## Demo Video
 
-<video src="https://raw.githubusercontent.com/sudhanshu112233shukla/Maps/main/demo/videos/melange-maps-demo-20260527.mp4" autoplay muted loop playsinline controls width="100%">
-  Your browser does not support embedded video. Open the demo video directly from the link below.
-</video>
+![Melange Maps autoplay demo preview](demo/images/melange-maps-demo-last-30s.gif)
 
-[Open demo video directly](demo/videos/melange-maps-demo-20260527.mp4)
-
-> Note: GitHub may block autoplay in some browsers. The direct video link remains available if the embedded player does not start automatically.
+[Open full demo video](demo/videos/melange-maps-demo-20260527.mp4)
 
 ---
 
