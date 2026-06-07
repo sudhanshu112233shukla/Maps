@@ -159,15 +159,7 @@ npm run selfcheck:all
 
 ---
 
-## Melange Runtime Capability Truth Table
 
-The app now reports capability flags from actual runtime state, not static assumptions.
-
-| Runtime State | `supportsNativeMelange` | `supportsSpeechRuntime` | `supportsVoiceCommands` | Behavior |
-| :--- | :---: | :---: | :---: | :--- |
-| Native Melange LLM loaded | ✅ | ❌/✅ | ❌ | Intent/chat on device, voice stays fallback-safe until speech tensors are wired |
-| Native Melange unavailable | ❌ | ❌ | ❌ | JS rule-based fallback for parse/chat/search orchestration |
-| Native speech runtime loaded + validated | ✅ | ✅ | ✅ | Full on-device voice command path enabled |
 
 Phase-1 closure gate (current): real Whisper tensor encoder/decoder I/O must be wired and device-validated on Android + iOS before voice is marked production-ready.
 
