@@ -9,6 +9,18 @@ A premium, **100% offline-first smart navigation system** built specifically for
 
 ---
 
+## Demo Video
+
+<video src="https://raw.githubusercontent.com/sudhanshu112233shukla/Maps/main/demo/videos/melange-maps-demo-20260527.mp4" autoplay muted loop playsinline controls width="100%">
+  Your browser does not support embedded video. Open the demo video directly from the link below.
+</video>
+
+[Open demo video directly](demo/videos/melange-maps-demo-20260527.mp4)
+
+> Note: GitHub may block autoplay in some browsers. The direct video link remains available if the embedded player does not start automatically.
+
+---
+
 ## Demo APK Status (May 2026)
 
 Current demo target is Android-first with three selectable regions: `india_goa`, `usa_hawaii`, and `kr_seoul_core`. On first launch these regions are staged as ready so the tester can choose a region, set current/start location, enter a destination, and start guided navigation.
@@ -109,14 +121,6 @@ npm install
 
 ## Demo
 
-
-### Demo Video
-
-<video src="demo/videos/melange-maps-demo-20260527.mp4" controls width="100%">
-  Your browser does not support embedded video. Open `demo/videos/melange-maps-demo-20260527.mp4` directly.
-</video>
-
-[Open demo video directly](demo/videos/melange-maps-demo-20260527.mp4)
 
 For a user-facing demo runbook, use `docs/DEMO_RUNBOOK.md`.
 
